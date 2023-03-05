@@ -1,0 +1,9 @@
+{
+  "name": "lifeplanner",
+  "version": "1.0.0",
+  "description": "Personal Life Planner API",
+  "main": "src/app.js",
+  "author": "Wan Peninsula",
+  "license": "MIT",
+  "private": false
+}
