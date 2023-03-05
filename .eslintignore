@@ -1,0 +1,11 @@
+# Ignore test data
+__fixtures__
+__tests__
+__mocks__
+
+# Ignore artifacts
+build
+coverage
+
+node_modules/
+dist/
