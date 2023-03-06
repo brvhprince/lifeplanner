@@ -17,6 +17,13 @@ enum AccountType {
   bank
 }
 
+enum UserStatus {
+  active
+  inactive
+  banned
+  suspended
+}
+
 enum Status {
   active
   inactive
@@ -156,32 +163,159 @@ enum CareerStatus {
   abandoned
 }
 
+enum TransferStatus {
+  active
+  reversed
+}
+
+enum ProfileGender {
+  male
+  female
+  intersex
+  nonconforming
+  other
+}
+
+enum InvestmentType {
+  stocks
+  bonds
+  cash_equivalent
+  others
+}
+
+enum InvestmentStatus {
+  todo
+  active
+  paused
+  cancelled
+  completed
+}
+
+enum SavingsStatus {
+  todo
+  active
+  paused
+  cancelled
+  completed
+}
+
+enum ReminderStatus {
+  active
+  paused
+  completed
+  cancelled
+}
+
+enum ReminderFrequency {
+  never
+  daily
+  weekly
+  monthly
+  yearly
+}
+
+enum NotificationStatus {
+  read
+  unread
+}
+
+enum SchduleStatus {
+  active
+  paused
+  completed
+  cancelled
+}
+
+enum ScheduleFrequency {
+  never
+  daily
+  weekly
+  weekdays
+  weekends
+  fortnightly
+  monthly
+  every3months
+  every6months
+  yearly
+  custom
+}
+
+enum ScheduleEndsOn {
+  never
+  date
+}
+
 model User {
-  id          Int      @id @default(autoincrement())
-  user_id     String   @unique
-  first_name  String
-  other_names String
-  email       String   @unique
-  phone       String?
-  hash        String   @unique
-  created_at  DateTime @default(now())
-  updated_at  DateTime @default(now()) @updatedAt
+  id                Int               @id @default(autoincrement())
+  user_id           String            @unique
+  first_name        String
+  other_names       String
+  email             String            @unique
+  phone             String?
+  accounts          Account[]
+  goals             Goal[]
+  transactions      Transaction[]
+  profile           Profile           @relation(fields: [user_id], references: [user_id], onUpdate: Cascade, onDelete: Cascade)
+  status            UserStatus        @default(active)
+  message           String?
+  hash              String            @unique
+  created_at        DateTime          @default(now())
+  updated_at        DateTime          @default(now()) @updatedAt
+  subscriptions     Subscription[]
+  expenses          Expense[]
+  income            Income[]
+  notes             Note[]
+  debt              Debt[]
+  responsibilities  Responsibility[]
+  future_plans      FuturePlan[]
+  employers         Employer[]
+  projects          Project[]
+  branding          Branding[]
+  memories          Memories[]
+  learnings         Learning[]
+  relationships     Relationship[]
+  careers           Career[]
+  account_transfers AccountTransfer[]
+  investments       Investment[]
+  savings           Savings[]
+  reminders         Reminder[]
+  reports           Report[]
+  activities        Activity[]
+  notifications     Notification[]
+  wishlists         Wishlist[]
+  schedules         Schedule[]
 }
 
 model Account {
-  id          Int         @id @default(autoincrement())
-  account_id  String      @unique
-  user_id     String
-  title       String
-  description String
-  currency    String
-  type        AccountType
-  primary     Boolean     @default(false)
-  balance     Float
-  status      Status      @default(active)
-  hash        String      @unique
-  created_at  DateTime    @default(now())
-  updated_at  DateTime    @default(now()) @updatedAt
+  id            Int               @id @default(autoincrement())
+  account_id    String            @unique
+  user_id       String
+  title         String
+  description   String
+  currency      String
+  image_id      Int?
+  files         String?
+  type          AccountType
+  primary       Boolean           @default(false)
+  balance       Float
+  user          User?             @relation(fields: [user_id], references: [user_id], onUpdate: Cascade, onDelete: Cascade)
+  metadata      Json?
+  status        Status            @default(active)
+  hash          String            @unique
+  created_at    DateTime          @default(now())
+  updated_at    DateTime          @default(now()) @updatedAt
+  goal_savings  GoalSaving[]
+  transactions  Transaction[]
+  image         File?             @relation(fields: [image_id], references: [id], onUpdate: SetNull, onDelete: SetNull)
+  subscriptions Subscription[]
+  expenses      Expense[]
+  income        Income[]
+  debt          Debt[]
+  employers     Employer[]
+  to_accounts   AccountTransfer[] @relation(name: "ToAccount")
+  from_accounts AccountTransfer[] @relation(name: "FromAccount")
+  investments   Investment[]
+  savings       Savings[]
 }
 
 model Goal {
@@ -192,14 +326,19 @@ model Goal {
   description       String?
   amount            Float
   currency          String
+  image_id          Int?
+  files             String?
   contribution_type ContributionType
   custom_type       String?
   deadline          DateTime         @db.Date
   savings           GoalSaving[]
+  metadata          Json?
+  user              User?            @relation(fields: [user_id], references: [user_id], onUpdate: Cascade, onDelete: Cascade)
   status            GoalStatus       @default(active)
   hash              String           @unique
   created_at        DateTime         @default(now())
   updated_at        DateTime         @default(now()) @updatedAt
+  image             File?            @relation(fields: [image_id], references: [id], onUpdate: SetNull, onDelete: SetNull)
 }
 
 model GoalSaving {
@@ -209,7 +348,9 @@ model GoalSaving {
   goal_id    String
   amount     Float
   account_id String
-  goal       Goal?    @relation(fields: [goal_id], references: [goal_id])
+  metadata   Json?
+  account    Account? @relation(fields: [account_id], references: [account_id], onUpdate: NoAction, onDelete: NoAction)
+  goal       Goal?    @relation(fields: [goal_id], references: [goal_id], onUpdate: Cascade, onDelete: Cascade)
   hash       String   @unique
   created_at DateTime @default(now())
   updated_at DateTime @default(now()) @updatedAt
@@ -224,10 +365,15 @@ model Transaction {
   currency         String
   account_id       String
   status           TransactionSatus
+  user             User?            @relation(fields: [user_id], references: [user_id], onUpdate: Cascade, onDelete: Cascade)
+  account          Account?         @relation(fields: [account_id], references: [account_id], onUpdate: Cascade, onDelete: Cascade)
+  metadata         Json?
   message          String?
   hash             String           @unique
   created_at       DateTime         @default(now())
   updated_at       DateTime         @default(now()) @updatedAt
+  expenses         Expense[]
+  income           Income[]
 }
 
 model TransactionCategory {
@@ -237,11 +383,15 @@ model TransactionCategory {
   transaction_type TransactionType
   title            String
   description      String?
-  icon             Int?
+  image_id         Int?
+  metadata         Json?
   status           Status          @default(active)
   hash             String          @unique
   created_at       DateTime        @default(now())
   updated_at       DateTime        @default(now()) @updatedAt
+  image            File?           @relation(fields: [image_id], references: [id])
+  expenses         Expense[]
+  income           Income[]
 }
 
 model Subscription {
@@ -250,21 +400,25 @@ model Subscription {
   user_id         String
   title           String
   description     String?
-  icon            Int?
+  image_id        Int?
   renews          DateTime
   amount          Float
   account_id      String
+  metadata        Json?
   status          SubscriptionStatus
+  user            User?              @relation(fields: [user_id], references: [user_id])
+  account         Account?           @relation(fields: [account_id], references: [account_id])
   message         String?
   hash            String             @unique
   created_at      DateTime           @default(now())
   updated_at      DateTime           @default(now()) @updatedAt
+  image           File?              @relation(fields: [image_id], references: [id])
 }
 
 model Expense {
-  id             Int              @id @default(autoincrement())
+  id             Int                  @id @default(autoincrement())
   user_id        String
-  expense_id     String           @unique
+  expense_id     String               @unique
   category_id    String
   account_id     String
   title          String
@@ -272,19 +426,26 @@ model Expense {
   amount         Float
   currency       String
   date           DateTime
+  recurring      Boolean              @default(false)
+  renews_at      DateTime?            @db.Date
   transaction_id String?
-  files          Int?
+  files          String?
+  metadata       Json?
+  transaction    Transaction?         @relation(fields: [transaction_id], references: [transaction_id])
+  category       TransactionCategory? @relation(fields: [category_id], references: [category_id])
+  user           User?                @relation(fields: [user_id], references: [user_id])
+  account        Account?             @relation(fields: [account_id], references: [account_id])
   status         TransactionSatus
   message        String?
-  hash           String           @unique
-  created_at     DateTime         @default(now())
-  updated_at     DateTime         @default(now()) @updatedAt
+  hash           String               @unique
+  created_at     DateTime             @default(now())
+  updated_at     DateTime             @default(now()) @updatedAt
 }
 
 model Income {
-  id             Int              @id @default(autoincrement())
+  id             Int                  @id @default(autoincrement())
   user_id        String
-  income_id      String           @unique
+  income_id      String               @unique
   category_id    String
   account_id     String
   title          String
@@ -292,13 +453,20 @@ model Income {
   amount         Float
   currency       String
   date           DateTime
+  recurring      Boolean              @default(false)
+  renews_at      DateTime?            @db.Date
   transaction_id String?
-  files          Int?
+  files          String?
+  metadata       Json?
+  transaction    Transaction?         @relation(fields: [transaction_id], references: [transaction_id])
+  category       TransactionCategory? @relation(fields: [category_id], references: [category_id])
+  user           User?                @relation(fields: [user_id], references: [user_id])
+  account        Account?             @relation(fields: [account_id], references: [account_id])
   status         TransactionSatus
   message        String?
-  hash           String           @unique
-  created_at     DateTime         @default(now())
-  updated_at     DateTime         @default(now()) @updatedAt
+  hash           String               @unique
+  created_at     DateTime             @default(now())
+  updated_at     DateTime             @default(now()) @updatedAt
 }
 
 model Note {
@@ -307,7 +475,11 @@ model Note {
   note_id    String   @unique
   title      String
   contents   String
-  files      Int?
+  image_id   Int?
+  files      String?
+  metadata   Json?
+  user       User?    @relation(fields: [user_id], references: [user_id], onUpdate: Cascade, onDelete: Cascade)
+  image      File?    @relation(fields: [image_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
   hash       String   @unique
   created_at DateTime @default(now())
   updated_at DateTime @default(now()) @updatedAt
@@ -319,14 +491,17 @@ model Debt {
   debt_id     String     @unique
   title       String
   description String?
-  icon        Int?
+  image_id    Int?
   amount      Float
   currency    String
   account_id  String?
   metadata    Json?
-  files       Int?
+  files       String?
   due_date    DateTime?
   paid_date   DateTime?
+  user        User?      @relation(fields: [user_id], references: [user_id])
+  image       File?      @relation(fields: [image_id], references: [id])
+  account     Account?   @relation(fields: [account_id], references: [account_id])
   status      DebtStatus
   hash        String     @unique
   created_at  DateTime   @default(now())
@@ -334,31 +509,35 @@ model Debt {
 }
 
 model Responsibility {
-  id                Int                  @id @default(autoincrement())
+  id                Int                     @id @default(autoincrement())
   user_id           String
-  responsibility_id String               @unique
+  responsibility_id String                  @unique
   category_id       String
   title             String
   description       String?
-  icon              Int?
+  image_id          Int?
   metadata          Json?
-  status            ResponsibilityStatus @default(active)
+  status            ResponsibilityStatus    @default(active)
+  user              User?                   @relation(fields: [user_id], references: [user_id])
+  image             File?                   @relation(fields: [image_id], references: [id])
+  category          ResponsibilityCategory? @relation(fields: [category_id], references: [category_id])
   message           String?
-  hash              String               @unique
-  created_at        DateTime             @default(now())
-  updated_at        DateTime             @default(now()) @updatedAt
+  hash              String                  @unique
+  created_at        DateTime                @default(now())
+  updated_at        DateTime                @default(now()) @updatedAt
 }
 
 model ResponsibilityCategory {
-  id          Int      @id @default(autoincrement())
-  user_id     String
-  category_id String   @unique
-  title       String
-  description String?
-  status      Status   @default(active)
-  hash        String   @unique
-  created_at  DateTime @default(now())
-  updated_at  DateTime @default(now()) @updatedAt
+  id               Int              @id @default(autoincrement())
+  user_id          String
+  category_id      String           @unique
+  title            String
+  description      String?
+  status           Status           @default(active)
+  hash             String           @unique
+  created_at       DateTime         @default(now())
+  updated_at       DateTime         @default(now()) @updatedAt
+  responsibilities Responsibility[]
 }
 
 model FuturePlan {
@@ -367,12 +546,14 @@ model FuturePlan {
   plan_id        String            @unique
   title          String
   description    String?
-  icon           Int?
+  image_id       Int?
   metadata       Json?
-  files          Int?
+  files          String?
   expected_date  DateTime?
   fulfilled_date DateTime?
   status         FuturePlansStatus @default(todo)
+  user           User?             @relation(fields: [user_id], references: [user_id])
+  image          File?             @relation(fields: [image_id], references: [id])
   message        String?
   hash           String            @unique
   created_at     DateTime          @default(now())
@@ -390,9 +571,13 @@ model Employer {
   payment_duration EmployerPaymentDuration
   account_id       String?
   address          String
-  image            Int?
+  image_id         Int?
   metadata         Json?
   status           EmployerStatus          @default(todo)
+  user             User?                   @relation(fields: [user_id], references: [user_id])
+  image            File?                   @relation(fields: [image_id], references: [id])
+  account          Account?                @relation(fields: [account_id], references: [account_id])
+  contacts         EmployerContact[]
   message          String?
   hash             String                  @unique
   created_at       DateTime                @default(now())
@@ -408,6 +593,8 @@ model EmployerContact {
   type        EmployerContactType
   value       String
   description String?
+  employer    Employer            @relation(fields: [employer_id], references: [employer_id])
+  metadata    Json?
   status      Status              @default(active)
   hash        String              @unique
   created_at  DateTime            @default(now())
@@ -415,25 +602,28 @@ model EmployerContact {
 }
 
 model Project {
-  id             Int           @id @default(autoincrement())
+  id             Int             @id @default(autoincrement())
   user_id        String
-  project_id     String        @unique
+  project_id     String          @unique
   title          String
   description    String
-  image          Int?
+  image_id       Int?
   project_type   ProjectType
-  files          Int?
+  files          String?
   start_date     DateTime?
   due_date       DateTime?
   completed_date DateTime?
   budget         Float?
   income         Float?
   metadata       Json?
-  status         ProjectStatus @default(todo)
+  user           User?           @relation(fields: [user_id], references: [user_id])
+  image          File?           @relation(fields: [image_id], references: [id])
+  updates        ProjectUpdate[]
+  status         ProjectStatus   @default(todo)
   message        String?
-  hash           String        @unique
-  created_at     DateTime      @default(now())
-  updated_at     DateTime      @default(now()) @updatedAt
+  hash           String          @unique
+  created_at     DateTime        @default(now())
+  updated_at     DateTime        @default(now()) @updatedAt
 }
 
 model ProjectUpdate {
@@ -443,6 +633,8 @@ model ProjectUpdate {
   project_id  String
   title       String
   description String?
+  project     Project  @relation(fields: [project_id], references: [project_id])
+  metadata    Json?
   files       String?
   hash        String   @unique
   created_at  DateTime @default(now())
@@ -450,22 +642,25 @@ model ProjectUpdate {
 }
 
 model Branding {
-  id             Int            @id @default(autoincrement())
-  branding_id    String         @unique
+  id             Int              @id @default(autoincrement())
+  branding_id    String           @unique
   user_id        String
   title          String
   description    String?
   start_date     DateTime?
   due_date       DateTime?
   completed_date DateTime?
-  image          Int?
-  files          Int?
+  image_id       Int?
+  files          String?
   metadata       Json?
-  status         BrandingStatus @default(todo)
+  user           User?            @relation(fields: [user_id], references: [user_id])
+  image          File?            @relation(fields: [image_id], references: [id])
+  updates        BrandingUpdate[]
+  status         BrandingStatus   @default(todo)
   message        String?
-  hash           String         @unique
-  created_at     DateTime       @default(now())
-  updated_at     DateTime       @default(now()) @updatedAt
+  hash           String           @unique
+  created_at     DateTime         @default(now())
+  updated_at     DateTime         @default(now()) @updatedAt
 }
 
 model BrandingUpdate {
@@ -476,6 +671,8 @@ model BrandingUpdate {
   title       String
   description String?
   files       String?
+  metadata    Json?
+  branding    Branding @relation(fields: [branding_id], references: [branding_id])
   hash        String   @unique
   created_at  DateTime @default(now())
   updated_at  DateTime @default(now()) @updatedAt
@@ -486,32 +683,38 @@ model Memories {
   user_id     String
   title       String
   description String?
-  cover       Int?
-  files       Int?
+  cover_id    Int?
+  files       String?
+  metadata    Json?
+  user        User?    @relation(fields: [user_id], references: [user_id])
+  cover       File?    @relation(fields: [cover_id], references: [id])
   hash        String   @unique
   created_at  DateTime @default(now())
   updated_at  DateTime @default(now()) @updatedAt
 }
 
 model Learning {
-  id              Int            @id @default(autoincrement())
-  learning_id     String         @unique
+  id              Int              @id @default(autoincrement())
+  learning_id     String           @unique
   user_id         String
   title           String
   description     String?
-  image           Int?
-  files           Int?
+  image_id        Int?
+  files           String?
   metadata        Json?
   start_date      DateTime?
   due_date        DateTime?
   completed_date  DateTime?
   accomplishments Json?
   accomplished    Json?
-  status          LearningStatus @default(todo)
+  user            User?            @relation(fields: [user_id], references: [user_id])
+  image           File?            @relation(fields: [image_id], references: [id])
+  updates         LearningUpdate[]
+  status          LearningStatus   @default(todo)
   message         String?
-  hash            String         @unique
-  created_at      DateTime       @default(now())
-  updated_at      DateTime       @default(now()) @updatedAt
+  hash            String           @unique
+  created_at      DateTime         @default(now())
+  updated_at      DateTime         @default(now()) @updatedAt
 }
 
 model LearningUpdate {
@@ -522,65 +725,84 @@ model LearningUpdate {
   title       String
   description String?
   files       String?
+  learning    Learning @relation(fields: [learning_id], references: [learning_id])
+  metadata    Json?
   hash        String   @unique
   created_at  DateTime @default(now())
   updated_at  DateTime @default(now()) @updatedAt
 }
 
 model Profile {
-  id            Int       @id @default(autoincrement())
-  user_id       String    @unique
-  avatar        Int?
-  cover         Int?
-  date_of_birth DateTime? @db.Date
-  about         String?
-  fun_facts     String?
-  metadata      Json?
-  hash          String    @unique
-  created_at    DateTime  @default(now())
-  updated_at    DateTime  @default(now()) @updatedAt
+  id                 Int            @id @default(autoincrement())
+  user_id            String         @unique
+  avatar_id          Int?
+  cover_id           Int?
+  date_of_birth      DateTime?      @db.Date
+  gender             ProfileGender?
+  place_of_birth     String?
+  other_gender       String?
+  about              String?
+  fun_facts          String?
+  pin_code           Int?
+  security_questions Json?
+  cover              File?          @relation(fields: [cover_id], references: [id], name: "cover")
+  avatar             File?          @relation(fields: [avatar_id], references: [id], name: "avatar")
+  two_fa             Boolean        @default(false)
+  two_fa_code        String?
+  metadata           Json?
+  hash               String         @unique
+  created_at         DateTime       @default(now())
+  updated_at         DateTime       @default(now()) @updatedAt
+  user               User?
 }
 
 model Relationship {
-  id              Int      @id @default(autoincrement())
-  relationship_id String   @unique
+  id              Int                   @id @default(autoincrement())
+  relationship_id String                @unique
   category_id     String
   user_id         String
   title           String
   description     String?
-  image           Int?
-  files           Int?
+  image_id        Int?
+  files           String?
+  user            User?                 @relation(fields: [user_id], references: [user_id])
+  image           File?                 @relation(fields: [image_id], references: [id])
+  category        RelationshipCategory? @relation(fields: [category_id], references: [category_id])
+  entries         RelationshipEntry[]
   metadata        Json?
-  hash            String   @unique
-  created_at      DateTime @default(now())
-  updated_at      DateTime @default(now()) @updatedAt
+  hash            String                @unique
+  created_at      DateTime              @default(now())
+  updated_at      DateTime              @default(now()) @updatedAt
 }
 
 model RelationshipCategory {
-  id          Int      @id @default(autoincrement())
-  user_id     String
-  category_id String   @unique
-  title       String
-  icon        Int?
-  description String?
-  hash        String   @unique
-  created_at  DateTime @default(now())
-  updated_at  DateTime @default(now()) @updatedAt
+  id            Int            @id @default(autoincrement())
+  user_id       String
+  category_id   String         @unique
+  title         String
+  image_id      Int?
+  image         File?          @relation(fields: [image_id], references: [id])
+  description   String?
+  hash          String         @unique
+  created_at    DateTime       @default(now())
+  updated_at    DateTime       @default(now()) @updatedAt
+  relationships Relationship[]
 }
 
 model RelationshipEntry {
-  id              Int      @id @default(autoincrement())
+  id              Int           @id @default(autoincrement())
   relationship_id String
   user_id         String
-  entry_id        String   @unique
+  entry_id        String        @unique
   title           String
-  icon            Int?
+  image           Int?
   tag             String?
   description     String?
   metadata        Json?
-  hash            String   @unique
-  created_at      DateTime @default(now())
-  updated_at      DateTime @default(now()) @updatedAt
+  hash            String        @unique
+  created_at      DateTime      @default(now())
+  updated_at      DateTime      @default(now()) @updatedAt
+  relationship    Relationship? @relation(fields: [relationship_id], references: [relationship_id])
 }
 
 model RelationshipTag {
@@ -588,7 +810,8 @@ model RelationshipTag {
   user_id     String
   tag_id      String   @unique
   title       String
-  icon        Int?
+  image_id    Int?
+  image       File?    @relation(fields: [image_id], references: [id])
   description String?
   hash        String   @unique
   created_at  DateTime @default(now())
@@ -596,19 +819,22 @@ model RelationshipTag {
 }
 
 model Career {
-  id          Int          @id @default(autoincrement())
-  career_id   String       @unique
+  id          Int            @id @default(autoincrement())
+  career_id   String         @unique
   user_id     String
   title       String
   description String?
-  image       Int?
+  image_id    Int?
   files       String?
   metadata    Json?
-  status      CareerStatus @default(todo)
+  user        User?          @relation(fields: [user_id], references: [user_id])
+  image       File?          @relation(fields: [image_id], references: [id])
+  updates     CareerUpdate[]
+  status      CareerStatus   @default(todo)
   message     String?
-  hash        String       @unique
-  created_at  DateTime     @default(now())
-  updated_at  DateTime     @default(now()) @updatedAt
+  hash        String         @unique
+  created_at  DateTime       @default(now())
+  updated_at  DateTime       @default(now()) @updatedAt
 }
 
 model CareerUpdate {
@@ -623,19 +849,239 @@ model CareerUpdate {
   hash        String   @unique
   created_at  DateTime @default(now())
   updated_at  DateTime @default(now()) @updatedAt
+  career      Career?  @relation(fields: [career_id], references: [career_id])
+}
+
+model AccountTransfer {
+  id           Int            @id @default(autoincrement())
+  user_id      String
+  transfer_id  String         @unique
+  from_        String
+  to_          String
+  amount       Float
+  currency     String
+  title        String
+  description  String?
+  files        String?
+  user         User?          @relation(fields: [user_id], references: [user_id])
+  from_account Account?       @relation(fields: [from_], references: [account_id], name: "ToAccount")
+  to_account   Account?       @relation(fields: [to_], references: [account_id], name: "FromAccount")
+  status       TransferStatus @default(active)
+  metadata     Json?
+  hash         String         @unique
+  created_at   DateTime       @default(now())
+  updated_at   DateTime       @default(now()) @updatedAt
+}
+
+model Investment {
+  id              Int              @id @default(autoincrement())
+  investment_id   String           @unique
+  user_id         String
+  investment_type InvestmentType
+  other_type      String?
+  title           String
+  description     String?
+  image_id        Int?
+  account_id      String
+  amount          Float
+  currency        String
+  files           String?
+  start_date      DateTime?        @db.Date
+  status          InvestmentStatus
+  user            User?            @relation(fields: [user_id], references: [user_id])
+  image           File?            @relation(fields: [image_id], references: [id])
+  account         Account?         @relation(fields: [account_id], references: [account_id])
+  metadata        Json?
+  message         String?
+  hash            String           @unique
+  created_at      DateTime         @default(now())
+  updated_at      DateTime         @default(now()) @updatedAt
+}
+
+model Savings {
+  id          Int           @id @default(autoincrement())
+  savings_id  String        @unique
+  user_id     String
+  title       String
+  description String?
+  account_id  String?
+  recurring   Boolean       @default(false)
+  renews_at   DateTime      @db.Date
+  amount      Float
+  currency    String
+  image_id    Int?
+  files       String?
+  start_date  DateTime?     @db.Date
+  status      SavingsStatus
+  user        User?         @relation(fields: [user_id], references: [user_id])
+  image       File?         @relation(fields: [image_id], references: [id])
+  account     Account?      @relation(fields: [account_id], references: [account_id])
+  metadata    Json?
+  message     String?
+  hash        String        @unique
+  created_at  DateTime      @default(now())
+  updated_at  DateTime      @default(now()) @updatedAt
+}
+
+model Reminder {
+  id            Int               @id @default(autoincrement())
+  reminder_id   String            @unique
+  user_id       String
+  title         String
+  description   String?
+  amount        Float
+  currency      String
+  frequency     ReminderFrequency
+  reminder_date DateTime          @db.Date
+  reminder_time DateTime          @db.Time
+  reminder_ends DateTime?         @db.Date
+  image_id      Int?
+  files         String?
+  status        ReminderStatus    @default(active)
+  user          User?             @relation(fields: [user_id], references: [user_id])
+  image         File?             @relation(fields: [image_id], references: [id])
+  metadata      Json?
+  message       String?
+  hash          String            @unique
+  created_at    DateTime          @default(now())
+  updated_at    DateTime          @default(now()) @updatedAt
+}
+
+model Report {
+  id          Int      @id @default(autoincrement())
+  report_id   String   @unique
+  user_id     String
+  title       String
+  description String?
+  path        String
+  metadata    Json?
+  user        User?    @relation(fields: [user_id], references: [user_id])
+  hash        String   @unique
+  created_at  DateTime @default(now())
+  updated_at  DateTime @default(now()) @updatedAt
 }
 
 model File {
-  id         Int      @id @default(autoincrement())
-  user_id    String
-  name       String
-  type       String
-  category   String
-  size       String
-  path       String
-  status     Status   @default(active)
-  message    String?
-  hash       String   @unique
-  created_at DateTime @default(now())
-  updated_at DateTime @default(now()) @updatedAt
+  id                      Int                    @id @default(autoincrement())
+  user_id                 String
+  name                    String
+  type                    String
+  category                String
+  size                    String
+  path                    String
+  metadata                Json?
+  status                  Status                 @default(active)
+  message                 String?
+  hash                    String                 @unique
+  created_at              DateTime               @default(now())
+  updated_at              DateTime               @default(now()) @updatedAt
+  accounts                Account[]
+  goals                   Goal[]
+  transaction_categories  TransactionCategory[]
+  subscriptions           Subscription[]
+  notes                   Note[]
+  debt                    Debt[]
+  responsibilities        Responsibility[]
+  future_plans            FuturePlan[]
+  employers               Employer[]
+  projects                Project[]
+  branding                Branding[]
+  memories                Memories[]
+  learnings               Learning[]
+  relationships           Relationship[]
+  relationship_categories RelationshipCategory[]
+  profile_covers          Profile[]              @relation(name: "cover")
+  profile_avatars         Profile[]              @relation(name: "avatar")
+  relationship_tags       RelationshipTag[]
+  careers                 Career[]
+  investments             Investment[]
+  savings                 Savings[]
+  reminders               Reminder[]
+  notifications           Notification[]
+  schedules               Schedule[]
+}
+
+model Activity {
+  id          Int      @id @default(autoincrement())
+  activity_id String   @unique
+  user_id     String
+  title       String
+  description String?
+  metadata    Json?
+  user        User?    @relation(fields: [user_id], references: [user_id])
+  hash        String   @unique
+  created_at  DateTime @default(now())
+}
+
+model Notification {
+  id              Int                @id @default(autoincrement())
+  user_id         String
+  notification_id String             @unique
+  title           String
+  image_id        Int?
+  files           String?
+  description     String?
+  metadata        Json?
+  user            User?              @relation(fields: [user_id], references: [user_id])
+  image           File?              @relation(fields: [image_id], references: [id])
+  status          NotificationStatus @default(unread)
+  hash            String             @unique
+  created_at      DateTime           @default(now())
+  updated_at      DateTime           @default(now()) @updatedAt
+}
+
+model Wishlist {
+  id          Int      @id @default(autoincrement())
+  wishlist_id String   @unique
+  user_id     String
+  title       String
+  description String?
+  amount      Float
+  currency    String
+  metadata    Json?
+  user        User?    @relation(fields: [user_id], references: [user_id])
+  hash        String   @unique
+  created_at  DateTime @default(now())
+  updated_at  DateTime @default(now()) @updatedAt
+}
+
+model Schedule {
+  id          Int            @id @default(autoincrement())
+  schedule_id String         @unique
+  user_id     String
+  title       String
+  description String?
+  image_id    Int?
+  files       String?
+  metadata    Json?
+  user        User?          @relation(fields: [user_id], references: [user_id])
+  image       File?          @relation(fields: [image_id], references: [id])
+  schedules   ScheduleItem[]
+  message     String?
+  hash        String         @unique
+  created_at  DateTime       @default(now())
+  updated_at  DateTime       @default(now()) @updatedAt
+}
+
+model ScheduleItem {
+  id            Int               @id @default(autoincrement())
+  item_id       String            @unique
+  schedule_id   String
+  user_id       String
+  title         String
+  description   String?
+  frequency     ScheduleFrequency
+  ends_on       ScheduleEndsOn    @default(never)
+  reminder_date DateTime          @db.Date
+  reminder_time DateTime          @db.Time
+  reminder_ends DateTime?         @db.Date
+  schedule      Schedule          @relation(fields: [schedule_id], references: [schedule_id])
+  image         Int?
+  files         String?
+  status        SchduleStatus     @default(active)
+  metadata      Json?
+  message       String?
+  hash          String            @unique
+  created_at    DateTime          @default(now())
+  updated_at    DateTime          @default(now()) @updatedAt
 }

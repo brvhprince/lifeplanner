@@ -6,3 +6,844 @@ datasource db {
   provider = "sqlite"
   url      = env("DATABASE_URL")
 }
+
+model User {
+  id                Int               @id @default(autoincrement())
+  user_id           String            @unique
+  first_name        String
+  other_names       String
+  email             String            @unique
+  phone             String?
+  accounts          Account[]
+  goals             Goal[]
+  transactions      Transaction[]
+  profile           Profile           @relation(fields: [user_id], references: [user_id], onUpdate: Cascade, onDelete: Cascade)
+  status            String            @default("active")
+  message           String?
+  hash              String            @unique
+  created_at        DateTime          @default(now())
+  updated_at        DateTime          @default(now()) @updatedAt
+  subscriptions     Subscription[]
+  expenses          Expense[]
+  income            Income[]
+  notes             Note[]
+  debt              Debt[]
+  responsibilities  Responsibility[]
+  future_plans      FuturePlan[]
+  employers         Employer[]
+  projects          Project[]
+  branding          Branding[]
+  memories          Memories[]
+  learnings         Learning[]
+  relationships     Relationship[]
+  careers           Career[]
+  account_transfers AccountTransfer[]
+  investments       Investment[]
+  savings           Savings[]
+  reminders         Reminder[]
+  reports           Report[]
+  activities        Activity[]
+  notifications     Notification[]
+  wishlists         Wishlist[]
+  schedules         Schedule[]
+}
+
+model Account {
+  id            Int               @id @default(autoincrement())
+  account_id    String            @unique
+  user_id       String
+  title         String
+  description   String
+  currency      String
+  image_id      Int?
+  files         String?
+  type          String
+  primary       Boolean           @default(false)
+  balance       Float
+  user          User?             @relation(fields: [user_id], references: [user_id], onUpdate: Cascade, onDelete: Cascade)
+  metadata      String?
+  status        String            @default("active")
+  hash          String            @unique
+  created_at    DateTime          @default(now())
+  updated_at    DateTime          @default(now()) @updatedAt
+  goal_savings  GoalSaving[]
+  transactions  Transaction[]
+  image         File?             @relation(fields: [image_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  subscriptions Subscription[]
+  expenses      Expense[]
+  income        Income[]
+  debt          Debt[]
+  employers     Employer[]
+  to_accounts   AccountTransfer[] @relation(name: "ToAccount")
+  from_accounts AccountTransfer[] @relation(name: "FromAccount")
+  investments   Investment[]
+  savings       Savings[]
+}
+
+model Goal {
+  id                Int          @id @default(autoincrement())
+  goal_id           String       @unique
+  user_id           String
+  title             String
+  description       String?
+  amount            Float
+  currency          String
+  image_id          Int?
+  files             String?
+  contribution_type String
+  custom_type       String?
+  deadline          DateTime
+  savings           GoalSaving[]
+  metadata          String?
+  user              User?        @relation(fields: [user_id], references: [user_id], onUpdate: Cascade, onDelete: Cascade)
+  status            String       @default("active")
+  hash              String       @unique
+  created_at        DateTime     @default(now())
+  updated_at        DateTime     @default(now()) @updatedAt
+  image             File?        @relation(fields: [image_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
+}
+
+model GoalSaving {
+  id         Int      @id @default(autoincrement())
+  user_id    String
+  savings_id String   @unique
+  goal_id    String
+  amount     Float
+  account_id String
+  metadata   String?
+  account    Account? @relation(fields: [account_id], references: [account_id], onDelete: NoAction, onUpdate: NoAction)
+  goal       Goal?    @relation(fields: [goal_id], references: [goal_id], onDelete: Cascade, onUpdate: Cascade)
+  hash       String   @unique
+  created_at DateTime @default(now())
+  updated_at DateTime @default(now()) @updatedAt
+}
+
+model Transaction {
+  id               Int       @id @default(autoincrement())
+  transaction_id   String    @unique
+  user_id          String
+  transaction_type String
+  amount           Float
+  currency         String
+  account_id       String
+  status           String
+  user             User?     @relation(fields: [user_id], references: [user_id], onUpdate: Cascade, onDelete: Cascade)
+  account          Account?  @relation(fields: [account_id], references: [account_id], onUpdate: Cascade, onDelete: Cascade)
+  metadata         String?
+  message          String?
+  hash             String    @unique
+  created_at       DateTime  @default(now())
+  updated_at       DateTime  @default(now()) @updatedAt
+  expenses         Expense[]
+  income           Income[]
+}
+
+model TransactionCategory {
+  id               Int       @id @default(autoincrement())
+  user_id          String
+  category_id      String    @unique
+  transaction_type String
+  title            String
+  description      String?
+  image_id         Int?
+  metadata         String?
+  status           String    @default("active")
+  hash             String    @unique
+  created_at       DateTime  @default(now())
+  updated_at       DateTime  @default(now()) @updatedAt
+  image            File?     @relation(fields: [image_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  expenses         Expense[]
+  income           Income[]
+}
+
+model Subscription {
+  id              Int      @id @default(autoincrement())
+  subscription_id String   @unique
+  user_id         String
+  title           String
+  description     String?
+  image_id        Int?
+  renews          DateTime
+  amount          Float
+  account_id      String
+  metadata        String?
+  status          String
+  user            User?    @relation(fields: [user_id], references: [user_id], onUpdate: Cascade, onDelete: Cascade)
+  account         Account? @relation(fields: [account_id], references: [account_id], onUpdate: Cascade, onDelete: Cascade)
+  message         String?
+  hash            String   @unique
+  created_at      DateTime @default(now())
+  updated_at      DateTime @default(now()) @updatedAt
+  image           File?    @relation(fields: [image_id], references: [id])
+}
+
+model Expense {
+  id             Int                  @id @default(autoincrement())
+  user_id        String
+  expense_id     String               @unique
+  category_id    String
+  account_id     String
+  title          String
+  notes          String?
+  amount         Float
+  currency       String
+  date           DateTime
+  recurring      Boolean              @default(false)
+  renews_at      DateTime?
+  transaction_id String?
+  files          String?
+  metadata       String?
+  transaction    Transaction?         @relation(fields: [transaction_id], references: [transaction_id], onUpdate: Cascade, onDelete: Cascade)
+  category       TransactionCategory? @relation(fields: [category_id], references: [category_id], onUpdate: Cascade, onDelete: Cascade)
+  user           User?                @relation(fields: [user_id], references: [user_id], onUpdate: Cascade, onDelete: Cascade)
+  account        Account?             @relation(fields: [account_id], references: [account_id], onUpdate: Cascade, onDelete: Cascade)
+  status         String
+  message        String?
+  hash           String               @unique
+  created_at     DateTime             @default(now())
+  updated_at     DateTime             @default(now()) @updatedAt
+}
+
+model Income {
+  id             Int                  @id @default(autoincrement())
+  user_id        String
+  income_id      String               @unique
+  category_id    String
+  account_id     String
+  title          String
+  notes          String?
+  amount         Float
+  currency       String
+  date           DateTime
+  recurring      Boolean              @default(false)
+  renews_at      DateTime?
+  transaction_id String?
+  files          String?
+  metadata       String?
+  transaction    Transaction?         @relation(fields: [transaction_id], references: [transaction_id], onUpdate: Cascade, onDelete: Cascade)
+  category       TransactionCategory? @relation(fields: [category_id], references: [category_id], onUpdate: Cascade, onDelete: Cascade)
+  user           User?                @relation(fields: [user_id], references: [user_id], onUpdate: Cascade, onDelete: Cascade)
+  account        Account?             @relation(fields: [account_id], references: [account_id], onUpdate: Cascade, onDelete: Cascade)
+  status         String
+  message        String?
+  hash           String               @unique
+  created_at     DateTime             @default(now())
+  updated_at     DateTime             @default(now()) @updatedAt
+}
+
+model Note {
+  id         Int      @id @default(autoincrement())
+  user_id    String
+  note_id    String   @unique
+  title      String
+  contents   String
+  image_id   Int?
+  files      String?
+  metadata   String?
+  user       User?    @relation(fields: [user_id], references: [user_id], onUpdate: Cascade, onDelete: Cascade)
+  image      File?    @relation(fields: [image_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  hash       String   @unique
+  created_at DateTime @default(now())
+  updated_at DateTime @default(now()) @updatedAt
+}
+
+model Debt {
+  id          Int       @id @default(autoincrement())
+  user_id     String
+  debt_id     String    @unique
+  title       String
+  description String?
+  image_id    Int?
+  amount      Float
+  currency    String
+  account_id  String?
+  metadata    String?
+  files       String?
+  due_date    DateTime?
+  paid_date   DateTime?
+  user        User?     @relation(fields: [user_id], references: [user_id], onUpdate: Cascade, onDelete: Cascade)
+  image       File?     @relation(fields: [image_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  account     Account?  @relation(fields: [account_id], references: [account_id], onUpdate: Cascade, onDelete: Cascade)
+  status      String
+  hash        String    @unique
+  created_at  DateTime  @default(now())
+  updated_at  DateTime  @default(now()) @updatedAt
+}
+
+model Responsibility {
+  id                Int                     @id @default(autoincrement())
+  user_id           String
+  responsibility_id String                  @unique
+  category_id       String
+  title             String
+  description       String?
+  image_id          Int?
+  metadata          String?
+  status            String                  @default("active")
+  user              User?                   @relation(fields: [user_id], references: [user_id], onUpdate: Cascade, onDelete: Cascade)
+  image             File?                   @relation(fields: [image_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  category          ResponsibilityCategory? @relation(fields: [category_id], references: [category_id], onUpdate: Cascade, onDelete: Cascade)
+  message           String?
+  hash              String                  @unique
+  created_at        DateTime                @default(now())
+  updated_at        DateTime                @default(now()) @updatedAt
+}
+
+model ResponsibilityCategory {
+  id               Int              @id @default(autoincrement())
+  user_id          String
+  category_id      String           @unique
+  title            String
+  description      String?
+  status           String           @default("active")
+  hash             String           @unique
+  created_at       DateTime         @default(now())
+  updated_at       DateTime         @default(now()) @updatedAt
+  responsibilities Responsibility[]
+}
+
+model FuturePlan {
+  id             Int       @id @default(autoincrement())
+  user_id        String
+  plan_id        String    @unique
+  title          String
+  description    String?
+  image_id       Int?
+  metadata       String?
+  files          String?
+  expected_date  DateTime?
+  fulfilled_date DateTime?
+  status         String    @default("todo")
+  user           User?     @relation(fields: [user_id], references: [user_id], onUpdate: Cascade, onDelete: Cascade)
+  image          File?     @relation(fields: [image_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  message        String?
+  hash           String    @unique
+  created_at     DateTime  @default(now())
+  updated_at     DateTime  @default(now()) @updatedAt
+}
+
+model Employer {
+  id               Int               @id @default(autoincrement())
+  user_id          String
+  employer_id      String            @unique
+  name             String
+  employer_type    String
+  employment_type  String
+  payment_type     String
+  payment_duration String
+  account_id       String?
+  address          String
+  image_id         Int?
+  metadata         String?
+  status           String            @default("todo")
+  user             User?             @relation(fields: [user_id], references: [user_id], onUpdate: Cascade, onDelete: Cascade)
+  image            File?             @relation(fields: [image_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  account          Account?          @relation(fields: [account_id], references: [account_id], onUpdate: Cascade, onDelete: Cascade)
+  contacts         EmployerContact[]
+  message          String?
+  hash             String            @unique
+  created_at       DateTime          @default(now())
+  updated_at       DateTime          @default(now()) @updatedAt
+}
+
+model EmployerContact {
+  id          Int      @id @default(autoincrement())
+  user_id     String
+  contact_id  String   @unique
+  employer_id String
+  title       String
+  type        String
+  value       String
+  description String?
+  employer    Employer @relation(fields: [employer_id], references: [employer_id], onUpdate: Cascade, onDelete: Cascade)
+  metadata    String?
+  status      String   @default("active")
+  hash        String   @unique
+  created_at  DateTime @default(now())
+  updated_at  DateTime @default(now()) @updatedAt
+}
+
+model Project {
+  id             Int             @id @default(autoincrement())
+  user_id        String
+  project_id     String          @unique
+  title          String
+  description    String
+  image_id       Int?
+  project_type   String
+  files          String?
+  start_date     DateTime?
+  due_date       DateTime?
+  completed_date DateTime?
+  budget         Float?
+  income         Float?
+  metadata       String?
+  user           User?           @relation(fields: [user_id], references: [user_id], onUpdate: Cascade, onDelete: Cascade)
+  image          File?           @relation(fields: [image_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  updates        ProjectUpdate[]
+  status         String          @default("todo")
+  message        String?
+  hash           String          @unique
+  created_at     DateTime        @default(now())
+  updated_at     DateTime        @default(now()) @updatedAt
+}
+
+model ProjectUpdate {
+  id          Int      @id @default(autoincrement())
+  user_id     String
+  update_id   String   @unique
+  project_id  String
+  title       String
+  description String?
+  project     Project  @relation(fields: [project_id], references: [project_id], onUpdate: Cascade, onDelete: Cascade)
+  metadata    String?
+  files       String?
+  hash        String   @unique
+  created_at  DateTime @default(now())
+  updated_at  DateTime @default(now()) @updatedAt
+}
+
+model Branding {
+  id             Int              @id @default(autoincrement())
+  branding_id    String           @unique
+  user_id        String
+  title          String
+  description    String?
+  start_date     DateTime?
+  due_date       DateTime?
+  completed_date DateTime?
+  image_id       Int?
+  files          String?
+  metadata       String?
+  user           User?            @relation(fields: [user_id], references: [user_id], onUpdate: Cascade, onDelete: Cascade)
+  image          File?            @relation(fields: [image_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  updates        BrandingUpdate[]
+  status         String           @default("todo")
+  message        String?
+  hash           String           @unique
+  created_at     DateTime         @default(now())
+  updated_at     DateTime         @default(now()) @updatedAt
+}
+
+model BrandingUpdate {
+  id          Int      @id @default(autoincrement())
+  user_id     String
+  update_id   String   @unique
+  branding_id String
+  title       String
+  description String?
+  files       String?
+  metadata    String?
+  branding    Branding @relation(fields: [branding_id], references: [branding_id], onUpdate: Cascade, onDelete: Cascade)
+  hash        String   @unique
+  created_at  DateTime @default(now())
+  updated_at  DateTime @default(now()) @updatedAt
+}
+
+model Memories {
+  id          Int      @id @default(autoincrement())
+  user_id     String
+  title       String
+  description String?
+  cover_id    Int?
+  files       String?
+  metadata    String?
+  user        User?    @relation(fields: [user_id], references: [user_id], onUpdate: Cascade, onDelete: Cascade)
+  cover       File?    @relation(fields: [cover_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  hash        String   @unique
+  created_at  DateTime @default(now())
+  updated_at  DateTime @default(now()) @updatedAt
+}
+
+model Learning {
+  id              Int              @id @default(autoincrement())
+  learning_id     String           @unique
+  user_id         String
+  title           String
+  description     String?
+  image_id        Int?
+  files           String?
+  metadata        String?
+  start_date      DateTime?
+  due_date        DateTime?
+  completed_date  DateTime?
+  accomplishments String?
+  accomplished    String?
+  user            User?            @relation(fields: [user_id], references: [user_id], onUpdate: Cascade, onDelete: Cascade)
+  image           File?            @relation(fields: [image_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  updates         LearningUpdate[]
+  status          String           @default("todo")
+  message         String?
+  hash            String           @unique
+  created_at      DateTime         @default(now())
+  updated_at      DateTime         @default(now()) @updatedAt
+}
+
+model LearningUpdate {
+  id          Int      @id @default(autoincrement())
+  user_id     String
+  update_id   String   @unique
+  learning_id String
+  title       String
+  description String?
+  files       String?
+  learning    Learning @relation(fields: [learning_id], references: [learning_id], onUpdate: Cascade, onDelete: Cascade)
+  metadata    String?
+  hash        String   @unique
+  created_at  DateTime @default(now())
+  updated_at  DateTime @default(now()) @updatedAt
+}
+
+model Profile {
+  id                 Int       @id @default(autoincrement())
+  user_id            String    @unique
+  avatar_id          Int?
+  cover_id           Int?
+  date_of_birth      DateTime?
+  gender             String?
+  place_of_birth     String?
+  other_gender       String?
+  about              String?
+  fun_facts          String?
+  pin_code           Int?
+  security_questions String?
+  cover              File?     @relation(fields: [cover_id], references: [id], name: "cover", onUpdate: Cascade, onDelete: Cascade)
+  avatar             File?     @relation(fields: [avatar_id], references: [id], name: "avatar", onUpdate: Cascade, onDelete: Cascade)
+  two_fa             Boolean   @default(false)
+  two_fa_code        String?
+  metadata           String?
+  hash               String    @unique
+  created_at         DateTime  @default(now())
+  updated_at         DateTime  @default(now()) @updatedAt
+  user               User?
+}
+
+model Relationship {
+  id              Int                   @id @default(autoincrement())
+  relationship_id String                @unique
+  category_id     String
+  user_id         String
+  title           String
+  description     String?
+  image_id        Int?
+  files           String?
+  user            User?                 @relation(fields: [user_id], references: [user_id], onUpdate: Cascade, onDelete: Cascade)
+  image           File?                 @relation(fields: [image_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  category        RelationshipCategory? @relation(fields: [category_id], references: [category_id], onUpdate: Cascade, onDelete: Cascade)
+  entries         RelationshipEntry[]
+  metadata        String?
+  hash            String                @unique
+  created_at      DateTime              @default(now())
+  updated_at      DateTime              @default(now()) @updatedAt
+}
+
+model RelationshipCategory {
+  id            Int            @id @default(autoincrement())
+  user_id       String
+  category_id   String         @unique
+  title         String
+  image_id      Int?
+  image         File?          @relation(fields: [image_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  description   String?
+  hash          String         @unique
+  created_at    DateTime       @default(now())
+  updated_at    DateTime       @default(now()) @updatedAt
+  relationships Relationship[]
+}
+
+model RelationshipEntry {
+  id              Int           @id @default(autoincrement())
+  relationship_id String
+  user_id         String
+  entry_id        String        @unique
+  title           String
+  image           Int?
+  tag             String?
+  description     String?
+  metadata        String?
+  hash            String        @unique
+  created_at      DateTime      @default(now())
+  updated_at      DateTime      @default(now()) @updatedAt
+  relationship    Relationship? @relation(fields: [relationship_id], references: [relationship_id], onUpdate: Cascade, onDelete: Cascade)
+}
+
+model RelationshipTag {
+  id          Int      @id @default(autoincrement())
+  user_id     String
+  tag_id      String   @unique
+  title       String
+  image_id    Int?
+  image       File?    @relation(fields: [image_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  description String?
+  hash        String   @unique
+  created_at  DateTime @default(now())
+  updated_at  DateTime @default(now()) @updatedAt
+}
+
+model Career {
+  id          Int            @id @default(autoincrement())
+  career_id   String         @unique
+  user_id     String
+  title       String
+  description String?
+  image_id    Int?
+  files       String?
+  metadata    String?
+  user        User?          @relation(fields: [user_id], references: [user_id], onUpdate: Cascade, onDelete: Cascade)
+  image       File?          @relation(fields: [image_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  updates     CareerUpdate[]
+  status      String         @default("todo")
+  message     String?
+  hash        String         @unique
+  created_at  DateTime       @default(now())
+  updated_at  DateTime       @default(now()) @updatedAt
+}
+
+model CareerUpdate {
+  id          Int      @id @default(autoincrement())
+  user_id     String
+  update_id   String   @unique
+  career_id   String
+  title       String
+  description String?
+  files       String?
+  metadata    String?
+  hash        String   @unique
+  created_at  DateTime @default(now())
+  updated_at  DateTime @default(now()) @updatedAt
+  career      Career?  @relation(fields: [career_id], references: [career_id], onUpdate: Cascade, onDelete: Cascade)
+}
+
+model AccountTransfer {
+  id           Int      @id @default(autoincrement())
+  user_id      String
+  transfer_id  String   @unique
+  from_        String
+  to_          String
+  amount       Float
+  currency     String
+  title        String
+  description  String?
+  files        String?
+  user         User?    @relation(fields: [user_id], references: [user_id], onUpdate: Cascade, onDelete: Cascade)
+  from_account Account? @relation(fields: [from_], references: [account_id], name: "ToAccount", onUpdate: Cascade, onDelete: Cascade)
+  to_account   Account? @relation(fields: [to_], references: [account_id], name: "FromAccount", onUpdate: Cascade, onDelete: Cascade)
+  status       String   @default("active")
+  metadata     String?
+  hash         String   @unique
+  created_at   DateTime @default(now())
+  updated_at   DateTime @default(now()) @updatedAt
+}
+
+model Investment {
+  id              Int       @id @default(autoincrement())
+  investment_id   String    @unique
+  user_id         String
+  investment_type String
+  other_type      String?
+  title           String
+  description     String?
+  image_id        Int?
+  account_id      String
+  amount          Float
+  currency        String
+  files           String?
+  start_date      DateTime?
+  status          String
+  user            User?     @relation(fields: [user_id], references: [user_id], onUpdate: Cascade, onDelete: Cascade)
+  image           File?     @relation(fields: [image_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  account         Account?  @relation(fields: [account_id], references: [account_id], onUpdate: Cascade, onDelete: Cascade)
+  metadata        String?
+  message         String?
+  hash            String    @unique
+  created_at      DateTime  @default(now())
+  updated_at      DateTime  @default(now()) @updatedAt
+}
+
+model Savings {
+  id          Int       @id @default(autoincrement())
+  savings_id  String    @unique
+  user_id     String
+  title       String
+  description String?
+  account_id  String?
+  recurring   Boolean   @default(false)
+  renews_at   DateTime
+  amount      Float
+  currency    String
+  image_id    Int?
+  files       String?
+  start_date  DateTime?
+  status      String
+  user        User?     @relation(fields: [user_id], references: [user_id], onUpdate: Cascade, onDelete: Cascade)
+  image       File?     @relation(fields: [image_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  account     Account?  @relation(fields: [account_id], references: [account_id], onUpdate: Cascade, onDelete: Cascade)
+  metadata    String?
+  message     String?
+  hash        String    @unique
+  created_at  DateTime  @default(now())
+  updated_at  DateTime  @default(now()) @updatedAt
+}
+
+model Reminder {
+  id            Int       @id @default(autoincrement())
+  reminder_id   String    @unique
+  user_id       String
+  title         String
+  description   String?
+  amount        Float
+  currency      String
+  frequency     String
+  reminder_date DateTime
+  reminder_time DateTime
+  reminder_ends DateTime?
+  image_id      Int?
+  files         String?
+  status        String    @default("active")
+  user          User?     @relation(fields: [user_id], references: [user_id], onUpdate: Cascade, onDelete: Cascade)
+  image         File?     @relation(fields: [image_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  metadata      String?
+  message       String?
+  hash          String    @unique
+  created_at    DateTime  @default(now())
+  updated_at    DateTime  @default(now()) @updatedAt
+}
+
+model Report {
+  id          Int      @id @default(autoincrement())
+  report_id   String   @unique
+  user_id     String
+  title       String
+  description String?
+  path        String
+  metadata    String?
+  user        User?    @relation(fields: [user_id], references: [user_id], onUpdate: Cascade, onDelete: Cascade)
+  hash        String   @unique
+  created_at  DateTime @default(now())
+  updated_at  DateTime @default(now()) @updatedAt
+}
+
+model File {
+  id                      Int                    @id @default(autoincrement())
+  user_id                 String
+  name                    String
+  type                    String
+  category                String
+  size                    String
+  path                    String
+  metadata                String?
+  status                  String                 @default("active")
+  message                 String?
+  hash                    String                 @unique
+  created_at              DateTime               @default(now())
+  updated_at              DateTime               @default(now()) @updatedAt
+  accounts                Account[]
+  goals                   Goal[]
+  transaction_categories  TransactionCategory[]
+  subscriptions           Subscription[]
+  notes                   Note[]
+  debt                    Debt[]
+  responsibilities        Responsibility[]
+  future_plans            FuturePlan[]
+  employers               Employer[]
+  projects                Project[]
+  branding                Branding[]
+  memories                Memories[]
+  learnings               Learning[]
+  relationships           Relationship[]
+  relationship_categories RelationshipCategory[]
+  profile_covers          Profile[]              @relation(name: "cover")
+  profile_avatars         Profile[]              @relation(name: "avatar")
+  relationship_tags       RelationshipTag[]
+  careers                 Career[]
+  investments             Investment[]
+  savings                 Savings[]
+  reminders               Reminder[]
+  notifications           Notification[]
+  schedules               Schedule[]
+}
+
+model Activity {
+  id          Int      @id @default(autoincrement())
+  activity_id String   @unique
+  user_id     String
+  title       String
+  description String?
+  metadata    String?
+  user        User?    @relation(fields: [user_id], references: [user_id], onUpdate: Cascade, onDelete: Cascade)
+  hash        String   @unique
+  created_at  DateTime @default(now())
+}
+
+model Notification {
+  id              Int      @id @default(autoincrement())
+  user_id         String
+  notification_id String   @unique
+  title           String
+  image_id        Int?
+  files           String?
+  description     String?
+  metadata        String?
+  user            User?    @relation(fields: [user_id], references: [user_id], onUpdate: Cascade, onDelete: Cascade)
+  image           File?    @relation(fields: [image_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  status          String   @default("unread")
+  hash            String   @unique
+  created_at      DateTime @default(now())
+  updated_at      DateTime @default(now()) @updatedAt
+}
+
+model Wishlist {
+  id          Int      @id @default(autoincrement())
+  wishlist_id String   @unique
+  user_id     String
+  title       String
+  description String?
+  amount      Float
+  currency    String
+  metadata    String?
+  user        User?    @relation(fields: [user_id], references: [user_id], onUpdate: Cascade, onDelete: Cascade)
+  hash        String   @unique
+  created_at  DateTime @default(now())
+  updated_at  DateTime @default(now()) @updatedAt
+}
+
+model Schedule {
+  id          Int            @id @default(autoincrement())
+  schedule_id String         @unique
+  user_id     String
+  title       String
+  description String?
+  image_id    Int?
+  files       String?
+  metadata    String?
+  user        User?          @relation(fields: [user_id], references: [user_id], onUpdate: Cascade, onDelete: Cascade)
+  image       File?          @relation(fields: [image_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  schedules   ScheduleItem[]
+  message     String?
+  hash        String         @unique
+  created_at  DateTime       @default(now())
+  updated_at  DateTime       @default(now()) @updatedAt
+}
+
+model ScheduleItem {
+  id            Int       @id @default(autoincrement())
+  item_id       String    @unique
+  schedule_id   String
+  user_id       String
+  title         String
+  description   String?
+  frequency     String
+  ends_on       String    @default("never")
+  reminder_date DateTime
+  reminder_time DateTime
+  reminder_ends DateTime?
+  schedule      Schedule  @relation(fields: [schedule_id], references: [schedule_id], onUpdate: Cascade, onDelete: Cascade)
+  image         Int?
+  files         String?
+  status        String    @default("active")
+  metadata      String?
+  message       String?
+  hash          String    @unique
+  created_at    DateTime  @default(now())
+  updated_at    DateTime  @default(now()) @updatedAt
+}

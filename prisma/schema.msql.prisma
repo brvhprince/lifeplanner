@@ -6,3 +6,17 @@ datasource db {
   provider = "sqlserver"
   url      = env("DATABASE_URL")
 }
+
+model User {
+  id          Int      @id @default(autoincrement())
+  user_id     String   @unique
+  first_name  String
+  other_names String
+  email       String   @unique
+  phone       String?
+  status      String   @default("active")
+  message     String?
+  hash        String   @unique
+  created_at  DateTime @default(now())
+  updated_at  DateTime @default(now()) @updatedAt
+}
