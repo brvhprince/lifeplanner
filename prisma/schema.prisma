@@ -6,8 +6,154 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+enum AccountType {
+  cash
+  card
+  mobile
+  bank
+}
+
+enum Status {
+  active
+  inactive
+}
+
+enum ContributionType {
+  yearly
+  monthly
+  weekly
+  daily
+  hourly
+  custom
+}
+
+enum GoalStatus {
+  active
+  paused
+  cancelled
+  completed
+}
+
+enum TransactionType {
+  income
+  expense
+}
+
+enum TransactionSatus {
+  active
+  reversed
+}
+
+enum SubscriptionStatus {
+  active
+  paused
+  cancelled
+}
+
+enum DebtStatus {
+  active
+  cancelled
+  paid
+}
+
+enum ResponsibilityStatus {
+  active
+  paused
+  terminated
+  completed
+}
+
+enum FuturePlansStatus {
+  todo
+  progress
+  paused
+  completed
+  failed
+  abandoned
+}
+
+enum EmployerType {
+  individual
+  company
+}
+
+enum EmploymentType {
+  contract
+  full_time
+  part_time
+}
+
+enum EmployerPaymentType {
+  salary
+  wages
+  compensations
+}
+
+enum EmployerPaymentDuration {
+  yearly
+  quartely
+  monthly
+  weekly
+  hourly
+  milestone
+}
+
+enum EmployerStatus {
+  todo
+  active
+  paused
+  terminated
+  completed
+}
+
+enum EmployerContactType {
+  email
+  phone
+  link
+  address
+  other
+}
+
+enum ProjectType {
+  personal
+  employer
+}
+
+enum ProjectStatus {
+  todo
+  active
+  progress
+  paused
+  completed
+  terminated
+  abandoned
+}
+
+enum BrandingStatus {
+  todo
+  progress
+  paused
+  completed
+  abandoned
+}
+
+enum LearningStatus {
+  todo
+  progress
+  paused
+  completed
+  abandoned
+}
+
+enum CareerStatus {
+  todo
+  active
+  paused
+  abandoned
 }
 
 model User {
@@ -19,5 +165,477 @@ model User {
   phone       String?
   hash        String   @unique
   created_at  DateTime @default(now())
-  updated_at  DateTime @default(now())
+  updated_at  DateTime @default(now()) @updatedAt
+}
+
+model Account {
+  id          Int         @id @default(autoincrement())
+  account_id  String      @unique
+  user_id     String
+  title       String
+  description String
+  currency    String
+  type        AccountType
+  primary     Boolean     @default(false)
+  balance     Float
+  status      Status      @default(active)
+  hash        String      @unique
+  created_at  DateTime    @default(now())
+  updated_at  DateTime    @default(now()) @updatedAt
+}
+
+model Goal {
+  id                Int              @id @default(autoincrement())
+  goal_id           String           @unique
+  user_id           String
+  title             String
+  description       String?
+  amount            Float
+  currency          String
+  contribution_type ContributionType
+  custom_type       String?
+  deadline          DateTime         @db.Date
+  savings           GoalSaving[]
+  status            GoalStatus       @default(active)
+  hash              String           @unique
+  created_at        DateTime         @default(now())
+  updated_at        DateTime         @default(now()) @updatedAt
+}
+
+model GoalSaving {
+  id         Int      @id @default(autoincrement())
+  user_id    String
+  savings_id String   @unique
+  goal_id    String
+  amount     Float
+  account_id String
+  goal       Goal?    @relation(fields: [goal_id], references: [goal_id])
+  hash       String   @unique
+  created_at DateTime @default(now())
+  updated_at DateTime @default(now()) @updatedAt
+}
+
+model Transaction {
+  id               Int              @id @default(autoincrement())
+  transaction_id   String           @unique
+  user_id          String
+  transaction_type TransactionType
+  amount           Float
+  currency         String
+  account_id       String
+  status           TransactionSatus
+  message          String?
+  hash             String           @unique
+  created_at       DateTime         @default(now())
+  updated_at       DateTime         @default(now()) @updatedAt
+}
+
+model TransactionCategory {
+  id               Int             @id @default(autoincrement())
+  user_id          String
+  category_id      String          @unique
+  transaction_type TransactionType
+  title            String
+  description      String?
+  icon             Int?
+  status           Status          @default(active)
+  hash             String          @unique
+  created_at       DateTime        @default(now())
+  updated_at       DateTime        @default(now()) @updatedAt
+}
+
+model Subscription {
+  id              Int                @id @default(autoincrement())
+  subscription_id String             @unique
+  user_id         String
+  title           String
+  description     String?
+  icon            Int?
+  renews          DateTime
+  amount          Float
+  account_id      String
+  status          SubscriptionStatus
+  message         String?
+  hash            String             @unique
+  created_at      DateTime           @default(now())
+  updated_at      DateTime           @default(now()) @updatedAt
+}
+
+model Expense {
+  id             Int              @id @default(autoincrement())
+  user_id        String
+  expense_id     String           @unique
+  category_id    String
+  account_id     String
+  title          String
+  notes          String?
+  amount         Float
+  currency       String
+  date           DateTime
+  transaction_id String?
+  files          Int?
+  status         TransactionSatus
+  message        String?
+  hash           String           @unique
+  created_at     DateTime         @default(now())
+  updated_at     DateTime         @default(now()) @updatedAt
+}
+
+model Income {
+  id             Int              @id @default(autoincrement())
+  user_id        String
+  income_id      String           @unique
+  category_id    String
+  account_id     String
+  title          String
+  notes          String?
+  amount         Float
+  currency       String
+  date           DateTime
+  transaction_id String?
+  files          Int?
+  status         TransactionSatus
+  message        String?
+  hash           String           @unique
+  created_at     DateTime         @default(now())
+  updated_at     DateTime         @default(now()) @updatedAt
+}
+
+model Note {
+  id         Int      @id @default(autoincrement())
+  user_id    String
+  note_id    String   @unique
+  title      String
+  contents   String
+  files      Int?
+  hash       String   @unique
+  created_at DateTime @default(now())
+  updated_at DateTime @default(now()) @updatedAt
+}
+
+model Debt {
+  id          Int        @id @default(autoincrement())
+  user_id     String
+  debt_id     String     @unique
+  title       String
+  description String?
+  icon        Int?
+  amount      Float
+  currency    String
+  account_id  String?
+  metadata    Json?
+  files       Int?
+  due_date    DateTime?
+  paid_date   DateTime?
+  status      DebtStatus
+  hash        String     @unique
+  created_at  DateTime   @default(now())
+  updated_at  DateTime   @default(now()) @updatedAt
+}
+
+model Responsibility {
+  id                Int                  @id @default(autoincrement())
+  user_id           String
+  responsibility_id String               @unique
+  category_id       String
+  title             String
+  description       String?
+  icon              Int?
+  metadata          Json?
+  status            ResponsibilityStatus @default(active)
+  message           String?
+  hash              String               @unique
+  created_at        DateTime             @default(now())
+  updated_at        DateTime             @default(now()) @updatedAt
+}
+
+model ResponsibilityCategory {
+  id          Int      @id @default(autoincrement())
+  user_id     String
+  category_id String   @unique
+  title       String
+  description String?
+  status      Status   @default(active)
+  hash        String   @unique
+  created_at  DateTime @default(now())
+  updated_at  DateTime @default(now()) @updatedAt
+}
+
+model FuturePlan {
+  id             Int               @id @default(autoincrement())
+  user_id        String
+  plan_id        String            @unique
+  title          String
+  description    String?
+  icon           Int?
+  metadata       Json?
+  files          Int?
+  expected_date  DateTime?
+  fulfilled_date DateTime?
+  status         FuturePlansStatus @default(todo)
+  message        String?
+  hash           String            @unique
+  created_at     DateTime          @default(now())
+  updated_at     DateTime          @default(now()) @updatedAt
+}
+
+model Employer {
+  id               Int                     @id @default(autoincrement())
+  user_id          String
+  employer_id      String                  @unique
+  name             String
+  employer_type    EmployerType
+  employment_type  EmploymentType
+  payment_type     EmployerPaymentType
+  payment_duration EmployerPaymentDuration
+  account_id       String?
+  address          String
+  image            Int?
+  metadata         Json?
+  status           EmployerStatus          @default(todo)
+  message          String?
+  hash             String                  @unique
+  created_at       DateTime                @default(now())
+  updated_at       DateTime                @default(now()) @updatedAt
+}
+
+model EmployerContact {
+  id          Int                 @id @default(autoincrement())
+  user_id     String
+  contact_id  String              @unique
+  employer_id String
+  title       String
+  type        EmployerContactType
+  value       String
+  description String?
+  status      Status              @default(active)
+  hash        String              @unique
+  created_at  DateTime            @default(now())
+  updated_at  DateTime            @default(now()) @updatedAt
+}
+
+model Project {
+  id             Int           @id @default(autoincrement())
+  user_id        String
+  project_id     String        @unique
+  title          String
+  description    String
+  image          Int?
+  project_type   ProjectType
+  files          Int?
+  start_date     DateTime?
+  due_date       DateTime?
+  completed_date DateTime?
+  budget         Float?
+  income         Float?
+  metadata       Json?
+  status         ProjectStatus @default(todo)
+  message        String?
+  hash           String        @unique
+  created_at     DateTime      @default(now())
+  updated_at     DateTime      @default(now()) @updatedAt
+}
+
+model ProjectUpdate {
+  id          Int      @id @default(autoincrement())
+  user_id     String
+  update_id   String   @unique
+  project_id  String
+  title       String
+  description String?
+  files       String?
+  hash        String   @unique
+  created_at  DateTime @default(now())
+  updated_at  DateTime @default(now()) @updatedAt
+}
+
+model Branding {
+  id             Int            @id @default(autoincrement())
+  branding_id    String         @unique
+  user_id        String
+  title          String
+  description    String?
+  start_date     DateTime?
+  due_date       DateTime?
+  completed_date DateTime?
+  image          Int?
+  files          Int?
+  metadata       Json?
+  status         BrandingStatus @default(todo)
+  message        String?
+  hash           String         @unique
+  created_at     DateTime       @default(now())
+  updated_at     DateTime       @default(now()) @updatedAt
+}
+
+model BrandingUpdate {
+  id          Int      @id @default(autoincrement())
+  user_id     String
+  update_id   String   @unique
+  branding_id String
+  title       String
+  description String?
+  files       String?
+  hash        String   @unique
+  created_at  DateTime @default(now())
+  updated_at  DateTime @default(now()) @updatedAt
+}
+
+model Memories {
+  id          Int      @id @default(autoincrement())
+  user_id     String
+  title       String
+  description String?
+  cover       Int?
+  files       Int?
+  hash        String   @unique
+  created_at  DateTime @default(now())
+  updated_at  DateTime @default(now()) @updatedAt
+}
+
+model Learning {
+  id              Int            @id @default(autoincrement())
+  learning_id     String         @unique
+  user_id         String
+  title           String
+  description     String?
+  image           Int?
+  files           Int?
+  metadata        Json?
+  start_date      DateTime?
+  due_date        DateTime?
+  completed_date  DateTime?
+  accomplishments Json?
+  accomplished    Json?
+  status          LearningStatus @default(todo)
+  message         String?
+  hash            String         @unique
+  created_at      DateTime       @default(now())
+  updated_at      DateTime       @default(now()) @updatedAt
+}
+
+model LearningUpdate {
+  id          Int      @id @default(autoincrement())
+  user_id     String
+  update_id   String   @unique
+  learning_id String
+  title       String
+  description String?
+  files       String?
+  hash        String   @unique
+  created_at  DateTime @default(now())
+  updated_at  DateTime @default(now()) @updatedAt
+}
+
+model Profile {
+  id            Int       @id @default(autoincrement())
+  user_id       String    @unique
+  avatar        Int?
+  cover         Int?
+  date_of_birth DateTime? @db.Date
+  about         String?
+  fun_facts     String?
+  metadata      Json?
+  hash          String    @unique
+  created_at    DateTime  @default(now())
+  updated_at    DateTime  @default(now()) @updatedAt
+}
+
+model Relationship {
+  id              Int      @id @default(autoincrement())
+  relationship_id String   @unique
+  category_id     String
+  user_id         String
+  title           String
+  description     String?
+  image           Int?
+  files           Int?
+  metadata        Json?
+  hash            String   @unique
+  created_at      DateTime @default(now())
+  updated_at      DateTime @default(now()) @updatedAt
+}
+
+model RelationshipCategory {
+  id          Int      @id @default(autoincrement())
+  user_id     String
+  category_id String   @unique
+  title       String
+  icon        Int?
+  description String?
+  hash        String   @unique
+  created_at  DateTime @default(now())
+  updated_at  DateTime @default(now()) @updatedAt
+}
+
+model RelationshipEntry {
+  id              Int      @id @default(autoincrement())
+  relationship_id String
+  user_id         String
+  entry_id        String   @unique
+  title           String
+  icon            Int?
+  tag             String?
+  description     String?
+  metadata        Json?
+  hash            String   @unique
+  created_at      DateTime @default(now())
+  updated_at      DateTime @default(now()) @updatedAt
+}
+
+model RelationshipTag {
+  id          Int      @id @default(autoincrement())
+  user_id     String
+  tag_id      String   @unique
+  title       String
+  icon        Int?
+  description String?
+  hash        String   @unique
+  created_at  DateTime @default(now())
+  updated_at  DateTime @default(now()) @updatedAt
+}
+
+model Career {
+  id          Int          @id @default(autoincrement())
+  career_id   String       @unique
+  user_id     String
+  title       String
+  description String?
+  image       Int?
+  files       String?
+  metadata    Json?
+  status      CareerStatus @default(todo)
+  message     String?
+  hash        String       @unique
+  created_at  DateTime     @default(now())
+  updated_at  DateTime     @default(now()) @updatedAt
+}
+
+model CareerUpdate {
+  id          Int      @id @default(autoincrement())
+  user_id     String
+  update_id   String   @unique
+  career_id   String
+  title       String
+  description String?
+  files       String?
+  metadata    Json?
+  hash        String   @unique
+  created_at  DateTime @default(now())
+  updated_at  DateTime @default(now()) @updatedAt
+}
+
+model File {
+  id         Int      @id @default(autoincrement())
+  user_id    String
+  name       String
+  type       String
+  category   String
+  size       String
+  path       String
+  status     Status   @default(active)
+  message    String?
+  hash       String   @unique
+  created_at DateTime @default(now())
+  updated_at DateTime @default(now()) @updatedAt
 }
