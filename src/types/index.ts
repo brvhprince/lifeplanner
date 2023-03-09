@@ -1,3 +1,12 @@
+import { PrismaClient } from "@prisma/client";
+import {
+	DatabaseError,
+	Utils,
+	Id,
+	PropertyRequiredError,
+	ValidationError
+} from "../frameworks";
+
 export interface ErrorResponseConstructor extends Error {
 	code: number | string;
 	message: string;
@@ -52,4 +61,31 @@ export interface AppResponse {
 export interface controllerFun {
 	// eslint-disable-next-line no-unused-vars
 	(request: AppRequest): Promise<AppResponse>;
+}
+
+export type Client = PrismaClient;
+export type DbError = typeof DatabaseError;
+export type UtilType = typeof Utils;
+export type IdType = typeof Id;
+export type Validation = {
+	PropertyRequiredError: typeof PropertyRequiredError;
+	ValidationError: typeof ValidationError;
+};
+
+export interface CreateUser {
+	user_id: string;
+	first_name: string;
+	other_names: string;
+	email: string;
+	phone?: string;
+	password: string;
+	hash: string;
+}
+export interface MakeCreateUser {
+	id: string;
+	firstName: string;
+	otherNames: string;
+	email: string;
+	phone?: string;
+	password: string;
 }

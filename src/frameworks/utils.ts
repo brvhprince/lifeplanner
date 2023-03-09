@@ -34,3 +34,25 @@ export const md5 = (text: string) =>
 export const isValidIP = (ip: string) => ipRegex({ exact: true }).test(ip);
 
 export const generateReference = () => Id.makeId() + Date.now();
+
+export const validatePassword = (password: string) => {
+	// check if the password is at least 8 characters long
+	if (password.length < 8) {
+		return false;
+	}
+
+	// check if the password contains at least one number, one uppercase letter, and one lowercase letter
+	const hasNumber = /\d/;
+	const hasUppercase = /[A-Z]/;
+	const hasLowercase = /[a-z]/;
+	if (
+		!hasNumber.test(password) ||
+		!hasUppercase.test(password) ||
+		!hasLowercase.test(password)
+	) {
+		return false;
+	}
+
+	// password is strong
+	return true;
+};

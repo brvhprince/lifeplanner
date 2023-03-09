@@ -18,7 +18,8 @@ import {
 	sanitizeString,
 	hash,
 	md5,
-	generateReference
+	generateReference,
+	validatePassword
 } from "./utils";
 
 const Utils = Object.freeze({
@@ -30,7 +31,8 @@ const Utils = Object.freeze({
 	hash,
 	md5,
 	generateReference,
-	isValidIP
+	isValidIP,
+	validatePassword
 });
 
 export {
