@@ -1,11 +1,13 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, User } from "@prisma/client";
 import {
 	DatabaseError,
 	Utils,
 	Id,
 	PropertyRequiredError,
-	ValidationError
+	ValidationError,
+	ResponseError
 } from "../frameworks";
+import { plannerDb } from "../data-access";
 
 export interface ErrorResponseConstructor extends Error {
 	code: number | string;
@@ -40,8 +42,8 @@ interface KeyValuePairs {
 
 interface Headers extends KeyValuePairs {
 	"Content-Type": string | undefined;
-	Referer: string | undefined;
-	"User-Agent": string | undefined;
+	Referer?: string | undefined;
+	"User-Agent"?: string | undefined;
 }
 export interface AppRequest {
 	body: KeyValuePairs;
@@ -52,24 +54,16 @@ export interface AppRequest {
 	path: string;
 	headers: Headers;
 }
-export interface AppResponse {
-	body: KeyValuePairs;
-	headers?: Headers;
-	statusCode: number;
-}
-
-export interface controllerFun {
-	// eslint-disable-next-line no-unused-vars
-	(request: AppRequest): Promise<AppResponse>;
-}
 
 export type Client = PrismaClient;
 export type DbError = typeof DatabaseError;
 export type UtilType = typeof Utils;
 export type IdType = typeof Id;
+export type plannerDatabase = typeof plannerDb;
 export type Validation = {
 	PropertyRequiredError: typeof PropertyRequiredError;
 	ValidationError: typeof ValidationError;
+	ResponseError: typeof ResponseError;
 };
 
 export interface CreateUser {
@@ -79,13 +73,35 @@ export interface CreateUser {
 	email: string;
 	phone?: string;
 	password: string;
+
+	salt: string
 	hash: string;
 }
 export interface MakeCreateUser {
-	id: string;
+	id?: string;
 	firstName: string;
 	otherNames: string;
 	email: string;
 	phone?: string;
 	password: string;
 }
+
+export interface Response<T> {
+	status: number;
+	message: string;
+	item?: T;
+	items?: T;
+}
+
+export interface AppResponse {
+	body: Response<any> | FormatErrorObject;
+	headers?: Headers;
+	statusCode: number;
+}
+
+export interface controllerFun {
+	// eslint-disable-next-line no-unused-vars
+	(request: AppRequest): Promise<AppResponse>;
+}
+
+export type UserResponse = Response<User>;

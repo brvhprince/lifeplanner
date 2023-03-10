@@ -19,7 +19,10 @@ import {
 	hash,
 	md5,
 	generateReference,
-	validatePassword
+	validatePassword,
+	passwordCheck,
+	passwordEncryption,
+	generateSalt
 } from "./utils";
 
 const Utils = Object.freeze({
@@ -32,7 +35,10 @@ const Utils = Object.freeze({
 	md5,
 	generateReference,
 	isValidIP,
-	validatePassword
+	validatePassword,
+	passwordCheck,
+	passwordEncryption,
+	generateSalt
 });
 
 export {

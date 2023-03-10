@@ -1,12 +1,12 @@
+import { plannerDb } from "../data-access";
+
+import makeNewUser from "./user";
+
 import {
-	Utils,
-	Id,
 	PropertyRequiredError,
 	ValidationError,
 	ResponseError
 } from "../frameworks";
-
-import buildMakeUser from "./user";
 
 const Validation = Object.freeze({
 	ValidationError,
@@ -14,6 +14,6 @@ const Validation = Object.freeze({
 	ResponseError
 });
 
-const makeUser = buildMakeUser({ Utils, Id, Validation });
+const newUser = makeNewUser({ plannerDb, Validation });
 
-export { makeUser };
+export { newUser };

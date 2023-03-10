@@ -42,6 +42,10 @@ export default function buildMakeUser({
 			);
 		}
 
+		if (phone && !Utils.isPhone(phone)) {
+			throw new Validation.ValidationError("A valid phone number is required");
+		}
+
 		if (!password) {
 			throw new Validation.PropertyRequiredError(
 				"Password is required",
@@ -54,18 +58,20 @@ export default function buildMakeUser({
 			);
 		}
 
-		if (phone && !Utils.isPhone(phone)) {
-			throw new Validation.ValidationError("A valid phone number is required");
-		}
+
 
 		let hash: string;
 
+		const salt = Utils.generateSalt(22);
+		const encryptedPassword = Utils.passwordEncryption(password, salt)
 		return Object.freeze({
 			getUserId: () => id,
 			getFirstName: () => firstName,
 			getOtherNames: () => otherNames,
 			getEmail: () => email,
 			getPhone: () => phone,
+			getPassword: () => encryptedPassword,
+			getSalt: () => salt,
 			getHash: () => hash || (hash = Utils.md5(email))
 		});
 	};

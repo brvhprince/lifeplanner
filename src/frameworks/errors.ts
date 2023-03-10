@@ -8,7 +8,7 @@ import {
 	PrismaClientKnownRequestError,
 	PrismaClientRustPanicError,
 	PrismaClientUnknownRequestError
-} from "@prisma/client/runtime";
+} from "@prisma/client/runtime/library";
 
 class ValidationError extends Error {
 	public code: number;
@@ -151,7 +151,7 @@ const formatErrorResponse = (cause: ErrorResponseConstructor) => {
 		}
 	}
 
-	return { error };
+	return error;
 };
 
 export {
