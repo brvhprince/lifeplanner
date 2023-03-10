@@ -1,7 +1,7 @@
 import sanitizeHtml from "sanitize-html";
 import crypto from "crypto";
-import {Id} from "./Id";
-import {isIPAddress} from "ip-address-validator";
+import { Id } from "./Id";
+import { isIPAddress } from "ip-address-validator";
 
 export const sanitizeString = (text: string) =>
 	text.replace(/[^a-zA-Z ]/g, "").trim();
@@ -57,21 +57,24 @@ export const validatePassword = (password: string) => {
 	return true;
 };
 
- export const generateSalt = (length: number) => {
-	return crypto.randomBytes(Math.ceil(length * 3 / 4))
+export const generateSalt = (length: number) =>
+	crypto
+		.randomBytes(Math.ceil((length * 3) / 4))
 		.toString("base64")
 		.slice(0, length)
 		.replace(/\+/g, ".");
-}
 
 export const passwordEncryption = (password: string, salt: string) => {
-
 	const hash = crypto.createHash("sha256");
 	hash.update(password + salt);
 	return hash.digest("hex");
-}
+};
 
-export const passwordCheck = (password: string, salt: string, existingHash: string) => {
+export const passwordCheck = (
+	password: string,
+	salt: string,
+	existingHash: string
+) => {
 	const hashedPassword = passwordEncryption(password, salt);
 	return hashedPassword === existingHash;
-}
+};

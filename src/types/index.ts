@@ -1,4 +1,4 @@
-import { PrismaClient, User } from "@prisma/client";
+import { PrismaClient, User, Prisma } from "@prisma/client";
 import {
 	DatabaseError,
 	Utils,
@@ -74,7 +74,7 @@ export interface CreateUser {
 	phone?: string;
 	password: string;
 
-	salt: string
+	salt: string;
 	hash: string;
 }
 export interface MakeCreateUser {
@@ -105,3 +105,37 @@ export interface controllerFun {
 }
 
 export type UserResponse = Response<User>;
+
+export interface UserQueryParams {
+	userId: string;
+	details: boolean;
+	accounts?: boolean;
+	goals?: boolean;
+	transactions?: boolean;
+	profile?: boolean;
+	subscriptions?: boolean;
+	expenses?: boolean;
+	income?: boolean;
+	notes?: boolean;
+	debt?: boolean;
+	responsibilities?: boolean;
+	future_plans?: boolean;
+	employers?: boolean;
+	projects?: boolean;
+	branding?: boolean;
+	memories?: boolean;
+	learnings?: boolean;
+	relationships?: boolean;
+	careers?: boolean;
+	account_transfers?: boolean;
+	investments?: boolean;
+	savings?: boolean;
+	reminders?: boolean;
+	reports?: boolean;
+	activities?: boolean;
+	notifications?: boolean;
+	wishlists?: boolean;
+	schedules?: boolean;
+}
+
+export type UserSelectOptions = Prisma.UserSelect;

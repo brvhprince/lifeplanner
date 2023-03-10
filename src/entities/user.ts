@@ -58,21 +58,19 @@ export default function buildMakeUser({
 			);
 		}
 
-
-
 		let hash: string;
 
 		const salt = Utils.generateSalt(22);
-		const encryptedPassword = Utils.passwordEncryption(password, salt)
+		const encryptedPassword = Utils.passwordEncryption(password, salt);
 		return Object.freeze({
 			getUserId: () => id,
-			getFirstName: () => firstName,
-			getOtherNames: () => otherNames,
-			getEmail: () => email,
-			getPhone: () => phone,
+			getFirstName: () => firstName.trim(),
+			getOtherNames: () => otherNames.trim(),
+			getEmail: () => email.trim(),
+			getPhone: () => phone?.trim(),
 			getPassword: () => encryptedPassword,
 			getSalt: () => salt,
-			getHash: () => hash || (hash = Utils.md5(email))
+			getHash: () => hash || (hash = Utils.md5(email.trim()))
 		});
 	};
 }

@@ -3,12 +3,7 @@ import {
 	ErrorResponseConstructor,
 	FormatErrorObject
 } from "../types";
-import {
-	PrismaClientInitializationError,
-	PrismaClientKnownRequestError,
-	PrismaClientRustPanicError,
-	PrismaClientUnknownRequestError
-} from "@prisma/client/runtime/library";
+import { Prisma } from "@prisma/client";
 
 class ValidationError extends Error {
 	public code: number;
@@ -132,20 +127,20 @@ const formatErrorResponse = (cause: ErrorResponseConstructor) => {
 			version: "1.0"
 		};
 
-		if (cause.db instanceof PrismaClientKnownRequestError) {
+		if (cause.db instanceof Prisma.PrismaClientKnownRequestError) {
 			error.instance.meta = cause.db.meta;
 			error.instance.version = cause.db.clientVersion;
 		}
 
-		if (cause.db instanceof PrismaClientUnknownRequestError) {
+		if (cause.db instanceof Prisma.PrismaClientUnknownRequestError) {
 			error.instance.version = cause.db.clientVersion;
 		}
 
-		if (cause.db instanceof PrismaClientRustPanicError) {
+		if (cause.db instanceof Prisma.PrismaClientRustPanicError) {
 			error.instance.version = cause.db.clientVersion;
 		}
 
-		if (cause.db instanceof PrismaClientInitializationError) {
+		if (cause.db instanceof Prisma.PrismaClientInitializationError) {
 			error.instance.code = cause.db.errorCode;
 			error.instance.version = cause.db.clientVersion;
 		}
