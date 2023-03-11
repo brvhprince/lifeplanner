@@ -137,5 +137,52 @@ export interface UserQueryParams {
 	wishlists?: boolean;
 	schedules?: boolean;
 }
+export interface AccountsQueryParams {
+	userId: string;
+	goal_savings?: boolean;
+	transactions?: boolean;
+	transaction_income?: boolean;
+	transaction_expense?: boolean;
+	subscriptions?: boolean;
+	expenses?: boolean;
+	income?: boolean;
+	debt?: boolean;
+	employers?: boolean;
+	to_accounts?: boolean;
+	from_accounts?: boolean;
+	investments?: boolean;
+	savings?: boolean;
+}
+export interface AccountQueryParams {
+	id: string;
+	userId: string;
+	goal_savings?: boolean;
+	transactions?: boolean;
+	transaction_income?: boolean;
+	transaction_expense?: boolean;
+	subscriptions?: boolean;
+	expenses?: boolean;
+	income?: boolean;
+	debt?: boolean;
+	employers?: boolean;
+	to_accounts?: boolean;
+	from_accounts?: boolean;
+	investments?: boolean;
+	savings?: boolean;
+}
+export interface GoalsQueryParams {
+	userId: string;
+	goal_savings?: boolean;
+}
+export interface GoalQueryParams {
+	id: string;
+	userId: string;
+	goal_savings?: boolean;
+}
 
+export type hash = {
+	hash: string;
+};
 export type UserSelectOptions = Prisma.UserSelect;
+export type AccountSelectOptions = Prisma.AccountSelect;
+export type GoalSelectOptions = Prisma.GoalSelect;
