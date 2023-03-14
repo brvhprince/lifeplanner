@@ -2,17 +2,18 @@ import {
 	AccountQueryParams,
 	AccountSelectOptions,
 	AccountsQueryParams,
-	Client,
-	CreateUser,
+	Client, CreateAccount,
+	CreateUser, CreateVerificationCode,
 	DbError,
 	ErrorInstance,
 	GoalQueryParams,
 	GoalSelectOptions,
 	GoalsQueryParams,
-	hash,
+	hash, ProfileUpdate,
 	UserQueryParams,
-	UserSelectOptions
+	UserSelectOptions, UserUpdate
 } from "../types";
+
 export default function makePlannerDb({
 	makeDb,
 	DatabaseError
@@ -31,7 +32,16 @@ export default function makePlannerDb({
 		findAccountByHash,
 		findGoalsByUserId,
 		findGoalById,
-		findGoalByHash
+		findGoalByHash,
+		createVerificationCode,
+		findVerificationCode,
+		removeVerificationCode,
+		verifyUserEmail,
+		verifyUserPhone,
+		updateUserProfile,
+		updateUserInfo,
+		deleteUserAccount,
+		createAccount
 	});
 
 	async function createUser(userInfo: CreateUser) {
@@ -54,12 +64,12 @@ export default function makePlannerDb({
 
 			return {
 				status: 201,
-				message: "User account created successfully",
+				message: "User created successfully",
 				item: results
 			};
 		} catch (e) {
 			throw new DatabaseError(
-				"An error occurred creating user account. Please retry after few minutes",
+				"An error occurred creating user. Please retry after few minutes",
 				"createUser",
 				e as ErrorInstance,
 				"DataCreateError"
@@ -83,6 +93,267 @@ export default function makePlannerDb({
 				"createUserProfile",
 				e as ErrorInstance,
 				"DataCreateError"
+			);
+		}
+	}
+
+	async function createVerificationCode (payload : CreateVerificationCode) {
+		try {
+			await makeDb.verification.create({
+				data: payload
+			});
+
+			return {
+				status: 200,
+				message: "Verification code created successfully",
+			}
+		}
+		catch (e) {
+			throw new DatabaseError(
+				"An error occurred creating verification code. Please retry after few minutes",
+				"createVerificationCode",
+				e as ErrorInstance,
+				"DataCreateError"
+			);
+		}
+	}
+
+	async function createAccount(accountInfo: CreateAccount) {
+		try {
+
+			const results = await makeDb.account.create({
+				data: accountInfo,
+				select: {
+					account_id: true,
+					title: true,
+					description: true,
+					currency: true,
+					image: true,
+					files: true,
+					type: true,
+					primary: true,
+					balance: true,
+					metadata: true,
+					status: true,
+					created_at: true,
+					updated_at: true
+				}
+			});
+
+			return {
+				status: 201,
+				message: "Account created successfully",
+				item: results
+			};
+		} catch (e) {
+			throw new DatabaseError(
+				"An error occurred creating account. Please retry after few minutes",
+				"createAccount",
+				e as ErrorInstance,
+				"DataCreateError"
+			);
+		}
+	}
+
+	async function updateUserInfo({ userId, ...rest}: UserUpdate) {
+		try {
+			const user = await makeDb.user.update({
+				where: {
+					user_id: userId
+				},
+				data: rest
+			})
+
+			return {
+				status: 200,
+				message: "User info updated successfully",
+				item: user
+			}
+		}
+		catch (e) {
+			throw new DatabaseError(
+				"An error occurred updating user info. Please retry after few minutes",
+				"updateUserInfo",
+				e as ErrorInstance,
+				"DataUpdateError"
+			);
+		}
+	}
+
+	async function deleteUserAccount({ userId }: {  userId: string }) {
+		try {
+			await makeDb.user.delete({
+				where: {
+					user_id: userId
+				}
+			})
+
+			return {
+				status: 200,
+				message: "User account removed successfully"
+			}
+		}
+		catch (e) {
+			throw new DatabaseError(
+				"An error occurred removing user account. Please retry after few minutes",
+				"deleteUserAccount",
+				e as ErrorInstance,
+				"DataRemovalError"
+			);
+		}
+	}
+
+	async function deleteUserFiles({ userId }: {  userId: string }) {
+		try {
+		   await makeDb.file.deleteMany({
+				where: {
+					user_id: userId
+				}
+			})
+
+			return true
+		}
+		catch (e) {
+			throw new DatabaseError(
+				"An error occurred removing user uploaded files. Please retry after few minutes",
+				"deleteUserFiles",
+				e as ErrorInstance,
+				"DataRemovalError"
+			);
+		}
+	}
+
+	async function verifyUserEmail({ userId }: { userId: string }) {
+		try {
+			await makeDb.user.update({
+				where: {
+					user_id: userId
+				},
+				data: {
+					email_verified: true
+				}
+			})
+
+			return {
+				status: 200,
+				message: "User's email address verified successfully",
+			}
+		}
+		catch (e) {
+			throw new DatabaseError(
+				"An error occurred updating user email status. Please retry after few minutes",
+				"verifyUserEmail",
+				e as ErrorInstance,
+				"DataUpdateError"
+			);
+		}
+	}
+
+	async function verifyUserPhone({ userId }: { userId: string }) {
+		try {
+			const user = await makeDb.user.update({
+				where: {
+					user_id: userId
+				},
+				data: {
+					phone_verified: true
+				}
+			})
+
+
+			return {
+				status: 200,
+				message: "User's phone number verified successfully",
+			}
+		}
+		catch (e) {
+			throw new DatabaseError(
+				"An error occurred updating user phone status. Please retry after few minutes",
+				"verifyUserPhone",
+				e as ErrorInstance,
+				"DataUpdateError"
+			);
+		}
+	}
+
+	async function updateUserProfile({ userId, ...rest}: ProfileUpdate) {
+		try {
+			const user = await makeDb.profile.update({
+				where: {
+					user_id: userId
+				},
+				data: rest
+			})
+
+			return {
+				status: 200,
+				message: "User info updated successfully",
+				item: user
+			}
+		}
+		catch (e) {
+			throw new DatabaseError(
+				"An error occurred updating user profile. Please retry after few minutes",
+				"updateUserProfile",
+				e as ErrorInstance,
+				"DataUpdateError"
+			);
+		}
+	}
+
+	async function findVerificationCode ({ code } : { code: number}) {
+		try {
+		const verification = await makeDb.verification.findUnique({
+				where: {
+					code
+				},
+				select: {
+					code: true,
+					value: true,
+					expires: true
+				}
+			});
+
+			return {
+				status: 200,
+				message: "Verification code fetched successfully",
+				item: verification
+			}
+		}
+		catch (e) {
+			throw new DatabaseError(
+				"An error occurred fetching verification code. Please retry after few minutes",
+				"findVerificationCode",
+				e as ErrorInstance,
+				"DataNotFoundException"
+			);
+		}
+	}
+
+	async function removeVerificationCode ({ code } : { code: number }) {
+		try {
+			await makeDb.verification.delete({
+				where: {
+					code,
+				},
+				select: {
+					code: true,
+					value: true,
+					expires: true
+				}
+			});
+
+			return {
+				status: 200,
+				message: "Verification code removed successfully"
+			}
+		}
+		catch (e) {
+			throw new DatabaseError(
+				"An error occurred removing verification code. Please retry after few minutes",
+				"removeVerificationCode",
+				e as ErrorInstance,
+				"DataRemovalError"
 			);
 		}
 	}
@@ -204,6 +475,8 @@ export default function makePlannerDb({
 				select.other_names = true;
 				select.email = true;
 				select.phone = true;
+				select.email_verified = true;
+				select.phone_verified = true;
 				select.status = true;
 				select.message = true;
 				select.created_at = true;
@@ -298,6 +571,7 @@ export default function makePlannerDb({
 						description: true,
 						amount: true,
 						currency: true,
+						fee: true,
 						from_account: {
 							select: {
 								title: true,

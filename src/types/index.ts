@@ -1,4 +1,4 @@
-import { PrismaClient, User, Prisma } from "@prisma/client";
+import { PrismaClient, User, Prisma, Account } from "@prisma/client";
 import {
 	DatabaseError,
 	Utils,
@@ -77,7 +77,22 @@ export interface CreateUser {
 	salt: string;
 	hash: string;
 }
+
+enum AccountType {
+	cash = "cash",
+	card = "cash",
+	mobile = "cash",
+	bank = "cash"
+}
 export interface MakeCreateUser {
+	id?: string;
+	firstName: string;
+	otherNames: string;
+	email: string;
+	phone?: string;
+	password: string;
+}
+export interface MakeCreateAccount {
 	id?: string;
 	firstName: string;
 	otherNames: string;
@@ -183,6 +198,21 @@ export interface GoalQueryParams {
 export type hash = {
 	hash: string;
 };
+
+export interface CreateVerificationCode {
+	code: number
+	value: string
+	expires: Date
+}
+
+export interface UserUpdate extends Prisma.UserUpdateInput {
+	userId: string
+}
+export interface ProfileUpdate extends Prisma.ProfileUpdateInput {
+	userId: string
+}
+
 export type UserSelectOptions = Prisma.UserSelect;
 export type AccountSelectOptions = Prisma.AccountSelect;
 export type GoalSelectOptions = Prisma.GoalSelect;
+export type CreateAccount = Prisma.AccountCreateInput;
