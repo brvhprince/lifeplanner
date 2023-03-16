@@ -1,4 +1,4 @@
-import { LoginUser, plannerDatabase, Validation, UtilType, } from "../types";
+import { LoginUser, plannerDatabase, Validation, UtilType } from "../types";
 
 import { makeSource } from "../entities";
 

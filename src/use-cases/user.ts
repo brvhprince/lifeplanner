@@ -11,7 +11,7 @@ import {
 export default function makeNewUser({
 	plannerDb,
 	Validation,
-    sendMail
+	sendMail
 }: {
 	plannerDb: plannerDatabase;
 	Validation: Validation;
@@ -51,42 +51,46 @@ export default function makeNewUser({
 			userData.phone = user.getPhone();
 		}
 
-		if (Utils.isEmailValidation()) {
-			const code = await generateCode();
+		const userCreate = await plannerDb.createUser(userData);
 
-			const verification = await plannerDb.createVerificationCode({
-				code,
-				value: user.getEmail(),
-				expires: new Date()
-			});
+		if (userCreate.status === 201) {
+			if (Utils.isEmailValidation()) {
+				const code = await generateCode();
 
-			if (verification.status === 200) {
-				const link = `${process.env.APP_URL}/verification/email/${Utils.encryptString(code.toString())}`
-				await sendMail({
-					email: user.getEmail(),
-					subject: "Life Planner Account Verification",
-					template: "verification",
-					variables: {
-						name: user.getFirstName(),
-						link,
-						date: new Date().getFullYear(),
-						website: String(process.env.FRONTEND_URL)
-					}
-				})
+				const verification = await plannerDb.createVerificationCode({
+					code,
+					value: user.getEmail(),
+					expires: new Date()
+				});
+
+				if (verification.status === 200) {
+					const link = `${
+						process.env.APP_URL
+					}/verification/email/${Utils.encryptString(code.toString())}`;
+					await sendMail({
+						email: user.getEmail(),
+						subject: "Life Planner Account Verification",
+						template: "verification",
+						variables: {
+							name: user.getFirstName(),
+							link,
+							date: new Date().getFullYear(),
+							website: String(process.env.FRONTEND_URL)
+						}
+					});
+				}
 			}
 
+			if (Utils.isPhoneValidation() && userInfo.phone) {
+				const code = await generateCode();
+
+				const emailAddress = await plannerDb.createVerificationCode({
+					code,
+					value: user.getPhone() as string,
+					expires: new Date()
+				});
+			}
 		}
-
-		if (Utils.isPhoneValidation() && userInfo.phone) {
-			const code = await generateCode();
-
-			const emailAddress = await plannerDb.createVerificationCode({
-				code,
-				value: user.getPhone() as string,
-				expires: new Date()
-			});
-		}
-
-		return await plannerDb.createUser(userData);
+		return userCreate;
 	};
 }

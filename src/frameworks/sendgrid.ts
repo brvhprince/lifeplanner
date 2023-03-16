@@ -1,4 +1,4 @@
-import sendgrid from "@sendgrid/mail"
+import sendgrid from "@sendgrid/mail";
 import { MailBody } from "../types";
 
 export const sendSendGridMail = async (mailBoody: MailBody) => {

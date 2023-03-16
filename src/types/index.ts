@@ -303,14 +303,12 @@ export interface MailBody {
 	body: string;
 }
 
-
 export interface MailCompose {
 	template: string;
 	subject: string;
 	email: string;
 	variables: KeyValueStrings;
 }
-
 
 export interface MailTransporter {
 	// eslint-disable-next-line no-unused-vars

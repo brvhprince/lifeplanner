@@ -1,4 +1,4 @@
-import fs from "fs"
+import fs from "fs";
 import { Id } from "./Id";
 import makeCallback from "./callback";
 import authMiddleware from "./auth";
@@ -26,7 +26,9 @@ import {
 	isPhoneValidation,
 	generateUniqueRandomDigits,
 	encryptString,
-	decryptString
+	decryptString,
+	isSendMail,
+	isSendSMS
 } from "./utils";
 
 import makeSendMail from "./send_mail";
@@ -35,14 +37,12 @@ import { sendMailgunMail } from "./mailgun";
 import { sendSendGridMail } from "./sendgrid";
 import { MailTransporter } from "../types";
 
-
-let Transporter: MailTransporter = sendSMTPMail
+let Transporter: MailTransporter = sendSMTPMail;
 
 if (process.env.EMAIL_PROVIDER === "mailgun") {
-	Transporter = sendMailgunMail
-}
-else if(process.env.EMAIL_PROVIDER === "sendgrid") {
-	Transporter = sendSendGridMail
+	Transporter = sendMailgunMail;
+} else if (process.env.EMAIL_PROVIDER === "sendgrid") {
+	Transporter = sendSendGridMail;
 }
 
 const sendMail = makeSendMail({ Transporter, fs });
@@ -66,9 +66,10 @@ const Utils = Object.freeze({
 	generateUniqueRandomDigits,
 	isPhoneValidation,
 	encryptString,
-	decryptString
+	decryptString,
+	isSendMail,
+	isSendSMS
 });
-
 
 export const Validation = Object.freeze({
 	ValidationError,

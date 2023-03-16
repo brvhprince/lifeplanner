@@ -7,6 +7,8 @@ export const validateEnvironmentVariables = () => {
 		"STORAGE",
 		"VERIFY_EMAIL",
 		"VRIFY_PHONE",
+		"SEND_MAIL",
+		"SEND_SMS",
 		"EMAIL_PROVIDER",
 		"SMS_PROVIDER"
 	];
@@ -47,67 +49,73 @@ export const validateEnvironmentVariables = () => {
 		"SMTP_ENCRYPTION"
 	];
 
-	switch (process.env.EMAIL_PROVIDER) {
-		case "mailgun":
-			if (!checkRequiredEnvVars(["MAILGUN_API_KEY", "MAILGUN_DOMAIN"])) {
+	if (process.env.SEND_MAIL === "true") {
+		switch (process.env.EMAIL_PROVIDER) {
+			case "mailgun":
+				if (!checkRequiredEnvVars(["MAILGUN_API_KEY", "MAILGUN_DOMAIN"])) {
+					exit();
+				}
+				break;
+			case "sendgrid":
+				if (!checkRequiredEnvVars(["SENDGRID_API_KEY"])) {
+					exit();
+				}
+				break;
+			case "smtp":
+				if (!checkRequiredEnvVars(smtpEnvVars)) {
+					exit();
+				}
+				break;
+			default:
 				exit();
-			}
-			break;
-		case "sendgrid":
-			if (!checkRequiredEnvVars(["SENDGRID_API_KEY"])) {
-				exit();
-			}
-			break;
-		case "smtp":
-			if (!checkRequiredEnvVars(smtpEnvVars)) {
-				exit();
-			}
-			break;
-		default:
-			exit();
+		}
 	}
 
-	switch (process.env.SMS_PROVIDER) {
-		case "arkesel":
-			if (!checkRequiredEnvVars(["ARKESEL_API_KEY", "ARKESEL_SENDER_ID"])) {
+	if (process.env.SEND_SMS === "true") {
+		switch (process.env.SMS_PROVIDER) {
+			case "arkesel":
+				if (!checkRequiredEnvVars(["ARKESEL_API_KEY", "ARKESEL_SENDER_ID"])) {
+					exit();
+				}
+				break;
+			case "logonvoice":
+				if (
+					!checkRequiredEnvVars(["LOGONVOICE_API_KEY", "LOGONVOICE_SENDER_ID"])
+				) {
+					exit();
+				}
+				break;
+			case "hubtel":
+				if (
+					!checkRequiredEnvVars([
+						"HUBTEL_CLIENT_ID",
+						"HUBTEL_CLIENT_SECRET",
+						"HUBTEL_SENDER_ID"
+					])
+				) {
+					exit();
+				}
+				break;
+			case "telesign":
+				if (
+					!checkRequiredEnvVars(["TELESIGN_CUSTOMER_ID", "TELESIGN_API_KEY"])
+				) {
+					exit();
+				}
+				break;
+			case "twilio":
+				if (
+					!checkRequiredEnvVars([
+						"TWILIO_ACCOUNT_SID",
+						"TWILIO_AUTH_TOKEN",
+						"TWILIO_NUMBER"
+					])
+				) {
+					exit();
+				}
+				break;
+			default:
 				exit();
-			}
-			break;
-		case "logonvoice":
-			if (
-				!checkRequiredEnvVars(["LOGONVOICE_API_KEY", "LOGONVOICE_SENDER_ID"])
-			) {
-				exit();
-			}
-			break;
-		case "hubtel":
-			if (
-				!checkRequiredEnvVars([
-					"HUBTEL_CLIENT_ID",
-					"HUBTEL_CLIENT_SECRET",
-					"HUBTEL_SENDER_ID"
-				])
-			) {
-				exit();
-			}
-			break;
-		case "telesign":
-			if (!checkRequiredEnvVars(["TELESIGN_CUSTOMER_ID", "TELESIGN_API_KEY"])) {
-				exit();
-			}
-			break;
-		case "twilio":
-			if (
-				!checkRequiredEnvVars([
-					"TWILIO_ACCOUNT_SID",
-					"TWILIO_AUTH_TOKEN",
-					"TWILIO_NUMBER"
-				])
-			) {
-				exit();
-			}
-			break;
-		default:
-			exit();
+		}
 	}
 };
