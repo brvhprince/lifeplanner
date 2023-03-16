@@ -93,3 +93,22 @@ export const generateUniqueRandomDigits = (length: number) => {
 
 export const isEmailValidation = () => process.env.VERIFY_EMAIL === "true";
 export const isPhoneValidation = () => process.env.VERIFY_PHONE === "true";
+
+export const encryptString = (string: string) => {
+	const iv = crypto.randomBytes(16);
+	const key = crypto.createHash('sha256').update(String(process.env.SECRET_HASH_KEY)).digest('base64').substring(0, 32)
+  const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
+  let encrypted = cipher.update(string, 'utf8', 'hex');
+  encrypted += cipher.final('hex');
+  return `${iv.toString('hex')}:${encrypted}`;
+  }
+  
+  export const decryptString = (encryptedString: string) => {
+	const [ivHex, encryptedDataHex] = encryptedString.split(':');
+	const iv = Buffer.from(ivHex, 'hex');
+	const key = crypto.createHash('sha256').update(String(process.env.SECRET_HASH_KEY)).digest('base64').substring(0, 32)
+	const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
+	let decrypted = decipher.update(encryptedDataHex, 'hex', 'utf8');
+	decrypted += decipher.final('utf8');
+	return decrypted;
+  }

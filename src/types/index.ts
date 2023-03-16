@@ -47,6 +47,9 @@ export interface FormatErrorObject {
 interface KeyValuePairs {
 	[key: string]: unknown;
 }
+interface KeyValueStrings {
+	[key: string]: string | number;
+}
 
 interface Headers extends KeyValuePairs {
 	"Content-Type": string | undefined;
@@ -294,9 +297,27 @@ export interface LoginUser {
 	source: Source;
 }
 
-export interface MailBoody {
+export interface MailBody {
 	recipient: string;
 	subject: string;
-	html_body: string;
-	text_body?: string;
+	body: string;
+}
+
+
+export interface MailCompose {
+	template: string;
+	subject: string;
+	email: string;
+	variables: KeyValueStrings;
+}
+
+
+export interface MailTransporter {
+	// eslint-disable-next-line no-unused-vars
+	(mailBoody: MailBody): Promise<boolean>;
+}
+
+export interface MailComposer {
+	// eslint-disable-next-line no-unused-vars
+	(mailBoody: MailCompose): Promise<boolean>;
 }

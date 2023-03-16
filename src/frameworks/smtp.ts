@@ -1,7 +1,7 @@
 import nodemailer from "nodemailer";
-import { MailBoody } from "../types";
+import { MailBody } from "../types";
 
-export const sendMail = async (mailBoody: MailBoody) => {
+export const sendSMTPMail = async (mailBoody: MailBody) => {
 	try {
 		const transporter = nodemailer.createTransport({
 			host: process.env.SMTP_HOST,
@@ -17,8 +17,7 @@ export const sendMail = async (mailBoody: MailBoody) => {
 			from: `${process.env.SMTP_FROM}" <${process.env.SMTP_FROM_EMAIL}>`,
 			to: mailBoody.recipient,
 			subject: mailBoody.subject,
-			text: mailBoody.text_body,
-			html: mailBoody.html_body
+			html: mailBoody.body
 		});
 
 		return Boolean(response.messageId);

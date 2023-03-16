@@ -49,7 +49,7 @@ export const validateEnvironmentVariables = () => {
 
 	switch (process.env.EMAIL_PROVIDER) {
 		case "mailgun":
-			if (!checkRequiredEnvVars(["MAILGUN_API_KEY"])) {
+			if (!checkRequiredEnvVars(["MAILGUN_API_KEY", "MAILGUN_DOMAIN"])) {
 				exit();
 			}
 			break;

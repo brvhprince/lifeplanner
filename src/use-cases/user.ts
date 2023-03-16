@@ -4,15 +4,18 @@ import {
 	CreateUser,
 	MakeCreateUser,
 	plannerDatabase,
-	Validation
+	Validation,
+	MailComposer
 } from "../types";
 
 export default function makeNewUser({
 	plannerDb,
-	Validation
+	Validation,
+    sendMail
 }: {
 	plannerDb: plannerDatabase;
 	Validation: Validation;
+	sendMail: MailComposer;
 }) {
 	const generateCode = async () => {
 		const code = Utils.generateUniqueRandomDigits(6);
@@ -51,11 +54,27 @@ export default function makeNewUser({
 		if (Utils.isEmailValidation()) {
 			const code = await generateCode();
 
-			const emailAddress = await plannerDb.createVerificationCode({
+			const verification = await plannerDb.createVerificationCode({
 				code,
 				value: user.getEmail(),
 				expires: new Date()
 			});
+
+			if (verification.status === 200) {
+				const link = `${process.env.APP_URL}/verification/email/${Utils.encryptString(code.toString())}`
+				await sendMail({
+					email: user.getEmail(),
+					subject: "Life Planner Account Verification",
+					template: "verification",
+					variables: {
+						name: user.getFirstName(),
+						link,
+						date: new Date().getFullYear(),
+						website: String(process.env.FRONTEND_URL)
+					}
+				})
+			}
+
 		}
 
 		if (Utils.isPhoneValidation() && userInfo.phone) {

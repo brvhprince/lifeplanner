@@ -24,7 +24,7 @@ app.post("/login", makeCallback(userLogin));
 app.post("/password/forgot", makeCallback(createUser));
 app.post("/password/reset", makeCallback(createUser));
 app.post("/verification/send", makeCallback(createUser));
-app.post("/verification/verify", makeCallback(createUser));
+app.get("/verification/email/:code", makeCallback(createUser));
 
 /* Protected routes */
 app.get("/users/details", authMiddleware, makeCallback(createUser))
