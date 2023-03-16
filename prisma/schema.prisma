@@ -562,10 +562,10 @@ model FuturePlan {
   hash           String              @unique
   created_at     DateTime            @default(now())
   updated_at     DateTime            @default(now()) @updatedAt
-  updates        FuturePlanUpdates[]
+  updates        FuturePlanUpdate[]
 }
 
-model FuturePlanUpdates {
+model FuturePlanUpdate {
   id          Int         @id @default(autoincrement())
   update_id   String      @unique
   user_id     String
