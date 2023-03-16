@@ -1,19 +1,13 @@
 import {
 	Utils,
 	Id,
-	PropertyRequiredError,
-	ValidationError,
-	ResponseError
+	Validation
 } from "../frameworks";
 
 import buildMakeUser from "./user";
-
-const Validation = Object.freeze({
-	ValidationError,
-	PropertyRequiredError,
-	ResponseError
-});
+import buildMakeSource from "./source";
 
 const makeUser = buildMakeUser({ Utils, Id, Validation });
+const makeSource = buildMakeSource({ Utils });
 
-export { makeUser };
+export { makeUser, makeSource };

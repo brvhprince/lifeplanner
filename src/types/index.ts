@@ -1,11 +1,12 @@
-import { PrismaClient, User, Prisma, Account } from "@prisma/client";
+import { PrismaClient, User, Prisma, Account, Profile, AppPlatform } from "@prisma/client";
 import {
 	DatabaseError,
 	Utils,
 	Id,
 	PropertyRequiredError,
 	ValidationError,
-	ResponseError
+	ResponseError,
+	PermissionError
 } from "../frameworks";
 import { plannerDb } from "../data-access";
 
@@ -44,6 +45,8 @@ interface Headers extends KeyValuePairs {
 	"Content-Type": string | undefined;
 	Referer?: string | undefined;
 	"User-Agent"?: string | undefined;
+	"planner-version"?: string | undefined;
+	"planner-platform"?: AppPlatform | undefined;
 }
 export interface AppRequest {
 	body: KeyValuePairs;
@@ -64,6 +67,7 @@ export type Validation = {
 	PropertyRequiredError: typeof PropertyRequiredError;
 	ValidationError: typeof ValidationError;
 	ResponseError: typeof ResponseError;
+	PermissionError: typeof PermissionError
 };
 
 export interface CreateUser {
@@ -125,6 +129,12 @@ export interface controllerFun {
 }
 
 export type UserResponse = Response<User>;
+
+export interface LoginItemResponse extends User, Profile {
+	token: string
+}
+
+export type LoginResponse = Response<LoginItemResponse>
 
 export interface UserQueryParams {
 	userId: string;
@@ -261,3 +271,18 @@ export type CreateNotification = Prisma.NotificationCreateInput;
 export type CreateWishlist = Prisma.WishlistCreateInput;
 export type CreateSchedule = Prisma.ScheduleCreateInput;
 export type CreateScheduleItem = Prisma.ScheduleItemCreateInput;
+export type CreateAppSession = Prisma.AppSessionCreateInput;
+
+export interface Source {
+	ip: string
+	browser?: string
+	referrer?: string
+	version?: string
+	platform?: AppPlatform
+}
+
+export interface LoginUser {
+	email: string
+	password: string
+	source: Source
+}

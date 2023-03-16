@@ -1,8 +1,8 @@
 import express from "express";
 import env from "dotenv";
 import cors from "cors";
-import { makeCallback } from "./frameworks";
-import { createUser, notFound, welcome } from "./controllers";
+import { makeCallback, authMiddleware } from "./frameworks";
+import { createUser, notFound, welcome, userLogin } from "./controllers";
 
 env.config();
 
@@ -17,6 +17,14 @@ app.use(cors());
 app.get("/", makeCallback(welcome));
 
 app.post("/users", makeCallback(createUser));
+app.post("/login", makeCallback(userLogin));
+app.post("/password/forgot", makeCallback(createUser));
+app.post("/password/reset", makeCallback(createUser));
+app.post("/verification/send", makeCallback(createUser));
+app.post("/verification/verify", makeCallback(createUser));
+
+/* Protected routes */
+app.get("/users/details", authMiddleware, makeCallback(createUser))
 
 /* To resolve not found routes */
 app.use(makeCallback(notFound));

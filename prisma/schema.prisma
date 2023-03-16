@@ -245,6 +245,16 @@ enum ScheduleEndsOn {
   date
 }
 
+enum AppPlatform {
+  android
+  ios
+  web
+  mac
+  windows
+  linux
+  other
+}
+
 model User {
   id                Int               @id @default(autoincrement())
   user_id           String            @unique
@@ -1121,4 +1131,15 @@ model Verification {
   code    Int      @unique
   value   String
   expires DateTime @db.Timestamp()
+}
+
+model AppSession {
+  id               Int         @id @default(autoincrement())
+  user_id          String
+  session_id       String @unique
+  platform         AppPlatform
+  platform_details Json?
+  expires_at       DateTime    @db.Timestamp()
+  created_at       DateTime    @default(now())
+  updated_at       DateTime    @default(now()) @updatedAt
 }

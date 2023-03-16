@@ -6,6 +6,7 @@ import {
 	CreateAccount,
 	CreateAccountTransfer,
 	CreateActivity,
+	CreateAppSession,
 	CreateBranding,
 	CreateBrandingUpdate,
 	CreateCareer,
@@ -122,7 +123,9 @@ export default function makePlannerDb({
 		createNotification,
 		createWishlist,
 		createSchedule,
-		createScheduleItem
+		createScheduleItem,
+		createAppSession,
+		findUserAppSessionById
 	});
 
 	async function createUser(userInfo: CreateUser) {
@@ -1732,6 +1735,24 @@ export default function makePlannerDb({
 		}
 	}
 
+	async function createAppSession(sessionInfo: CreateAppSession) {
+		try {
+			const user = await makeDb.appSession.create({
+				data: sessionInfo,
+				select: {
+					session_id: true
+				}
+			});
+			return user.session_id
+		} catch (e) {
+			throw new DatabaseError(
+				"An error occurred creating app session. Please retry after few minutes",
+				"createAppSession",
+				e as ErrorInstance,
+				"DataCreateError"
+			);
+		}
+	}
 	async function updateUserInfo({ userId, ...rest }: UserUpdate) {
 		try {
 			const user = await makeDb.user.update({
@@ -2009,6 +2030,28 @@ export default function makePlannerDb({
 		}
 	}
 
+	async function findUserAppSessionById({ session_id }: { session_id: string }) {
+		try {
+			const session = await makeDb.appSession.findUnique({
+				where: {
+					session_id
+				},
+				select: {
+					user_id: true
+				}
+			});
+
+			return session ? session.user_id : false
+		} catch (e) {
+			throw new DatabaseError(
+				"An error occurred fetching user session. Please retry after few minutes",
+				"findUserAppSessionById",
+				e as ErrorInstance,
+				"DataNotFoundException"
+			);
+		}
+	}
+
 	async function loginUser({ email }: { email: string }) {
 		try {
 			const user = await makeDb.user.findUnique({
@@ -2016,6 +2059,7 @@ export default function makePlannerDb({
 					email
 				},
 				select: {
+					user_id: true,
 					salt: true,
 					password: true
 				}
@@ -2034,6 +2078,7 @@ export default function makePlannerDb({
 			);
 		}
 	}
+
 
 	async function findUserById({ userId, ...rest }: UserQueryParams) {
 		try {

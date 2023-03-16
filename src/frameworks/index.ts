@@ -1,5 +1,6 @@
 import { Id } from "./Id";
 import makeCallback from "./callback";
+import authMiddleware from "./auth";
 import {
 	PropertyRequiredError,
 	formatErrorResponse,
@@ -33,6 +34,7 @@ const Utils = Object.freeze({
 	sanitizeString,
 	hash,
 	md5,
+	Id,
 	generateReference,
 	isValidIP,
 	validatePassword,
@@ -41,8 +43,17 @@ const Utils = Object.freeze({
 	generateSalt
 });
 
+export const Validation = Object.freeze({
+	ValidationError,
+	PropertyRequiredError,
+	ResponseError,
+	PermissionError
+});
+
+
 export {
 	makeCallback,
+	authMiddleware,
 	Id,
 	Utils,
 	PermissionError,
