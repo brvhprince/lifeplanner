@@ -78,3 +78,18 @@ export const passwordCheck = (
 	const hashedPassword = passwordEncryption(password, salt);
 	return hashedPassword === existingHash;
 };
+
+export const generateUniqueRandomDigits = (length: number) => {
+	const digits = new Set();
+
+	while (digits.size < length) {
+		const randomDigit = Math.floor(Math.random() * 10);
+		digits.add(randomDigit);
+	}
+
+	const numbers = Array.from(digits).join("");
+	return Number(numbers);
+};
+
+export const isEmailValidation = () => process.env.VERIFY_EMAIL === "true";
+export const isPhoneValidation = () => process.env.VERIFY_PHONE === "true";

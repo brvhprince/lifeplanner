@@ -1,4 +1,5 @@
 import { makeUser } from "../entities";
+import { Utils } from "../frameworks";
 import {
 	CreateUser,
 	MakeCreateUser,
@@ -13,6 +14,15 @@ export default function makeNewUser({
 	plannerDb: plannerDatabase;
 	Validation: Validation;
 }) {
+	const generateCode = async () => {
+		const code = Utils.generateUniqueRandomDigits(6);
+
+		const exists = await plannerDb.findVerificationCode({ code });
+		if (exists.item) generateCode();
+
+		return code;
+	};
+
 	return async function newUser(userInfo: MakeCreateUser) {
 		const user = makeUser(userInfo);
 
@@ -36,6 +46,26 @@ export default function makeNewUser({
 
 		if (userInfo.phone) {
 			userData.phone = user.getPhone();
+		}
+
+		if (Utils.isEmailValidation()) {
+			const code = await generateCode();
+
+			const emailAddress = await plannerDb.createVerificationCode({
+				code,
+				value: user.getEmail(),
+				expires: new Date()
+			});
+		}
+
+		if (Utils.isPhoneValidation() && userInfo.phone) {
+			const code = await generateCode();
+
+			const emailAddress = await plannerDb.createVerificationCode({
+				code,
+				value: user.getPhone() as string,
+				expires: new Date()
+			});
 		}
 
 		return await plannerDb.createUser(userData);

@@ -1,4 +1,4 @@
-import { formatErrorResponse, RouteError } from "../frameworks";
+import { formatErrorResponse, RouteError } from "../frameworks/errors";
 import { AppRequest, AppResponse } from "../types";
 
 export default async function notFound(request: AppRequest) {

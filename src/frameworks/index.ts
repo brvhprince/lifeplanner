@@ -3,11 +3,8 @@ import makeCallback from "./callback";
 import authMiddleware from "./auth";
 import {
 	PropertyRequiredError,
-	formatErrorResponse,
-	RouteError,
 	ResponseError,
 	PermissionError,
-	DatabaseError,
 	ValidationError
 } from "./errors";
 import {
@@ -23,7 +20,10 @@ import {
 	validatePassword,
 	passwordCheck,
 	passwordEncryption,
-	generateSalt
+	generateSalt,
+	isEmailValidation,
+	isPhoneValidation,
+	generateUniqueRandomDigits
 } from "./utils";
 
 const Utils = Object.freeze({
@@ -40,7 +40,10 @@ const Utils = Object.freeze({
 	validatePassword,
 	passwordCheck,
 	passwordEncryption,
-	generateSalt
+	generateSalt,
+	isEmailValidation,
+	generateUniqueRandomDigits,
+	isPhoneValidation
 });
 
 export const Validation = Object.freeze({
@@ -50,17 +53,4 @@ export const Validation = Object.freeze({
 	PermissionError
 });
 
-
-export {
-	makeCallback,
-	authMiddleware,
-	Id,
-	Utils,
-	PermissionError,
-	PropertyRequiredError,
-	ResponseError,
-	RouteError,
-	DatabaseError,
-	ValidationError,
-	formatErrorResponse
-};
+export { makeCallback, authMiddleware, Id, Utils };

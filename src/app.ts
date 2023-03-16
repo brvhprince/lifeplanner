@@ -3,8 +3,11 @@ import env from "dotenv";
 import cors from "cors";
 import { makeCallback, authMiddleware } from "./frameworks";
 import { createUser, notFound, welcome, userLogin } from "./controllers";
+import { validateEnvironmentVariables } from "./frameworks/environment";
 
 env.config();
+
+validateEnvironmentVariables();
 
 const app = express();
 

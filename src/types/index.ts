@@ -1,13 +1,20 @@
-import { PrismaClient, User, Prisma, Account, Profile, AppPlatform } from "@prisma/client";
+import {
+	PrismaClient,
+	User,
+	Prisma,
+	Account,
+	Profile,
+	AppPlatform
+} from "@prisma/client";
+import { Utils, Id } from "../frameworks";
 import {
 	DatabaseError,
-	Utils,
-	Id,
+	PermissionError,
 	PropertyRequiredError,
-	ValidationError,
 	ResponseError,
-	PermissionError
-} from "../frameworks";
+	ValidationError
+} from "../frameworks/errors";
+
 import { plannerDb } from "../data-access";
 
 export interface ErrorResponseConstructor extends Error {
@@ -67,7 +74,7 @@ export type Validation = {
 	PropertyRequiredError: typeof PropertyRequiredError;
 	ValidationError: typeof ValidationError;
 	ResponseError: typeof ResponseError;
-	PermissionError: typeof PermissionError
+	PermissionError: typeof PermissionError;
 };
 
 export interface CreateUser {
@@ -131,10 +138,10 @@ export interface controllerFun {
 export type UserResponse = Response<User>;
 
 export interface LoginItemResponse extends User, Profile {
-	token: string
+	token: string;
 }
 
-export type LoginResponse = Response<LoginItemResponse>
+export type LoginResponse = Response<LoginItemResponse>;
 
 export interface UserQueryParams {
 	userId: string;
@@ -274,15 +281,22 @@ export type CreateScheduleItem = Prisma.ScheduleItemCreateInput;
 export type CreateAppSession = Prisma.AppSessionCreateInput;
 
 export interface Source {
-	ip: string
-	browser?: string
-	referrer?: string
-	version?: string
-	platform?: AppPlatform
+	ip: string;
+	browser?: string;
+	referrer?: string;
+	version?: string;
+	platform?: AppPlatform;
 }
 
 export interface LoginUser {
-	email: string
-	password: string
-	source: Source
+	email: string;
+	password: string;
+	source: Source;
+}
+
+export interface MailBoody {
+	recipient: string;
+	subject: string;
+	html_body: string;
+	text_body?: string;
 }

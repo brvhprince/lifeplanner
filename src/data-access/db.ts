@@ -1743,7 +1743,7 @@ export default function makePlannerDb({
 					session_id: true
 				}
 			});
-			return user.session_id
+			return user.session_id;
 		} catch (e) {
 			throw new DatabaseError(
 				"An error occurred creating app session. Please retry after few minutes",
@@ -2030,7 +2030,11 @@ export default function makePlannerDb({
 		}
 	}
 
-	async function findUserAppSessionById({ session_id }: { session_id: string }) {
+	async function findUserAppSessionById({
+		session_id
+	}: {
+		session_id: string;
+	}) {
 		try {
 			const session = await makeDb.appSession.findUnique({
 				where: {
@@ -2041,7 +2045,7 @@ export default function makePlannerDb({
 				}
 			});
 
-			return session ? session.user_id : false
+			return session ? session.user_id : false;
 		} catch (e) {
 			throw new DatabaseError(
 				"An error occurred fetching user session. Please retry after few minutes",
@@ -2078,7 +2082,6 @@ export default function makePlannerDb({
 			);
 		}
 	}
-
 
 	async function findUserById({ userId, ...rest }: UserQueryParams) {
 		try {
