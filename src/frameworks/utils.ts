@@ -116,6 +116,8 @@ export const encryptString = (string: string) => {
 
 export const decryptString = (encryptedString: string) => {
 	const [ivHex, encryptedDataHex] = encryptedString.split(":");
+	if (!encryptedDataHex) return false;
+
 	const iv = Buffer.from(ivHex, "hex");
 	const key = crypto
 		.createHash("sha256")

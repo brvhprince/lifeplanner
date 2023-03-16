@@ -60,7 +60,7 @@ export default function makeNewUser({
 				const verification = await plannerDb.createVerificationCode({
 					code,
 					value: user.getEmail(),
-					expires: new Date()
+					expires: new Date(new Date().getTime() + 30 * 60000)
 				});
 
 				if (verification.status === 200) {

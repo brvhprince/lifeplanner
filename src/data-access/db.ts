@@ -1820,11 +1820,11 @@ export default function makePlannerDb({
 		}
 	}
 
-	async function verifyUserEmail({ userId }: { userId: string }) {
+	async function verifyUserEmail({ email }: { email: string }) {
 		try {
 			await makeDb.user.update({
 				where: {
-					user_id: userId
+					email
 				},
 				data: {
 					email_verified: true
@@ -1845,11 +1845,11 @@ export default function makePlannerDb({
 		}
 	}
 
-	async function verifyUserPhone({ userId }: { userId: string }) {
+	async function verifyUserPhone({ phone }: { phone: string }) {
 		try {
 			const user = await makeDb.user.update({
 				where: {
-					user_id: userId
+					phone: phone
 				},
 				data: {
 					phone_verified: true

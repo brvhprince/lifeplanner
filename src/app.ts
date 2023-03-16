@@ -2,7 +2,7 @@ import express from "express";
 import env from "dotenv";
 import cors from "cors";
 import { makeCallback, authMiddleware } from "./frameworks";
-import { createUser, notFound, welcome, userLogin } from "./controllers";
+import { createUser, notFound, welcome, userLogin, emailVerification } from "./controllers";
 import { validateEnvironmentVariables } from "./frameworks/environment";
 
 env.config();
@@ -24,7 +24,7 @@ app.post("/login", makeCallback(userLogin));
 app.post("/password/forgot", makeCallback(createUser));
 app.post("/password/reset", makeCallback(createUser));
 app.post("/verification/send", makeCallback(createUser));
-app.get("/verification/email/:code", makeCallback(createUser));
+app.get("/verification/email/:code", makeCallback(emailVerification));
 
 /* Protected routes */
 app.get("/users/details", authMiddleware, makeCallback(createUser))

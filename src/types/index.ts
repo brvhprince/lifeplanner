@@ -145,6 +145,7 @@ export interface LoginItemResponse extends User, Profile {
 }
 
 export type LoginResponse = Response<LoginItemResponse>;
+export type EmailVerificationResponse = Response<{}>;
 
 export interface UserQueryParams {
 	userId: string;
