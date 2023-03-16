@@ -94,11 +94,16 @@ export interface MakeCreateUser {
 }
 export interface MakeCreateAccount {
 	id?: string;
-	firstName: string;
-	otherNames: string;
-	email: string;
-	phone?: string;
-	password: string;
+	userId: string;
+	title: string;
+	description: string;
+	currency: string;
+	image_id?: number;
+	files?: number;
+	acccountType: AccountType;
+	primary?: boolean;
+	balance: string;
+	metadata?: Prisma.JsonValue;
 }
 
 export interface Response<T> {
@@ -200,16 +205,16 @@ export type hash = {
 };
 
 export interface CreateVerificationCode {
-	code: number
-	value: string
-	expires: Date
+	code: number;
+	value: string;
+	expires: Date;
 }
 
 export interface UserUpdate extends Prisma.UserUpdateInput {
-	userId: string
+	userId: string;
 }
 export interface ProfileUpdate extends Prisma.ProfileUpdateInput {
-	userId: string
+	userId: string;
 }
 
 export type UserSelectOptions = Prisma.UserSelect;
@@ -226,7 +231,8 @@ export type CreateIncome = Prisma.IncomeCreateInput;
 export type CreateNote = Prisma.NoteCreateInput;
 export type CreateDebt = Prisma.DebtCreateInput;
 export type CreateResponsibility = Prisma.ResponsibilityCreateInput;
-export type CreateResponsibilityCategory = Prisma.ResponsibilityCategoryCreateInput;
+export type CreateResponsibilityCategory =
+	Prisma.ResponsibilityCategoryCreateInput;
 export type CreateFuturePlan = Prisma.FuturePlanCreateInput;
 export type CreateFuturePlanUpdate = Prisma.FuturePlanUpdateCreateInput;
 export type CreateEmployer = Prisma.EmployerCreateInput;
@@ -250,3 +256,8 @@ export type CreateSavings = Prisma.SavingsCreateInput;
 export type CreateReminder = Prisma.ReminderCreateInput;
 export type CreateReport = Prisma.ReportCreateInput;
 export type CreateFile = Prisma.FileCreateInput;
+export type CreateActivity = Prisma.ActivityCreateInput;
+export type CreateNotification = Prisma.NotificationCreateInput;
+export type CreateWishlist = Prisma.WishlistCreateInput;
+export type CreateSchedule = Prisma.ScheduleCreateInput;
+export type CreateScheduleItem = Prisma.ScheduleItemCreateInput;

@@ -545,9 +545,9 @@ model ResponsibilityCategory {
 }
 
 model FuturePlan {
-  id             Int                 @id @default(autoincrement())
+  id             Int                @id @default(autoincrement())
   user_id        String
-  plan_id        String              @unique
+  plan_id        String             @unique
   title          String
   description    String?
   image_id       Int?
@@ -555,13 +555,13 @@ model FuturePlan {
   files          String?
   expected_date  DateTime?
   fulfilled_date DateTime?
-  status         FuturePlansStatus   @default(todo)
-  user           User?               @relation(fields: [user_id], references: [user_id], onUpdate: Cascade, onDelete: Cascade)
-  image          File?               @relation(fields: [image_id], references: [id], onUpdate: SetNull, onDelete: SetNull)
+  status         FuturePlansStatus  @default(todo)
+  user           User?              @relation(fields: [user_id], references: [user_id], onUpdate: Cascade, onDelete: Cascade)
+  image          File?              @relation(fields: [image_id], references: [id], onUpdate: SetNull, onDelete: SetNull)
   message        String?
-  hash           String              @unique
-  created_at     DateTime            @default(now())
-  updated_at     DateTime            @default(now()) @updatedAt
+  hash           String             @unique
+  created_at     DateTime           @default(now())
+  updated_at     DateTime           @default(now()) @updatedAt
   updates        FuturePlanUpdate[]
 }
 
@@ -1024,6 +1024,7 @@ model File {
   reminders               Reminder[]
   notifications           Notification[]
   schedules               Schedule[]
+  Wishlist                Wishlist[]
 }
 
 model Activity {
@@ -1061,9 +1062,12 @@ model Wishlist {
   user_id     String
   title       String
   description String?
+  image_id    Int?
+  files       String?
   amount      Float
   currency    String
   metadata    Json?
+  image       File?    @relation(fields: [image_id], references: [id], onUpdate: SetNull, onDelete: SetNull)
   user        User?    @relation(fields: [user_id], references: [user_id], onUpdate: Cascade, onDelete: Cascade)
   status      Status   @default(active)
   message     String?

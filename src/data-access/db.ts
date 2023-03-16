@@ -2,8 +2,10 @@ import {
 	AccountQueryParams,
 	AccountSelectOptions,
 	AccountsQueryParams,
-	Client, CreateAccount,
+	Client,
+	CreateAccount,
 	CreateAccountTransfer,
+	CreateActivity,
 	CreateBranding,
 	CreateBrandingUpdate,
 	CreateCareer,
@@ -23,6 +25,7 @@ import {
 	CreateLearningUpdate,
 	CreateMemories,
 	CreateNote,
+	CreateNotification,
 	CreateProject,
 	CreateProjectUpdate,
 	CreateRelationship,
@@ -34,18 +37,24 @@ import {
 	CreateResponsibility,
 	CreateResponsibilityCategory,
 	CreateSavings,
+	CreateSchedule,
+	CreateScheduleItem,
 	CreateSubscription,
 	CreateTransaction,
 	CreateTransactionCategory,
-	CreateUser, CreateVerificationCode,
+	CreateUser,
+	CreateVerificationCode,
+	CreateWishlist,
 	DbError,
 	ErrorInstance,
 	GoalQueryParams,
 	GoalSelectOptions,
 	GoalsQueryParams,
-	hash, ProfileUpdate,
+	hash,
+	ProfileUpdate,
 	UserQueryParams,
-	UserSelectOptions, UserUpdate
+	UserSelectOptions,
+	UserUpdate
 } from "../types";
 
 export default function makePlannerDb({
@@ -108,7 +117,12 @@ export default function makePlannerDb({
 		createSavings,
 		createReminder,
 		createReport,
-		createFile
+		createFile,
+		createActivity,
+		createNotification,
+		createWishlist,
+		createSchedule,
+		createScheduleItem
 	});
 
 	async function createUser(userInfo: CreateUser) {
@@ -164,7 +178,7 @@ export default function makePlannerDb({
 		}
 	}
 
-	async function createVerificationCode (payload : CreateVerificationCode) {
+	async function createVerificationCode(payload: CreateVerificationCode) {
 		try {
 			await makeDb.verification.create({
 				data: payload
@@ -172,10 +186,9 @@ export default function makePlannerDb({
 
 			return {
 				status: 200,
-				message: "Verification code created successfully",
-			}
-		}
-		catch (e) {
+				message: "Verification code created successfully"
+			};
+		} catch (e) {
 			throw new DatabaseError(
 				"An error occurred creating verification code. Please retry after few minutes",
 				"createVerificationCode",
@@ -187,7 +200,7 @@ export default function makePlannerDb({
 
 	async function createAccount(accountInfo: CreateAccount) {
 		try {
-
+			// TODO: disable all set primary account for all as false if primary is true
 			const results = await makeDb.account.create({
 				data: accountInfo,
 				select: {
@@ -224,7 +237,6 @@ export default function makePlannerDb({
 
 	async function createGoal(goalInfo: CreateGoal) {
 		try {
-
 			const results = await makeDb.goal.create({
 				data: goalInfo,
 				select: {
@@ -262,7 +274,6 @@ export default function makePlannerDb({
 
 	async function createGoalSaving(goalInfo: CreateGoalSaving) {
 		try {
-
 			const results = await makeDb.goalSaving.create({
 				data: goalInfo,
 				select: {
@@ -300,7 +311,6 @@ export default function makePlannerDb({
 
 	async function createTransaction(tranasctionInfo: CreateTransaction) {
 		try {
-
 			const results = await makeDb.transaction.create({
 				data: tranasctionInfo,
 				select: {
@@ -325,7 +335,7 @@ export default function makePlannerDb({
 				}
 			});
 
-			return results
+			return results;
 		} catch (e) {
 			throw new DatabaseError(
 				"An error occurred creating transaction. Please retry after few minutes",
@@ -336,9 +346,10 @@ export default function makePlannerDb({
 		}
 	}
 
-	async function createTransactionCategory(tranasctionInfo: CreateTransactionCategory) {
+	async function createTransactionCategory(
+		tranasctionInfo: CreateTransactionCategory
+	) {
 		try {
-
 			const results = await makeDb.transactionCategory.create({
 				data: tranasctionInfo,
 				select: {
@@ -359,7 +370,6 @@ export default function makePlannerDb({
 				message: "Transaction category created successfully",
 				item: results
 			};
-
 		} catch (e) {
 			throw new DatabaseError(
 				"An error occurred creating transaction category. Please retry after few minutes",
@@ -372,7 +382,6 @@ export default function makePlannerDb({
 
 	async function createSuscription(subscriptionInfo: CreateSubscription) {
 		try {
-
 			const results = await makeDb.subscription.create({
 				data: subscriptionInfo,
 				select: {
@@ -404,7 +413,6 @@ export default function makePlannerDb({
 				message: "Subscription created successfully",
 				item: results
 			};
-
 		} catch (e) {
 			throw new DatabaseError(
 				"An error occurred creating subscription. Please retry after few minutes",
@@ -417,8 +425,6 @@ export default function makePlannerDb({
 
 	async function createExpense(expenseInfo: CreateExpense) {
 		try {
-			
-			
 			expenseInfo.transaction = {
 				create: {
 					transaction_id: expenseInfo.expense_id,
@@ -430,7 +436,7 @@ export default function makePlannerDb({
 					hash: expenseInfo.hash,
 					metadata: expenseInfo.metadata || {}
 				}
-			}
+			};
 			const results = await makeDb.expense.create({
 				data: expenseInfo,
 				select: {
@@ -447,7 +453,7 @@ export default function makePlannerDb({
 						select: {
 							transaction_id: true,
 							transaction_type: true,
-							amount: true, 
+							amount: true,
 							currency: true,
 							status: true,
 							message: true
@@ -482,7 +488,6 @@ export default function makePlannerDb({
 				message: "Expense created successfully",
 				item: results
 			};
-			
 		} catch (e) {
 			throw new DatabaseError(
 				"An error occurred creating expense. Please retry after few minutes",
@@ -495,7 +500,6 @@ export default function makePlannerDb({
 
 	async function createIncome(incomeInfo: CreateIncome) {
 		try {
-
 			incomeInfo.transaction = {
 				create: {
 					transaction_id: incomeInfo.income_id,
@@ -507,7 +511,7 @@ export default function makePlannerDb({
 					hash: incomeInfo.hash,
 					metadata: incomeInfo.metadata || {}
 				}
-			}
+			};
 			const results = await makeDb.income.create({
 				data: incomeInfo,
 				select: {
@@ -524,7 +528,7 @@ export default function makePlannerDb({
 						select: {
 							transaction_id: true,
 							transaction_type: true,
-							amount: true, 
+							amount: true,
 							currency: true,
 							status: true,
 							message: true
@@ -559,7 +563,6 @@ export default function makePlannerDb({
 				message: "Income created successfully",
 				item: results
 			};
-			
 		} catch (e) {
 			throw new DatabaseError(
 				"An error occurred creating income. Please retry after few minutes",
@@ -572,7 +575,6 @@ export default function makePlannerDb({
 
 	async function createNote(noteInfo: CreateNote) {
 		try {
-
 			const results = await makeDb.note.create({
 				data: noteInfo,
 				select: {
@@ -592,7 +594,6 @@ export default function makePlannerDb({
 				message: "Note created successfully",
 				item: results
 			};
-			
 		} catch (e) {
 			throw new DatabaseError(
 				"An error occurred creating note. Please retry after few minutes",
@@ -605,7 +606,6 @@ export default function makePlannerDb({
 
 	async function createDebt(debtInfo: CreateDebt) {
 		try {
-
 			const results = await makeDb.debt.create({
 				data: debtInfo,
 				select: {
@@ -637,7 +637,6 @@ export default function makePlannerDb({
 				message: "Debt created successfully",
 				item: results
 			};
-			
 		} catch (e) {
 			throw new DatabaseError(
 				"An error occurred creating debt. Please retry after few minutes",
@@ -648,9 +647,10 @@ export default function makePlannerDb({
 		}
 	}
 
-	async function createResponsibility(responsibilityInfo: CreateResponsibility) {
+	async function createResponsibility(
+		responsibilityInfo: CreateResponsibility
+	) {
 		try {
-
 			const results = await makeDb.responsibility.create({
 				data: responsibilityInfo,
 				select: {
@@ -678,7 +678,6 @@ export default function makePlannerDb({
 				message: "Responsibility created successfully",
 				item: results
 			};
-			
 		} catch (e) {
 			throw new DatabaseError(
 				"An error occurred creating responsibility. Please retry after few minutes",
@@ -689,9 +688,10 @@ export default function makePlannerDb({
 		}
 	}
 
-	async function createResponsibilityCategory(responsibilityCategoryInfo: CreateResponsibilityCategory) {
+	async function createResponsibilityCategory(
+		responsibilityCategoryInfo: CreateResponsibilityCategory
+	) {
 		try {
-
 			const results = await makeDb.responsibilityCategory.create({
 				data: responsibilityCategoryInfo,
 				select: {
@@ -709,7 +709,6 @@ export default function makePlannerDb({
 				message: "Responsibility category created successfully",
 				item: results
 			};
-			
 		} catch (e) {
 			throw new DatabaseError(
 				"An error occurred creating responsibility category. Please retry after few minutes",
@@ -722,7 +721,6 @@ export default function makePlannerDb({
 
 	async function createFuturePlan(futurePlanInfo: CreateFuturePlan) {
 		try {
-
 			const results = await makeDb.futurePlan.create({
 				data: futurePlanInfo,
 				select: {
@@ -746,7 +744,6 @@ export default function makePlannerDb({
 				message: "Future plan created successfully",
 				item: results
 			};
-			
 		} catch (e) {
 			throw new DatabaseError(
 				"An error occurred creating future plan. Please retry after few minutes",
@@ -757,9 +754,10 @@ export default function makePlannerDb({
 		}
 	}
 
-	async function createFuturePlanUpdate(futurePlanUpdateInfo: CreateFuturePlanUpdate) {
+	async function createFuturePlanUpdate(
+		futurePlanUpdateInfo: CreateFuturePlanUpdate
+	) {
 		try {
-
 			const results = await makeDb.futurePlanUpdate.create({
 				data: futurePlanUpdateInfo,
 				select: {
@@ -778,7 +776,6 @@ export default function makePlannerDb({
 				message: "Future plan update added successfully",
 				item: results
 			};
-			
 		} catch (e) {
 			throw new DatabaseError(
 				"An error occurred creating future plan update. Please retry after few minutes",
@@ -791,7 +788,6 @@ export default function makePlannerDb({
 
 	async function createEmployer(employerInfo: CreateEmployer) {
 		try {
-
 			const results = await makeDb.employer.create({
 				data: employerInfo,
 				select: {
@@ -825,7 +821,6 @@ export default function makePlannerDb({
 				message: "Employer created successfully",
 				item: results
 			};
-			
 		} catch (e) {
 			throw new DatabaseError(
 				"An error occurred creating employer. Please retry after few minutes",
@@ -836,9 +831,10 @@ export default function makePlannerDb({
 		}
 	}
 
-	async function createEmployerContact(employerContactInfo: CreateEmployerContact) {
+	async function createEmployerContact(
+		employerContactInfo: CreateEmployerContact
+	) {
 		try {
-
 			const results = await makeDb.employerContact.create({
 				data: employerContactInfo,
 				select: {
@@ -859,7 +855,6 @@ export default function makePlannerDb({
 				message: "Employer contact created successfully",
 				item: results
 			};
-			
 		} catch (e) {
 			throw new DatabaseError(
 				"An error occurred creating employer contact. Please retry after few minutes",
@@ -872,7 +867,6 @@ export default function makePlannerDb({
 
 	async function createProject(projectInfo: CreateProject) {
 		try {
-
 			const results = await makeDb.project.create({
 				data: projectInfo,
 				select: {
@@ -900,7 +894,6 @@ export default function makePlannerDb({
 				message: "Project created successfully",
 				item: results
 			};
-			
 		} catch (e) {
 			throw new DatabaseError(
 				"An error occurred creating project. Please retry after few minutes",
@@ -913,7 +906,6 @@ export default function makePlannerDb({
 
 	async function createProjectUpdate(projectUpdateInfo: CreateProjectUpdate) {
 		try {
-
 			const results = await makeDb.projectUpdate.create({
 				data: projectUpdateInfo,
 				select: {
@@ -932,7 +924,6 @@ export default function makePlannerDb({
 				message: "Project update added successfully",
 				item: results
 			};
-			
 		} catch (e) {
 			throw new DatabaseError(
 				"An error occurred creating project update. Please retry after few minutes",
@@ -945,7 +936,6 @@ export default function makePlannerDb({
 
 	async function createBranding(brandingInfo: CreateBranding) {
 		try {
-
 			const results = await makeDb.branding.create({
 				data: brandingInfo,
 				select: {
@@ -970,7 +960,6 @@ export default function makePlannerDb({
 				message: "Branding created successfully",
 				item: results
 			};
-			
 		} catch (e) {
 			throw new DatabaseError(
 				"An error occurred creating branding. Please retry after few minutes",
@@ -981,9 +970,10 @@ export default function makePlannerDb({
 		}
 	}
 
-	async function createBrandingUpdate(brandingUpdateInfo: CreateBrandingUpdate) {
+	async function createBrandingUpdate(
+		brandingUpdateInfo: CreateBrandingUpdate
+	) {
 		try {
-
 			const results = await makeDb.brandingUpdate.create({
 				data: brandingUpdateInfo,
 				select: {
@@ -1002,7 +992,6 @@ export default function makePlannerDb({
 				message: "Branding update added successfully",
 				item: results
 			};
-			
 		} catch (e) {
 			throw new DatabaseError(
 				"An error occurred creating branding update. Please retry after few minutes",
@@ -1015,7 +1004,6 @@ export default function makePlannerDb({
 
 	async function createMemories(memoriesInfo: CreateMemories) {
 		try {
-
 			const results = await makeDb.memories.create({
 				data: memoriesInfo,
 				select: {
@@ -1035,7 +1023,6 @@ export default function makePlannerDb({
 				message: "Memories created successfully",
 				item: results
 			};
-			
 		} catch (e) {
 			throw new DatabaseError(
 				"An error occurred creating memories. Please retry after few minutes",
@@ -1048,7 +1035,6 @@ export default function makePlannerDb({
 
 	async function createLearning(learningInfo: CreateLearning) {
 		try {
-
 			const results = await makeDb.learning.create({
 				data: learningInfo,
 				select: {
@@ -1073,7 +1059,6 @@ export default function makePlannerDb({
 				message: "Learning created successfully",
 				item: results
 			};
-			
 		} catch (e) {
 			throw new DatabaseError(
 				"An error occurred creating learning. Please retry after few minutes",
@@ -1084,9 +1069,10 @@ export default function makePlannerDb({
 		}
 	}
 
-	async function createLearningUpdate(learningUpdateInfo: CreateLearningUpdate) {
+	async function createLearningUpdate(
+		learningUpdateInfo: CreateLearningUpdate
+	) {
 		try {
-
 			const results = await makeDb.learningUpdate.create({
 				data: learningUpdateInfo,
 				select: {
@@ -1105,7 +1091,6 @@ export default function makePlannerDb({
 				message: "Learning update added successfully",
 				item: results
 			};
-			
 		} catch (e) {
 			throw new DatabaseError(
 				"An error occurred creating learning update. Please retry after few minutes",
@@ -1118,7 +1103,6 @@ export default function makePlannerDb({
 
 	async function createRelationship(relationshipInfo: CreateRelationship) {
 		try {
-
 			const results = await makeDb.relationship.create({
 				data: relationshipInfo,
 				select: {
@@ -1145,7 +1129,6 @@ export default function makePlannerDb({
 				message: "Relationship created successfully",
 				item: results
 			};
-			
 		} catch (e) {
 			throw new DatabaseError(
 				"An error occurred creating relationship. Please retry after few minutes",
@@ -1156,9 +1139,10 @@ export default function makePlannerDb({
 		}
 	}
 
-	async function createRelationshipCategory(relationshipCategoryInfo: CreateRelationshipCategory) {
+	async function createRelationshipCategory(
+		relationshipCategoryInfo: CreateRelationshipCategory
+	) {
 		try {
-
 			const results = await makeDb.relationshipCategory.create({
 				data: relationshipCategoryInfo,
 				select: {
@@ -1176,7 +1160,6 @@ export default function makePlannerDb({
 				message: "Relationship category created successfully",
 				item: results
 			};
-			
 		} catch (e) {
 			throw new DatabaseError(
 				"An error occurred creating relationship category. Please retry after few minutes",
@@ -1187,9 +1170,10 @@ export default function makePlannerDb({
 		}
 	}
 
-	async function createRelationshipEntry(relationshipEntryInfo: CreateRelationshipEntry) {
+	async function createRelationshipEntry(
+		relationshipEntryInfo: CreateRelationshipEntry
+	) {
 		try {
-
 			const results = await makeDb.relationshipEntry.create({
 				data: relationshipEntryInfo,
 				select: {
@@ -1216,7 +1200,6 @@ export default function makePlannerDb({
 				message: "Relationship entry created successfully",
 				item: results
 			};
-			
 		} catch (e) {
 			throw new DatabaseError(
 				"An error occurred creating relationship entry. Please retry after few minutes",
@@ -1227,9 +1210,10 @@ export default function makePlannerDb({
 		}
 	}
 
-	async function createRelationshipTag(relationshipTagInfo: CreateRelationshipTag) {
+	async function createRelationshipTag(
+		relationshipTagInfo: CreateRelationshipTag
+	) {
 		try {
-
 			const results = await makeDb.relationshipTag.create({
 				data: relationshipTagInfo,
 				select: {
@@ -1247,7 +1231,6 @@ export default function makePlannerDb({
 				message: "Relationship tag created successfully",
 				item: results
 			};
-			
 		} catch (e) {
 			throw new DatabaseError(
 				"An error occurred creating relationship tag. Please retry after few minutes",
@@ -1260,7 +1243,6 @@ export default function makePlannerDb({
 
 	async function createCareer(careerInfo: CreateCareer) {
 		try {
-
 			const results = await makeDb.career.create({
 				data: careerInfo,
 				select: {
@@ -1282,7 +1264,6 @@ export default function makePlannerDb({
 				message: "Career created successfully",
 				item: results
 			};
-			
 		} catch (e) {
 			throw new DatabaseError(
 				"An error occurred creating career. Please retry after few minutes",
@@ -1295,7 +1276,6 @@ export default function makePlannerDb({
 
 	async function createCareerUpdate(careerUpdateInfo: CreateCareerUpdate) {
 		try {
-
 			const results = await makeDb.careerUpdate.create({
 				data: careerUpdateInfo,
 				select: {
@@ -1314,7 +1294,6 @@ export default function makePlannerDb({
 				message: "Career update added successfully",
 				item: results
 			};
-			
 		} catch (e) {
 			throw new DatabaseError(
 				"An error occurred creating career update. Please retry after few minutes",
@@ -1325,21 +1304,21 @@ export default function makePlannerDb({
 		}
 	}
 
-	async function createAccountTransfer(accountTransferInfo: CreateAccountTransfer) {
+	async function createAccountTransfer(
+		accountTransferInfo: CreateAccountTransfer
+	) {
 		try {
-			
 			if (accountTransferInfo.fee && accountTransferInfo.fee > 0) {
-
 				await createExpense({
 					expense_id: accountTransferInfo.transfer_id,
 					title: "Account Transfer Transaction Fee",
-					notes:accountTransferInfo.description,
+					notes: accountTransferInfo.description,
 					amount: accountTransferInfo.fee,
 					currency: accountTransferInfo.currency,
 					date: new Date(),
 					status: "active",
 					hash: accountTransferInfo.hash
-				})
+				});
 			}
 
 			const results = await makeDb.accountTransfer.create({
@@ -1382,7 +1361,6 @@ export default function makePlannerDb({
 				message: "Account Transfer created successfully",
 				item: results
 			};
-			
 		} catch (e) {
 			throw new DatabaseError(
 				"An error occurred creating account transfer. Please retry after few minutes",
@@ -1395,7 +1373,6 @@ export default function makePlannerDb({
 
 	async function createInvestment(investmentInfo: CreateInvestment) {
 		try {
-
 			const results = await makeDb.investment.create({
 				data: investmentInfo,
 				select: {
@@ -1431,7 +1408,6 @@ export default function makePlannerDb({
 				message: "Investment created successfully",
 				item: results
 			};
-			
 		} catch (e) {
 			throw new DatabaseError(
 				"An error occurred creating investment. Please retry after few minutes",
@@ -1444,7 +1420,6 @@ export default function makePlannerDb({
 
 	async function createSavings(savingsInfo: CreateSavings) {
 		try {
-
 			const results = await makeDb.savings.create({
 				data: savingsInfo,
 				select: {
@@ -1480,7 +1455,6 @@ export default function makePlannerDb({
 				message: "Savings created successfully",
 				item: results
 			};
-			
 		} catch (e) {
 			throw new DatabaseError(
 				"An error occurred creating savings. Please retry after few minutes",
@@ -1493,7 +1467,6 @@ export default function makePlannerDb({
 
 	async function createReminder(reminderInfo: CreateReminder) {
 		try {
-
 			const results = await makeDb.reminder.create({
 				data: reminderInfo,
 				select: {
@@ -1521,7 +1494,6 @@ export default function makePlannerDb({
 				message: "Reminder created successfully",
 				item: results
 			};
-			
 		} catch (e) {
 			throw new DatabaseError(
 				"An error occurred creating reminder. Please retry after few minutes",
@@ -1534,7 +1506,6 @@ export default function makePlannerDb({
 
 	async function createReport(reportInfo: CreateReport) {
 		try {
-		
 			const results = await makeDb.report.create({
 				data: reportInfo,
 				select: {
@@ -1553,7 +1524,6 @@ export default function makePlannerDb({
 				message: "Report created successfully",
 				item: results
 			};
-			
 		} catch (e) {
 			throw new DatabaseError(
 				"An error occurred creating report. Please retry after few minutes",
@@ -1566,7 +1536,6 @@ export default function makePlannerDb({
 
 	async function createFile(fileInfo: CreateFile) {
 		try {
-		
 			const results = await makeDb.file.create({
 				data: fileInfo,
 				select: {
@@ -1589,7 +1558,6 @@ export default function makePlannerDb({
 				message: "File created successfully",
 				item: results
 			};
-			
 		} catch (e) {
 			throw new DatabaseError(
 				"An error occurred creating file. Please retry after few minutes",
@@ -1600,22 +1568,185 @@ export default function makePlannerDb({
 		}
 	}
 
-	async function updateUserInfo({ userId, ...rest}: UserUpdate) {
+	async function createActivity(activityInfo: CreateActivity) {
+		try {
+			const results = await makeDb.activity.create({
+				data: activityInfo,
+				select: {
+					activity_id: true,
+					title: true,
+					description: true,
+					metadata: true,
+					created_at: true
+				}
+			});
+
+			return {
+				status: 201,
+				message: "Activity created successfully",
+				item: results
+			};
+		} catch (e) {
+			throw new DatabaseError(
+				"An error occurred creating activity. Please retry after few minutes",
+				"createActivity",
+				e as ErrorInstance,
+				"DataCreateError"
+			);
+		}
+	}
+
+	async function createNotification(notificationInfo: CreateNotification) {
+		try {
+			const results = await makeDb.notification.create({
+				data: notificationInfo,
+				select: {
+					notification_id: true,
+					title: true,
+					description: true,
+					image: true,
+					files: true,
+					status: true,
+					metadata: true,
+					created_at: true,
+					updated_at: true
+				}
+			});
+
+			return {
+				status: 201,
+				message: "Notification created successfully",
+				item: results
+			};
+		} catch (e) {
+			throw new DatabaseError(
+				"An error occurred creating notification. Please retry after few minutes",
+				"createNotification",
+				e as ErrorInstance,
+				"DataCreateError"
+			);
+		}
+	}
+
+	async function createWishlist(wishlistInfo: CreateWishlist) {
+		try {
+			const results = await makeDb.wishlist.create({
+				data: wishlistInfo,
+				select: {
+					wishlist_id: true,
+					title: true,
+					description: true,
+					image: true,
+					files: true,
+					amount: true,
+					currency: true,
+					status: true,
+					message: true,
+					metadata: true,
+					created_at: true,
+					updated_at: true
+				}
+			});
+
+			return {
+				status: 201,
+				message: "Wishlist created successfully",
+				item: results
+			};
+		} catch (e) {
+			throw new DatabaseError(
+				"An error occurred creating wishlist. Please retry after few minutes",
+				"createWishlist",
+				e as ErrorInstance,
+				"DataCreateError"
+			);
+		}
+	}
+
+	async function createSchedule(scheduleInfo: CreateSchedule) {
+		try {
+			const results = await makeDb.schedule.create({
+				data: scheduleInfo,
+				select: {
+					schedule_id: true,
+					title: true,
+					description: true,
+					image: true,
+					files: true,
+					metadata: true,
+					created_at: true,
+					updated_at: true
+				}
+			});
+
+			return {
+				status: 201,
+				message: "Schedule created successfully",
+				item: results
+			};
+		} catch (e) {
+			throw new DatabaseError(
+				"An error occurred creating Schedule. Please retry after few minutes",
+				"createSchedule",
+				e as ErrorInstance,
+				"DataCreateError"
+			);
+		}
+	}
+
+	async function createScheduleItem(scheduleItemInfo: CreateScheduleItem) {
+		try {
+			const results = await makeDb.scheduleItem.create({
+				data: scheduleItemInfo,
+				select: {
+					item_id: true,
+					title: true,
+					description: true,
+					image: true,
+					files: true,
+					frequency: true,
+					ends_on: true,
+					reminder_date: true,
+					reminder_time: true,
+					reminder_ends: true,
+					status: true,
+					message: true,
+					metadata: true,
+					created_at: true,
+					updated_at: true
+				}
+			});
+
+			return {
+				status: 201,
+				message: "Schedule task created successfully",
+				item: results
+			};
+		} catch (e) {
+			throw new DatabaseError(
+				"An error occurred creating schedule task. Please retry after few minutes",
+				"createScheduleItem",
+				e as ErrorInstance,
+				"DataCreateError"
+			);
+		}
+	}
+
+	async function updateUserInfo({ userId, ...rest }: UserUpdate) {
 		try {
 			const user = await makeDb.user.update({
 				where: {
 					user_id: userId
 				},
 				data: rest
-			})
+			});
 
 			return {
 				status: 200,
 				message: "User info updated successfully",
 				item: user
-			}
-		}
-		catch (e) {
+			};
+		} catch (e) {
 			throw new DatabaseError(
 				"An error occurred updating user info. Please retry after few minutes",
 				"updateUserInfo",
@@ -1625,20 +1756,21 @@ export default function makePlannerDb({
 		}
 	}
 
-	async function deleteUserAccount({ userId }: {  userId: string }) {
+	async function deleteUserAccount({ userId }: { userId: string }) {
 		try {
+			await deleteUserFiles({ userId });
+
 			await makeDb.user.delete({
 				where: {
 					user_id: userId
 				}
-			})
+			});
 
 			return {
 				status: 200,
 				message: "User account removed successfully"
-			}
-		}
-		catch (e) {
+			};
+		} catch (e) {
 			throw new DatabaseError(
 				"An error occurred removing user account. Please retry after few minutes",
 				"deleteUserAccount",
@@ -1648,17 +1780,16 @@ export default function makePlannerDb({
 		}
 	}
 
-	async function deleteUserFiles({ userId }: {  userId: string }) {
+	async function deleteUserFiles({ userId }: { userId: string }) {
 		try {
-		   await makeDb.file.deleteMany({
+			await makeDb.file.deleteMany({
 				where: {
 					user_id: userId
 				}
-			})
+			});
 
-			return true
-		}
-		catch (e) {
+			return true;
+		} catch (e) {
 			throw new DatabaseError(
 				"An error occurred removing user uploaded files. Please retry after few minutes",
 				"deleteUserFiles",
@@ -1677,14 +1808,13 @@ export default function makePlannerDb({
 				data: {
 					email_verified: true
 				}
-			})
+			});
 
 			return {
 				status: 200,
-				message: "User's email address verified successfully",
-			}
-		}
-		catch (e) {
+				message: "User's email address verified successfully"
+			};
+		} catch (e) {
 			throw new DatabaseError(
 				"An error occurred updating user email status. Please retry after few minutes",
 				"verifyUserEmail",
@@ -1703,15 +1833,13 @@ export default function makePlannerDb({
 				data: {
 					phone_verified: true
 				}
-			})
-
+			});
 
 			return {
 				status: 200,
-				message: "User's phone number verified successfully",
-			}
-		}
-		catch (e) {
+				message: "User's phone number verified successfully"
+			};
+		} catch (e) {
 			throw new DatabaseError(
 				"An error occurred updating user phone status. Please retry after few minutes",
 				"verifyUserPhone",
@@ -1721,22 +1849,21 @@ export default function makePlannerDb({
 		}
 	}
 
-	async function updateUserProfile({ userId, ...rest}: ProfileUpdate) {
+	async function updateUserProfile({ userId, ...rest }: ProfileUpdate) {
 		try {
 			const user = await makeDb.profile.update({
 				where: {
 					user_id: userId
 				},
 				data: rest
-			})
+			});
 
 			return {
 				status: 200,
 				message: "User info updated successfully",
 				item: user
-			}
-		}
-		catch (e) {
+			};
+		} catch (e) {
 			throw new DatabaseError(
 				"An error occurred updating user profile. Please retry after few minutes",
 				"updateUserProfile",
@@ -1746,9 +1873,9 @@ export default function makePlannerDb({
 		}
 	}
 
-	async function findVerificationCode ({ code } : { code: number}) {
+	async function findVerificationCode({ code }: { code: number }) {
 		try {
-		const verification = await makeDb.verification.findUnique({
+			const verification = await makeDb.verification.findUnique({
 				where: {
 					code
 				},
@@ -1763,9 +1890,8 @@ export default function makePlannerDb({
 				status: 200,
 				message: "Verification code fetched successfully",
 				item: verification
-			}
-		}
-		catch (e) {
+			};
+		} catch (e) {
 			throw new DatabaseError(
 				"An error occurred fetching verification code. Please retry after few minutes",
 				"findVerificationCode",
@@ -1775,11 +1901,11 @@ export default function makePlannerDb({
 		}
 	}
 
-	async function removeVerificationCode ({ code } : { code: number }) {
+	async function removeVerificationCode({ code }: { code: number }) {
 		try {
 			await makeDb.verification.delete({
 				where: {
-					code,
+					code
 				},
 				select: {
 					code: true,
@@ -1791,9 +1917,8 @@ export default function makePlannerDb({
 			return {
 				status: 200,
 				message: "Verification code removed successfully"
-			}
-		}
-		catch (e) {
+			};
+		} catch (e) {
 			throw new DatabaseError(
 				"An error occurred removing verification code. Please retry after few minutes",
 				"removeVerificationCode",
