@@ -1,18 +1,31 @@
 import { makeUser } from "../entities";
+import { Utils } from "../frameworks";
 import {
 	CreateUser,
 	MakeCreateUser,
 	plannerDatabase,
-	Validation
+	Validation,
+	MailComposer
 } from "../types";
 
 export default function makeNewUser({
 	plannerDb,
-	Validation
+	Validation,
+	sendMail
 }: {
 	plannerDb: plannerDatabase;
 	Validation: Validation;
+	sendMail: MailComposer;
 }) {
+	const generateCode = async () => {
+		const code = Utils.generateUniqueRandomDigits(6);
+
+		const exists = await plannerDb.findVerificationCode({ code });
+		if (exists.item) generateCode();
+
+		return code;
+	};
+
 	return async function newUser(userInfo: MakeCreateUser) {
 		const user = makeUser(userInfo);
 
@@ -38,6 +51,46 @@ export default function makeNewUser({
 			userData.phone = user.getPhone();
 		}
 
-		return await plannerDb.createUser(userData);
+		const userCreate = await plannerDb.createUser(userData);
+
+		if (userCreate.status === 201) {
+			if (Utils.isEmailValidation()) {
+				const code = await generateCode();
+
+				const verification = await plannerDb.createVerificationCode({
+					code,
+					value: user.getEmail(),
+					expires: new Date(new Date().getTime() + 30 * 60000)
+				});
+
+				if (verification.status === 200) {
+					const link = `${
+						process.env.APP_URL
+					}/verification/email/${Utils.encryptString(code.toString())}`;
+					await sendMail({
+						email: user.getEmail(),
+						subject: "Life Planner Account Verification",
+						template: "verification",
+						variables: {
+							name: user.getFirstName(),
+							link,
+							date: new Date().getFullYear(),
+							website: String(process.env.FRONTEND_URL)
+						}
+					});
+				}
+			}
+
+			if (Utils.isPhoneValidation() && userInfo.phone) {
+				const code = await generateCode();
+
+				const emailAddress = await plannerDb.createVerificationCode({
+					code,
+					value: String(user.getPhone()),
+					expires: new Date()
+				});
+			}
+		}
+		return userCreate;
 	};
 }

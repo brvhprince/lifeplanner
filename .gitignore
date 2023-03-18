@@ -128,3 +128,5 @@ dist
 dev.db
 dev.db-journal
 todo
+
+src/lifeplanner/

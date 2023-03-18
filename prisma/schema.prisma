@@ -245,13 +245,25 @@ enum ScheduleEndsOn {
   date
 }
 
+enum AppPlatform {
+  android
+  ios
+  web
+  mac
+  windows
+  linux
+  other
+}
+
 model User {
   id                Int               @id @default(autoincrement())
   user_id           String            @unique
   first_name        String
   other_names       String
   email             String            @unique
-  phone             String?
+  phone             String?           @unique
+  email_verified    Boolean           @default(false)
+  phone_verified    Boolean           @default(false)
   password          String
   salt              String
   accounts          Account[]
@@ -543,9 +555,9 @@ model ResponsibilityCategory {
 }
 
 model FuturePlan {
-  id             Int                 @id @default(autoincrement())
+  id             Int                @id @default(autoincrement())
   user_id        String
-  plan_id        String              @unique
+  plan_id        String             @unique
   title          String
   description    String?
   image_id       Int?
@@ -553,17 +565,17 @@ model FuturePlan {
   files          String?
   expected_date  DateTime?
   fulfilled_date DateTime?
-  status         FuturePlansStatus   @default(todo)
-  user           User?               @relation(fields: [user_id], references: [user_id], onUpdate: Cascade, onDelete: Cascade)
-  image          File?               @relation(fields: [image_id], references: [id], onUpdate: SetNull, onDelete: SetNull)
+  status         FuturePlansStatus  @default(todo)
+  user           User?              @relation(fields: [user_id], references: [user_id], onUpdate: Cascade, onDelete: Cascade)
+  image          File?              @relation(fields: [image_id], references: [id], onUpdate: SetNull, onDelete: SetNull)
   message        String?
-  hash           String              @unique
-  created_at     DateTime            @default(now())
-  updated_at     DateTime            @default(now()) @updatedAt
-  updates        FuturePlanUpdates[]
+  hash           String             @unique
+  created_at     DateTime           @default(now())
+  updated_at     DateTime           @default(now()) @updatedAt
+  updates        FuturePlanUpdate[]
 }
 
-model FuturePlanUpdates {
+model FuturePlanUpdate {
   id          Int         @id @default(autoincrement())
   update_id   String      @unique
   user_id     String
@@ -881,6 +893,7 @@ model AccountTransfer {
   from_        String
   to_          String
   amount       Float
+  fee          Float          @default(0.00)
   currency     String
   title        String
   description  String?
@@ -989,7 +1002,7 @@ model File {
   name                    String
   type                    String
   category                String
-  size                    String
+  size                    Int
   path                    String
   metadata                Json?
   status                  Status                 @default(active)
@@ -1021,6 +1034,7 @@ model File {
   reminders               Reminder[]
   notifications           Notification[]
   schedules               Schedule[]
+  Wishlist                Wishlist[]
 }
 
 model Activity {
@@ -1030,7 +1044,7 @@ model Activity {
   title       String
   description String?
   metadata    Json?
-  user        User?    @relation(fields: [user_id], references: [user_id], onUpdate: Cascade, onDelete: Cascade)
+  user        User    @relation(fields: [user_id], references: [user_id], onUpdate: Cascade, onDelete: Cascade)
   hash        String   @unique
   created_at  DateTime @default(now())
 }
@@ -1058,9 +1072,12 @@ model Wishlist {
   user_id     String
   title       String
   description String?
+  image_id    Int?
+  files       String?
   amount      Float
   currency    String
   metadata    Json?
+  image       File?    @relation(fields: [image_id], references: [id], onUpdate: SetNull, onDelete: SetNull)
   user        User?    @relation(fields: [user_id], references: [user_id], onUpdate: Cascade, onDelete: Cascade)
   status      Status   @default(active)
   message     String?
@@ -1107,4 +1124,22 @@ model ScheduleItem {
   hash          String            @unique
   created_at    DateTime          @default(now())
   updated_at    DateTime          @default(now()) @updatedAt
+}
+
+model Verification {
+  id      Int      @id @default(autoincrement())
+  code    Int      @unique
+  value   String
+  expires DateTime @db.Timestamp()
+}
+
+model AppSession {
+  id               Int         @id @default(autoincrement())
+  user_id          String
+  session_id       String @unique
+  platform         AppPlatform
+  platform_details Json?
+  expires_at       DateTime    @db.Timestamp()
+  created_at       DateTime    @default(now())
+  updated_at       DateTime    @default(now()) @updatedAt
 }

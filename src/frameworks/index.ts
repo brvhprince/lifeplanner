@@ -1,12 +1,11 @@
+import fs from "fs";
 import { Id } from "./Id";
 import makeCallback from "./callback";
+import authMiddleware from "./auth";
 import {
 	PropertyRequiredError,
-	formatErrorResponse,
-	RouteError,
 	ResponseError,
 	PermissionError,
-	DatabaseError,
 	ValidationError
 } from "./errors";
 import {
@@ -22,8 +21,42 @@ import {
 	validatePassword,
 	passwordCheck,
 	passwordEncryption,
-	generateSalt
+	generateSalt,
+	isEmailValidation,
+	isPhoneValidation,
+	generateUniqueRandomDigits,
+	encryptString,
+	decryptString,
+	isSendMail,
+	isSendSMS,
+	convertObjectValuesToBoolean,
+	Lp_Secure,
+	sanitizeRichText,
+	test_input,
+	test_output,
+	isValidCurrency,
+	getCurrencySymbol,
+	isSupportedAudioFile,
+	isSupportedDocumentFile,
+	isSupportedImageFile,
+	isSupportedVideoFile
 } from "./utils";
+
+import makeSendMail from "./send_mail";
+import { sendSMTPMail } from "./smtp";
+import { sendMailgunMail } from "./mailgun";
+import { sendSendGridMail } from "./sendgrid";
+import { MailTransporter } from "../types";
+
+let Transporter: MailTransporter = sendSMTPMail;
+
+if (process.env.EMAIL_PROVIDER === "mailgun") {
+	Transporter = sendMailgunMail;
+} else if (process.env.EMAIL_PROVIDER === "sendgrid") {
+	Transporter = sendSendGridMail;
+}
+
+const sendMail = makeSendMail({ Transporter, fs });
 
 const Utils = Object.freeze({
 	isPhone,
@@ -33,23 +66,38 @@ const Utils = Object.freeze({
 	sanitizeString,
 	hash,
 	md5,
+	Id,
 	generateReference,
 	isValidIP,
 	validatePassword,
 	passwordCheck,
 	passwordEncryption,
-	generateSalt
+	generateSalt,
+	isEmailValidation,
+	generateUniqueRandomDigits,
+	isPhoneValidation,
+	encryptString,
+	decryptString,
+	isSendMail,
+	isSendSMS,
+	convertObjectValuesToBoolean,
+	Lp_Secure,
+	test_input,
+	test_output,
+	sanitizeRichText,
+	isValidCurrency,
+	getCurrencySymbol,
+	isSupportedAudioFile,
+	isSupportedDocumentFile,
+	isSupportedImageFile,
+	isSupportedVideoFile
 });
 
-export {
-	makeCallback,
-	Id,
-	Utils,
-	PermissionError,
+export const Validation = Object.freeze({
+	ValidationError,
 	PropertyRequiredError,
 	ResponseError,
-	RouteError,
-	DatabaseError,
-	ValidationError,
-	formatErrorResponse
-};
+	PermissionError
+});
+
+export { makeCallback, authMiddleware, Id, Utils, sendMail };
