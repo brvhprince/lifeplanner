@@ -1,23 +1,18 @@
-import {
-	AppRequest,
-	AppResponse,
-	ErrorInstance,
-	LoginResponse,
-	Source
-} from "../types";
+import { AppRequest, AppResponse, ErrorInstance, AccountResponse, Source } from "../types";
 
-export default function makeUserLogin({
-	loginUser,
+export default function makeCreateAccount({
+	newAccount,
 	formatErrorResponse
 }: {
-	loginUser: any;
+	newAccount: any;
 	formatErrorResponse: any;
 }) {
-	return async function userLogin(httpRequest: AppRequest) {
+	return async function createAccount(httpRequest: AppRequest) {
 		try {
-			const { ...loginInfo } = httpRequest.body;
+			const { ...accountInfo } = httpRequest.body;
+			const { image, files }: any = httpRequest.files;
 
-			const source: Source = {
+            const source: Source = {
 				ip: httpRequest.ip
 			};
 
@@ -37,15 +32,20 @@ export default function makeUserLogin({
 				source.platform = httpRequest.headers["planner-platform"];
 			}
 
-			const login: LoginResponse = await loginUser({ ...loginInfo, source });
+
+			const account: AccountResponse = await newAccount({
+                ...accountInfo,
+				image,
+				files,
+                source
+            });
 
 			const response: AppResponse = {
 				headers: {
-					"Content-Type": "application/json",
-					"Last-Modified": new Date(login.item.updated_at).toUTCString()
+					"Content-Type": "application/json"
 				},
-				statusCode: login.status,
-				body: login
+				statusCode: account.status,
+				body: account
 			};
 			return response;
 		} catch (e) {

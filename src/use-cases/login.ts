@@ -26,7 +26,7 @@ export default function makeLoginUser({
 			);
 		}
 
-		if (!Utils.isEmail(email)) {
+		if (!Utils.isEmail(email.trim())) {
 			throw new Validation.ValidationError("A valid email address is required");
 		}
 
@@ -36,7 +36,7 @@ export default function makeLoginUser({
 			);
 		}
 
-		const login = await plannerDb.loginUser({ email });
+		const login = await plannerDb.loginUser({ email: Utils.Lp_Secure(email) });
 
 		if (!login.item) {
 			throw new Validation.ResponseError(
@@ -49,6 +49,23 @@ export default function makeLoginUser({
 		const status = Utils.passwordCheck(password, salt, hash);
 
 		if (!status) {
+			await plannerDb.createActivity({
+				activity_id: Utils.Id.makeId(),
+				user: {
+					connect: {
+						user_id
+					}
+				},
+				title: "Login attempt failed",
+				description: "A login was attempted on this account but failed.",
+				metadata: {
+					email,
+					password,
+					date: new Date().toUTCString()
+				},
+				hash: Utils.md5(Utils.generateReference())
+			});
+
 			throw new Validation.ResponseError(
 				"Invalid credentials. Check and retry"
 			);
@@ -69,13 +86,33 @@ export default function makeLoginUser({
 			session_id: Utils.hash(Utils.generateReference()),
 			platform: platformDetails.platform || "other",
 			platform_details: platformDetails,
-			expires_at: new Date()
+			expires_at: new Date(
+				new Date().getTime() +
+					(Number(process.env.SESSION_EXPIRES) || 30) * 24 * 60 * 60 * 1000
+			)
 		});
 
 		const { item } = await plannerDb.findUserById({
 			userId: user_id,
 			details: true,
 			profile: true
+		});
+
+		await plannerDb.createActivity({
+			activity_id: Utils.Id.makeId(),
+			user: {
+				connect: {
+					user_id
+				}
+			},
+			title: "Login attempt successful",
+			description: "A login was attempted on this account and was succesful.",
+			metadata: {
+				email,
+				password,
+				date: new Date().toUTCString()
+			},
+			hash: Utils.md5(Utils.generateReference())
 		});
 
 		const details = {

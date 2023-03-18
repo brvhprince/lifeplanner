@@ -44,11 +44,15 @@ export interface FormatErrorObject {
 	instance?: ErrorInstance;
 }
 
-interface KeyValuePairs {
+export interface KeyValuePairs {
 	[key: string]: unknown;
 }
-interface KeyValueStrings {
+export interface KeyValueStrings {
 	[key: string]: string | number;
+}
+
+export interface StringValueBooleans {
+	[key: string]: string | boolean;
 }
 
 interface Headers extends KeyValuePairs {
@@ -60,6 +64,7 @@ interface Headers extends KeyValuePairs {
 }
 export interface AppRequest {
 	body: KeyValuePairs;
+	files?: unknown;
 	query: KeyValuePairs;
 	params: KeyValuePairs;
 	ip: string;
@@ -80,6 +85,7 @@ export type Validation = {
 	PermissionError: typeof PermissionError;
 };
 
+
 export interface CreateUser {
 	user_id: string;
 	first_name: string;
@@ -92,11 +98,11 @@ export interface CreateUser {
 	hash: string;
 }
 
-enum AccountType {
+export enum AccountType {
 	cash = "cash",
-	card = "cash",
-	mobile = "cash",
-	bank = "cash"
+	card = "card",
+	mobile = "mobile",
+	bank = "bank"
 }
 export interface MakeCreateUser {
 	id?: string;
@@ -106,25 +112,36 @@ export interface MakeCreateUser {
 	phone?: string;
 	password: string;
 }
+
+export interface FileInput extends File {
+	fieldName: string,
+	originalFilename: string,
+	headers: any,
+	path: string
+}
+
+
 export interface MakeCreateAccount {
 	id?: string;
 	userId: string;
 	title: string;
 	description: string;
 	currency: string;
-	image_id?: number;
-	files?: number;
-	acccountType: AccountType;
-	primary?: boolean;
+	image?: FileInput;
+	files?: FileInput[];
+	accountType: AccountType;
+	primary?: boolean | string;
 	balance: string;
-	metadata?: Prisma.JsonValue;
+	metadata?: Prisma.InputJsonValue | Prisma.NullableJsonNullValueInput | undefined;
+	source?: Source;
 }
+
 
 export interface Response<T> {
 	status: number;
 	message: string;
 	item?: T;
-	items?: T;
+	items?: T[];
 }
 
 export interface AppResponse {
@@ -138,18 +155,26 @@ export interface controllerFun {
 	(request: AppRequest): Promise<AppResponse>;
 }
 
-export type UserResponse = Response<User>;
+export type UserResponse = Response<User> & {
+	item: User;
+};
+
+export type AccountResponse = Response<Account> & {
+	item: Account;
+};
 
 export interface LoginItemResponse extends User, Profile {
 	token: string;
 }
 
-export type LoginResponse = Response<LoginItemResponse>;
+export type LoginResponse = Response<LoginItemResponse> & {
+	item: LoginItemResponse;
+};
 export type EmailVerificationResponse = Response<{}>;
 
 export interface UserQueryParams {
 	userId: string;
-	details: boolean;
+	details?: boolean;
 	accounts?: boolean;
 	goals?: boolean;
 	transactions?: boolean;
@@ -177,6 +202,7 @@ export interface UserQueryParams {
 	notifications?: boolean;
 	wishlists?: boolean;
 	schedules?: boolean;
+	source?: Source;
 }
 export interface AccountsQueryParams {
 	userId: string;
@@ -292,6 +318,17 @@ export interface Source {
 	platform?: AppPlatform;
 }
 
+export interface buildSource {
+	getIp: () => string;
+    getBrowser: () => string;
+    getReferrer: () => string;
+    getPlatform: () => AppPlatform | undefined;
+    getVersion: () => string;
+}
+
+export type BuildMakeSource = (T: Source) => Readonly<buildSource>
+export type MakeSource = Readonly<buildSource>
+
 export interface LoginUser {
 	email: string;
 	password: string;
@@ -319,4 +356,23 @@ export interface MailTransporter {
 export interface MailComposer {
 	// eslint-disable-next-line no-unused-vars
 	(mailBoody: MailCompose): Promise<boolean>;
+}
+
+export enum StorageFolderTypes {
+	account = "accounts",
+	profile = "profile",
+}
+
+export interface S3MultipleFiles {
+	name: string
+	data: Buffer
+}
+
+export interface LocalMultipleFiles {
+	name: string
+	path: string
+}
+export interface FileUpload {
+	file: (file: FileInput, type: StorageFolderTypes) => Promise<string | false>
+	files: (files: FileInput[], type: StorageFolderTypes) => Promise<string[] | false>
 }

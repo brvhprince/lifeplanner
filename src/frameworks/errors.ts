@@ -30,10 +30,13 @@ class PropertyRequiredError extends ValidationError {
 }
 
 class PermissionError extends Error {
+	public code: number;
+
 	constructor(message: string) {
 		super(message);
 
 		this.name = "PermissionError";
+		this.code = 401;
 	}
 }
 

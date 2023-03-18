@@ -2,20 +2,21 @@ import {
 	AppRequest,
 	AppResponse,
 	ErrorInstance,
-	LoginResponse,
+	UserResponse,
 	Source
 } from "../types";
 
-export default function makeUserLogin({
-	loginUser,
+export default function makeFetchUserDetails({
+	getUserDetails,
 	formatErrorResponse
 }: {
-	loginUser: any;
+	getUserDetails: any;
 	formatErrorResponse: any;
 }) {
-	return async function userLogin(httpRequest: AppRequest) {
+	return async function fetchUserDetails(httpRequest: AppRequest) {
 		try {
-			const { ...loginInfo } = httpRequest.body;
+			const { ...userQueyParams } = httpRequest.query;
+			const { userId } = httpRequest.body;
 
 			const source: Source = {
 				ip: httpRequest.ip
@@ -37,15 +38,18 @@ export default function makeUserLogin({
 				source.platform = httpRequest.headers["planner-platform"];
 			}
 
-			const login: LoginResponse = await loginUser({ ...loginInfo, source });
+			const user: UserResponse = await getUserDetails({
+				...userQueyParams,
+				userId,
+				source
+			});
 
 			const response: AppResponse = {
 				headers: {
-					"Content-Type": "application/json",
-					"Last-Modified": new Date(login.item.updated_at).toUTCString()
+					"Content-Type": "application/json"
 				},
-				statusCode: login.status,
-				body: login
+				statusCode: user.status,
+				body: user
 			};
 			return response;
 		} catch (e) {

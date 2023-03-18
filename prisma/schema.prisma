@@ -1002,7 +1002,7 @@ model File {
   name                    String
   type                    String
   category                String
-  size                    String
+  size                    Int
   path                    String
   metadata                Json?
   status                  Status                 @default(active)
@@ -1044,7 +1044,7 @@ model Activity {
   title       String
   description String?
   metadata    Json?
-  user        User?    @relation(fields: [user_id], references: [user_id], onUpdate: Cascade, onDelete: Cascade)
+  user        User    @relation(fields: [user_id], references: [user_id], onUpdate: Cascade, onDelete: Cascade)
   hash        String   @unique
   created_at  DateTime @default(now())
 }

@@ -28,7 +28,18 @@ import {
 	encryptString,
 	decryptString,
 	isSendMail,
-	isSendSMS
+	isSendSMS,
+	convertObjectValuesToBoolean,
+	Lp_Secure,
+	sanitizeRichText,
+	test_input,
+	test_output,
+	isValidCurrency,
+	getCurrencySymbol,
+	isSupportedAudioFile,
+	isSupportedDocumentFile,
+	isSupportedImageFile,
+	isSupportedVideoFile
 } from "./utils";
 
 import makeSendMail from "./send_mail";
@@ -68,7 +79,18 @@ const Utils = Object.freeze({
 	encryptString,
 	decryptString,
 	isSendMail,
-	isSendSMS
+	isSendSMS,
+	convertObjectValuesToBoolean,
+	Lp_Secure,
+	test_input,
+	test_output,
+	sanitizeRichText,
+	isValidCurrency,
+	getCurrencySymbol,
+	isSupportedAudioFile,
+	isSupportedDocumentFile,
+	isSupportedImageFile,
+	isSupportedVideoFile
 });
 
 export const Validation = Object.freeze({

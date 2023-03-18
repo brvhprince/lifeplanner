@@ -9,6 +9,7 @@ export const validateEnvironmentVariables = () => {
 		"VRIFY_PHONE",
 		"SEND_MAIL",
 		"SEND_SMS",
+		"SESSION_EXPIRES",
 		"EMAIL_PROVIDER",
 		"SMS_PROVIDER"
 	];
@@ -47,6 +48,13 @@ export const validateEnvironmentVariables = () => {
 		"SMTP_PORT",
 		"SMTP_FROM_EMAIL",
 		"SMTP_ENCRYPTION"
+	];
+
+	const awsEnvVars = [
+		"AWS_ACCESS_KEY_ID",
+		"AWS_SECRET_ACCESS_KEY",
+		"AWS_BUCKET_NAME",
+		"AWS_REGION"
 	];
 
 	if (process.env.SEND_MAIL === "true") {
@@ -116,6 +124,17 @@ export const validateEnvironmentVariables = () => {
 				break;
 			default:
 				exit();
+		}
+	}
+
+	if (String(process.env.STORAGE).toUpperCase() === "S3") {
+		if (!checkRequiredEnvVars(awsEnvVars)) {
+			exit();
+		}
+	}
+	else if(process.env.STORAGE === "local") {
+		if (!checkRequiredEnvVars(["LOCAL_FOLDER_NAME"])) {
+			exit();
 		}
 	}
 };

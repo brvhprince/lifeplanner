@@ -16,10 +16,10 @@ export default function buildMakeSource({ Utils }: { Utils: UtilType }) {
 		}
 		return Object.freeze({
 			getIp: () => ip,
-			getBrowser: () => browser,
-			getReferrer: () => referrer,
+			getBrowser: () => Utils.test_input(browser),
+			getReferrer: () => Utils.test_input(referrer),
 			getPlatform: () => platform,
-			getVersion: () => version
+			getVersion: () => Utils.test_input(version)
 		});
 	};
 }

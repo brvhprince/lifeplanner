@@ -64,10 +64,10 @@ export default function buildMakeUser({
 		const encryptedPassword = Utils.passwordEncryption(password, salt);
 		return Object.freeze({
 			getUserId: () => id,
-			getFirstName: () => firstName.trim(),
-			getOtherNames: () => otherNames.trim(),
-			getEmail: () => email.trim(),
-			getPhone: () => phone?.trim(),
+			getFirstName: () => Utils.Lp_Secure(firstName),
+			getOtherNames: () => Utils.Lp_Secure(otherNames),
+			getEmail: () => Utils.Lp_Secure(email),
+			getPhone: () => (phone ? Utils.Lp_Secure(phone) : undefined),
 			getPassword: () => encryptedPassword,
 			getSalt: () => salt,
 			getHash: () => hash || (hash = Utils.md5(email.trim()))

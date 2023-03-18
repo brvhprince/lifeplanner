@@ -1,6 +1,7 @@
 import { formatErrorResponse, ResponseError } from "./errors";
 import express from "express";
 import { AppRequest, AppResponse, controllerFun } from "../types";
+import { AppPlatform } from "@prisma/client";
 
 export default function makeCallback(controller: controllerFun) {
 	return (req: express.Request, res: express.Response) => {
@@ -14,9 +15,15 @@ export default function makeCallback(controller: controllerFun) {
 			headers: {
 				"Content-Type": req.get("Content-Type"),
 				Referer: req.get("Referer"),
-				"User-Agent": req.get("User-Agent")
+				"User-Agent": req.get("User-Agent"),
+				"planner-platform": req.get("planner-platform") as AppPlatform,
+				"planner-version": req.get("planner-version")
 			}
 		};
+
+		if ("files" in req) {
+			httpRequest.files = req.files
+		}
 
 		controller(httpRequest)
 			.then((response: AppResponse) => {

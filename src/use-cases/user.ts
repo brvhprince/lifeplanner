@@ -86,7 +86,7 @@ export default function makeNewUser({
 
 				const emailAddress = await plannerDb.createVerificationCode({
 					code,
-					value: user.getPhone() as string,
+					value: String(user.getPhone()),
 					expires: new Date()
 				});
 			}

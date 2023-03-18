@@ -1,5 +1,5 @@
 import express from "express";
-import { PermissionError } from "./errors";
+import { PermissionError, formatErrorResponse } from "./errors";
 import { plannerDb } from "../data-access";
 
 export default async function authMiddleware(
@@ -13,7 +13,11 @@ export default async function authMiddleware(
 		if (!authHeader) {
 			return res
 				.status(401)
-				.json(new PermissionError("Authorization header is missing"));
+				.json(
+					formatErrorResponse(
+						new PermissionError("Authorization header is missing")
+					)
+				);
 		}
 
 		const [authType, token] = authHeader.split(" ");
@@ -21,13 +25,19 @@ export default async function authMiddleware(
 		if (authType !== "Bearer") {
 			return res
 				.status(401)
-				.json(new PermissionError("Invalid authorization type"));
+				.json(
+					formatErrorResponse(new PermissionError("Invalid authorization type"))
+				);
 		}
 
 		if (!token) {
 			return res
 				.status(401)
-				.json(new PermissionError("Authorization value is missing"));
+				.json(
+					formatErrorResponse(
+						new PermissionError("Authorization value is missing")
+					)
+				);
 		}
 
 		const userId = await plannerDb.findUserAppSessionById({
@@ -35,13 +45,17 @@ export default async function authMiddleware(
 		});
 
 		if (!userId) {
-			return res.status(401).json(new PermissionError("Unauthorized"));
+			return res
+				.status(401)
+				.json(formatErrorResponse(new PermissionError("Unauthorized")));
 		}
 
 		req.body.userId = userId;
 		next();
 		return true;
 	} catch {
-		return res.status(401).json(new PermissionError("Unauthorized"));
+		return res
+			.status(401)
+			.json(formatErrorResponse(new PermissionError("Unauthorized")));
 	}
 }

@@ -125,7 +125,9 @@ export default function makePlannerDb({
 		createSchedule,
 		createScheduleItem,
 		createAppSession,
-		findUserAppSessionById
+		findUserAppSessionById,
+		createFiles,
+		removeAccountPrimaryStatus
 	});
 
 	async function createUser(userInfo: CreateUser) {
@@ -226,7 +228,7 @@ export default function makePlannerDb({
 			return {
 				status: 201,
 				message: "Account created successfully",
-				item: results
+				item: await formatFilesFromResponse(results)
 			};
 		} catch (e) {
 			throw new DatabaseError(
@@ -234,6 +236,27 @@ export default function makePlannerDb({
 				"createAccount",
 				e as ErrorInstance,
 				"DataCreateError"
+			);
+		}
+	}
+
+	async function removeAccountPrimaryStatus() {
+		try {
+			
+			await makeDb.account.updateMany({
+				data: {
+					primary: false
+				},
+				
+			});
+
+			return true
+		} catch (e) {
+			throw new DatabaseError(
+				"An error occurred removing all account primary status. Please retry after few minutes",
+				"removeAccountPrimaryStatus",
+				e as ErrorInstance,
+				"DataUpdateError"
 			);
 		}
 	}
@@ -1558,13 +1581,34 @@ export default function makePlannerDb({
 
 			return {
 				status: 201,
-				message: "File created successfully",
+				message: "File uploaded successfully",
 				item: results
 			};
 		} catch (e) {
 			throw new DatabaseError(
-				"An error occurred creating file. Please retry after few minutes",
+				"An error occurred uploading file. Please retry after few minutes",
 				"createFile",
+				e as ErrorInstance,
+				"DataCreateError"
+			);
+		}
+	}
+
+	async function createFiles(fileInfo: CreateFile[]) {
+		try {
+			const results = await makeDb.file.createMany({
+				data: fileInfo,
+			});
+
+			return {
+				status: 201,
+				message: "Files uploaded successfully",
+				items: results
+			};
+		} catch (e) {
+			throw new DatabaseError(
+				"An error occurred uploading files. Please retry after few minutes",
+				"createFiles",
 				e as ErrorInstance,
 				"DataCreateError"
 			);
@@ -2041,15 +2085,45 @@ export default function makePlannerDb({
 					session_id
 				},
 				select: {
-					user_id: true
+					user_id: true,
+					expires_at: true
 				}
 			});
 
-			return session ? session.user_id : false;
+			if (session) {
+				const now = new Date().getTime();
+				const expires = new Date(session.expires_at).getTime();
+
+				if (now > expires) {
+					await deleteSessionById({ session_id });
+					return false;
+				}
+				return session.user_id;
+			}
+			return false;
 		} catch (e) {
 			throw new DatabaseError(
 				"An error occurred fetching user session. Please retry after few minutes",
 				"findUserAppSessionById",
+				e as ErrorInstance,
+				"DataNotFoundException"
+			);
+		}
+	}
+
+	async function deleteSessionById({ session_id }: { session_id: string }) {
+		try {
+			const session = await makeDb.appSession.delete({
+				where: {
+					session_id
+				}
+			});
+
+			return true;
+		} catch (e) {
+			throw new DatabaseError(
+				"An error occurred removing user session. Please retry after few minutes",
+				"deleteSessionById",
 				e as ErrorInstance,
 				"DataNotFoundException"
 			);
@@ -3704,9 +3778,48 @@ export default function makePlannerDb({
 		}
 	}
 
-	// async function formatFilesFromResponse(response: any) {
-	// 	return response;
-	// }
+	async function findFilesbyIds(ids: number[]) {
+		try {
+			
+			const files = await makeDb.file.findMany({
+				where: {
+					id: {
+						in: ids
+					}
+				}
+			});
+			return files
+		} catch (e) {
+			throw new DatabaseError(
+				"An error occurred fetching files by ids. Please retry after few minutes",
+				"findFilesbyIds",
+				e as ErrorInstance,
+				"DataNotFoundException"
+			);
+		}
+	}
+
+	async function formatFilesFromResponse(response: any) {
+	
+		if (Array.isArray(response)) {
+			for (let entry in response) {
+				let files: string|null|undefined = response[entry].files
+				if (files) {
+					 const fileIds = files.split(",").map(Number)
+					 response[entry].files = await findFilesbyIds(fileIds)
+				}
+			}
+		}
+		else if (typeof response === "object" && Object.keys(response).length > 0) {
+			let files: string|null|undefined = response.files
+				if (files) {
+					 const fileIds = files.split(",").map(Number)
+					 response.files = await findFilesbyIds(fileIds)
+				}
+		}
+
+		return response;
+	}
 	//
 	// async function formatFileSize(path: string) {
 	// 	return path;
