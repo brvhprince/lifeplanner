@@ -9,7 +9,13 @@ import makeFetchUserDetails from "./user_details";
 /*
 Use cases Import
  */
-import { newUser, loginUser, verifyEmail, getUserDetails, newAccount } from "../use-cases";
+import {
+	newUser,
+	loginUser,
+	verifyEmail,
+	getUserDetails,
+	newAccount
+} from "../use-cases";
 import { formatErrorResponse } from "../frameworks/errors";
 
 const createUser = makeCreateUser({ newUser, formatErrorResponse });

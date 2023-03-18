@@ -22,7 +22,7 @@ export default function makeCallback(controller: controllerFun) {
 		};
 
 		if ("files" in req) {
-			httpRequest.files = req.files
+			httpRequest.files = req.files;
 		}
 
 		controller(httpRequest)

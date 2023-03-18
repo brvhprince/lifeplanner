@@ -39,7 +39,8 @@ import {
 	isSupportedAudioFile,
 	isSupportedDocumentFile,
 	isSupportedImageFile,
-	isSupportedVideoFile
+	isSupportedVideoFile,
+	validateDate
 } from "./utils";
 
 import makeSendMail from "./send_mail";
@@ -90,7 +91,8 @@ const Utils = Object.freeze({
 	isSupportedAudioFile,
 	isSupportedDocumentFile,
 	isSupportedImageFile,
-	isSupportedVideoFile
+	isSupportedVideoFile,
+	validateDate
 });
 
 export const Validation = Object.freeze({

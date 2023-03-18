@@ -242,15 +242,13 @@ export default function makePlannerDb({
 
 	async function removeAccountPrimaryStatus() {
 		try {
-			
 			await makeDb.account.updateMany({
 				data: {
 					primary: false
-				},
-				
+				}
 			});
 
-			return true
+			return true;
 		} catch (e) {
 			throw new DatabaseError(
 				"An error occurred removing all account primary status. Please retry after few minutes",
@@ -1597,7 +1595,7 @@ export default function makePlannerDb({
 	async function createFiles(fileInfo: CreateFile[]) {
 		try {
 			const results = await makeDb.file.createMany({
-				data: fileInfo,
+				data: fileInfo
 			});
 
 			return {
@@ -3780,7 +3778,6 @@ export default function makePlannerDb({
 
 	async function findFilesbyIds(ids: number[]) {
 		try {
-			
 			const files = await makeDb.file.findMany({
 				where: {
 					id: {
@@ -3788,7 +3785,7 @@ export default function makePlannerDb({
 					}
 				}
 			});
-			return files
+			return files;
 		} catch (e) {
 			throw new DatabaseError(
 				"An error occurred fetching files by ids. Please retry after few minutes",
@@ -3800,22 +3797,23 @@ export default function makePlannerDb({
 	}
 
 	async function formatFilesFromResponse(response: any) {
-	
 		if (Array.isArray(response)) {
-			for (let entry in response) {
-				let files: string|null|undefined = response[entry].files
+			for (const entry in response) {
+				const files: string | null | undefined = response[entry].files;
 				if (files) {
-					 const fileIds = files.split(",").map(Number)
-					 response[entry].files = await findFilesbyIds(fileIds)
+					const fileIds = files.split(",").map(Number);
+					response[entry].files = await findFilesbyIds(fileIds);
 				}
 			}
-		}
-		else if (typeof response === "object" && Object.keys(response).length > 0) {
-			let files: string|null|undefined = response.files
-				if (files) {
-					 const fileIds = files.split(",").map(Number)
-					 response.files = await findFilesbyIds(fileIds)
-				}
+		} else if (
+			typeof response === "object" &&
+			Object.keys(response).length > 0
+		) {
+			const files: string | null | undefined = response.files;
+			if (files) {
+				const fileIds = files.split(",").map(Number);
+				response.files = await findFilesbyIds(fileIds);
+			}
 		}
 
 		return response;

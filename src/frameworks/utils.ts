@@ -9,18 +9,20 @@ import { KeyValuePairs, KeyValueStrings } from "../types";
  * @param {string} string
  * @return {string|null}
  */
-const cleanString = (string: string) => {
-	return string.replace(/&#?[a-z\d]+;/gi, "");
-};
+const cleanString = (string: string) => string.replace(/&#?[a-z\d]+;/gi, "");
 
 /**
  * This function sanitizes and secures an input string.
- * @param {string} string
+ * @param {string| undefined} string
  * @param {boolean} br
  * @param {boolean} strip
  * @return {string}
  */
-export const Lp_Secure = (string: string, br = false, strip = true) => {
+export const Lp_Secure = (
+	string: string | undefined,
+	br = false,
+	strip = true
+) => {
 	let result = test_input(string);
 	result = cleanString(result);
 
@@ -235,9 +237,9 @@ export const decryptString = (encryptedString: string) => {
 };
 
 export const convertObjectValuesToBoolean = (obj: KeyValuePairs) => {
-	for (var key in obj) {
+	for (const key in obj) {
 		if (obj.hasOwnProperty(key)) {
-			obj[key] = (obj[key] === "true" || obj[key] === true);
+			obj[key] = obj[key] === "true" || obj[key] === true;
 		}
 	}
 	return obj;
@@ -411,37 +413,44 @@ const currencies: KeyValueStrings = {
 	ZWD: "Z$"
 };
 
-export const isValidCurrency = (currencyCode: string) => {
-	return currencies.hasOwnProperty(currencyCode.toUpperCase());
-}
+export const isValidCurrency = (currencyCode: string) =>
+	currencies.hasOwnProperty(currencyCode.toUpperCase());
 
 export const getCurrencySymbol = (currencyCode: string) => {
 	if (isValidCurrency(currencyCode)) {
 		return currencies[currencyCode.toUpperCase()];
-	} else {
-		return "$";
 	}
-}
+	return "$";
+};
 
-export const isSupportedImageFile = (mimeType: string) => {
-	return mimeType.startsWith('image/');
-  }
+export const isSupportedImageFile = (mimeType: string) =>
+	mimeType.startsWith("image/");
 
-  export const isSupportedDocumentFile = (mimeType: string) => {
-	return mimeType === 'application/pdf' || 
-		   mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || 
-		   mimeType === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' || 
-		   mimeType === 'application/vnd.ms-excel' ||
-		   mimeType === 'application/msword';
-  }
+export const isSupportedDocumentFile = (mimeType: string) =>
+	mimeType === "application/pdf" ||
+	mimeType ===
+		"application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+	mimeType ===
+		"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
+	mimeType === "application/vnd.ms-excel" ||
+	mimeType === "application/msword";
 
-
-export const isSupportedAudioFile = (mimeType: string) => {
+export const isSupportedAudioFile = (mimeType: string) =>
 	// return mimeType.startsWith('audio/');
-	return ['audio/mp3', 'audio/wav', 'audio/ogg'].includes(mimeType);
-  }
-  
-  export const isSupportedVideoFile = (mimeType: string) => {
+	["audio/mp3", "audio/wav", "audio/ogg"].includes(mimeType);
+
+export const isSupportedVideoFile = (mimeType: string) =>
 	// return mimeType.startsWith('video/');
-	return ['video/mp4', 'video/webm', 'video/ogg'].includes(mimeType);
-  }
+	["video/mp4", "video/webm", "video/ogg"].includes(mimeType);
+
+export const validateDate = (dateString: string) => {
+	const regex = /^\d{4}-\d{2}-\d{2}$/;
+	if (!regex.test(dateString)) {
+		return false;
+	}
+	const date = new Date(dateString);
+	if (isNaN(date.getTime())) {
+		return false;
+	}
+	return date.toISOString().slice(0, 10) === dateString;
+};

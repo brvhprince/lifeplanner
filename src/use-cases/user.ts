@@ -81,6 +81,7 @@ export default function makeNewUser({
 				}
 			}
 
+			//TODO: phone verification
 			if (Utils.isPhoneValidation() && userInfo.phone) {
 				const code = await generateCode();
 

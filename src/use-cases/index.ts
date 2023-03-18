@@ -10,12 +10,12 @@ import { Validation, Utils, sendMail } from "../frameworks";
 import { uploadFile, uploadFiles } from "../frameworks/upload";
 
 const Upload = {
-    file: uploadFile,
-    files: uploadFiles
-}
+	file: uploadFile,
+	files: uploadFiles
+};
 
 const newUser = makeNewUser({ plannerDb, Validation, sendMail });
-const newAccount = makeNewAccount({ plannerDb, Validation , Upload});
+const newAccount = makeNewAccount({ plannerDb, Validation, Upload });
 const loginUser = makeLoginUser({ plannerDb, Validation, Utils });
 const verifyEmail = makeVerifyEmail({ plannerDb, Validation, Utils });
 const getUserDetails = makeGetUserDetails({ plannerDb, Validation, Utils });

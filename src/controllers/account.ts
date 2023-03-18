@@ -1,4 +1,10 @@
-import { AppRequest, AppResponse, ErrorInstance, AccountResponse, Source } from "../types";
+import {
+	AppRequest,
+	AppResponse,
+	ErrorInstance,
+	AccountResponse,
+	Source
+} from "../types";
 
 export default function makeCreateAccount({
 	newAccount,
@@ -12,7 +18,7 @@ export default function makeCreateAccount({
 			const { ...accountInfo } = httpRequest.body;
 			const { image, files }: any = httpRequest.files;
 
-            const source: Source = {
+			const source: Source = {
 				ip: httpRequest.ip
 			};
 
@@ -32,13 +38,12 @@ export default function makeCreateAccount({
 				source.platform = httpRequest.headers["planner-platform"];
 			}
 
-
 			const account: AccountResponse = await newAccount({
-                ...accountInfo,
+				...accountInfo,
 				image,
 				files,
-                source
-            });
+				source
+			});
 
 			const response: AppResponse = {
 				headers: {

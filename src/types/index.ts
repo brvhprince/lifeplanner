@@ -85,7 +85,6 @@ export type Validation = {
 	PermissionError: typeof PermissionError;
 };
 
-
 export interface CreateUser {
 	user_id: string;
 	first_name: string;
@@ -104,6 +103,15 @@ export enum AccountType {
 	mobile = "mobile",
 	bank = "bank"
 }
+
+export enum ProfileGender {
+	male = "male",
+	female = "female",
+	intersex = "intersex",
+	nonconforming = "nonconforming",
+	other = "other"
+}
+
 export interface MakeCreateUser {
 	id?: string;
 	firstName: string;
@@ -114,12 +122,36 @@ export interface MakeCreateUser {
 }
 
 export interface FileInput extends File {
-	fieldName: string,
-	originalFilename: string,
-	headers: any,
-	path: string
+	fieldName: string;
+	originalFilename: string;
+	headers: any;
+	path: string;
 }
 
+export interface MakeCreateUserProfile {
+	userId: string;
+	avatar?: FileInput;
+	cover?: FileInput;
+	dob?: string;
+	gender?: ProfileGender;
+	otherGender?: string;
+	placeOfBirth?: string;
+	about?: string;
+	funFacts?: string;
+	nationality?: string;
+	pinCode?: string;
+	securityQuestions?:
+		| Prisma.InputJsonValue
+		| Prisma.NullableJsonNullValueInput
+		| undefined;
+	twoFa?: boolean | string;
+	twoFaCode?: string;
+	metadata?:
+		| Prisma.InputJsonValue
+		| Prisma.NullableJsonNullValueInput
+		| undefined;
+	source?: Source;
+}
 
 export interface MakeCreateAccount {
 	id?: string;
@@ -132,10 +164,12 @@ export interface MakeCreateAccount {
 	accountType: AccountType;
 	primary?: boolean | string;
 	balance: string;
-	metadata?: Prisma.InputJsonValue | Prisma.NullableJsonNullValueInput | undefined;
+	metadata?:
+		| Prisma.InputJsonValue
+		| Prisma.NullableJsonNullValueInput
+		| undefined;
 	source?: Source;
 }
-
 
 export interface Response<T> {
 	status: number;
@@ -320,14 +354,14 @@ export interface Source {
 
 export interface buildSource {
 	getIp: () => string;
-    getBrowser: () => string;
-    getReferrer: () => string;
-    getPlatform: () => AppPlatform | undefined;
-    getVersion: () => string;
+	getBrowser: () => string;
+	getReferrer: () => string;
+	getPlatform: () => AppPlatform | undefined;
+	getVersion: () => string;
 }
 
-export type BuildMakeSource = (T: Source) => Readonly<buildSource>
-export type MakeSource = Readonly<buildSource>
+export type BuildMakeSource = (T: Source) => Readonly<buildSource>;
+export type MakeSource = Readonly<buildSource>;
 
 export interface LoginUser {
 	email: string;
@@ -360,19 +394,22 @@ export interface MailComposer {
 
 export enum StorageFolderTypes {
 	account = "accounts",
-	profile = "profile",
+	profile = "profile"
 }
 
 export interface S3MultipleFiles {
-	name: string
-	data: Buffer
+	name: string;
+	data: Buffer;
 }
 
 export interface LocalMultipleFiles {
-	name: string
-	path: string
+	name: string;
+	path: string;
 }
 export interface FileUpload {
-	file: (file: FileInput, type: StorageFolderTypes) => Promise<string | false>
-	files: (files: FileInput[], type: StorageFolderTypes) => Promise<string[] | false>
+	file: (file: FileInput, type: StorageFolderTypes) => Promise<string | false>;
+	files: (
+		files: FileInput[],
+		type: StorageFolderTypes
+	) => Promise<string[] | false>;
 }

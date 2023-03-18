@@ -131,8 +131,7 @@ export const validateEnvironmentVariables = () => {
 		if (!checkRequiredEnvVars(awsEnvVars)) {
 			exit();
 		}
-	}
-	else if(process.env.STORAGE === "local") {
+	} else if (process.env.STORAGE === "local") {
 		if (!checkRequiredEnvVars(["LOCAL_FOLDER_NAME"])) {
 			exit();
 		}

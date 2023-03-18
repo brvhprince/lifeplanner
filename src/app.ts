@@ -6,7 +6,15 @@ import os from "os";
 import path from "path";
 
 import { makeCallback, authMiddleware } from "./frameworks";
-import { createUser, notFound, welcome, userLogin, emailVerification, fetchUserDetails, createAccount } from "./controllers";
+import {
+	createUser,
+	notFound,
+	welcome,
+	userLogin,
+	emailVerification,
+	fetchUserDetails,
+	createAccount
+} from "./controllers";
 import { validateEnvironmentVariables } from "./frameworks/environment";
 
 env.config();
@@ -18,10 +26,12 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-app.use(formData.parse({
-	uploadDir: os.tmpdir(),
-	autoClean: true
-}));
+app.use(
+	formData.parse({
+		uploadDir: os.tmpdir(),
+		autoClean: true
+	})
+);
 
 // delete from the request all empty files (size == 0)
 app.use(formData.format());
@@ -31,8 +41,7 @@ app.use(formData.union());
 
 if (process.env.STORAGE === "local") {
 	const basePath = path.join(__dirname, String(process.env.LOCAL_FOLDER_NAME));
-	app.use("/static", express.static(basePath))
-
+	app.use("/static", express.static(basePath));
 }
 
 app.use(cors());
@@ -48,8 +57,14 @@ app.post("/login", makeCallback(userLogin));
 app.get("/verification/email/:code", makeCallback(emailVerification));
 
 /* Protected routes */
-app.get("/users/details", authMiddleware, makeCallback(fetchUserDetails))
-app.post("/accounts", authMiddleware, makeCallback(createAccount))
+app.post("/verify/password", authMiddleware, makeCallback(fetchUserDetails));
+app.get(
+	"/verify/pincode/:code",
+	authMiddleware,
+	makeCallback(fetchUserDetails)
+);
+app.get("/users/details", authMiddleware, makeCallback(fetchUserDetails));
+app.post("/accounts", authMiddleware, makeCallback(createAccount));
 
 /* To resolve not found routes */
 app.use(makeCallback(notFound));

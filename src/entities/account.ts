@@ -97,17 +97,25 @@ export default function buildMakeAccount({
 		}
 
 		if (!Utils.isValidCurrency(currency.trim())) {
-			throw new Validation.ValidationError("Invalid currency code. check here for help https://www.xe.com/iso4217.php")
+			throw new Validation.ValidationError(
+				"Invalid currency code. check here for help https://www.xe.com/iso4217.php"
+			);
 		}
 
 		if (image && !Utils.isSupportedImageFile(image.type)) {
-			throw new Validation.ValidationError("Unsupported image file")
+			throw new Validation.ValidationError("Unsupported image file");
 		}
 
 		if (files && files.length > 0) {
-			for (let file of files) {
-				if (!Utils.isSupportedImageFile(file.type) && !Utils.isSupportedDocumentFile(file.type)) {
-					throw new Validation.ValidationError("One of your files have an unsupported format >> " + file.originalFilename || file.name)
+			for (const file of files) {
+				if (
+					!Utils.isSupportedImageFile(file.type) &&
+					!Utils.isSupportedDocumentFile(file.type)
+				) {
+					throw new Validation.ValidationError(
+						"One of your files have an unsupported format >> " +
+							file.originalFilename || file.name
+					);
 				}
 			}
 		}
@@ -126,12 +134,14 @@ export default function buildMakeAccount({
 			getDescription: () => Utils.test_input(description),
 			getBalance: () => parseFloat(balance),
 			getCurrency: () => currency.trim(),
-			isPrimary: () => typeof primary === "boolean" ? primary : primary === "true",
+			isPrimary: () =>
+				typeof primary === "boolean" ? primary : primary === "true",
 			getMetadata: () => metadata,
 			getImage: () => image,
 			getFiles: () => files,
 			getSource: () => accountSource,
-			getHash: () => hash || (hash = Utils.md5(title.trim() + userId + accountType))
+			getHash: () =>
+				hash || (hash = Utils.md5(title.trim() + userId + accountType))
 		});
 	};
 }
