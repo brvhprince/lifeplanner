@@ -1,11 +1,12 @@
-import twofactor from "node-2fa";
+import {generateSecret as generate, verifyToken as verify} from "node-2fa-enhanced";
 
 export const generateSecret = (email: string) => {
-	return twofactor.generateSecret({ name: "Life Planner", account: email });
+	
+	return generate({ name: "Life Planner", account: email });
 };
 
 export const verifyToken = (secret: string, code: string) => {
-	const response = twofactor.verifyToken(secret, code);
+	const response = verify(secret, code);
 
 	return !response ? false : response.delta !== -1;
 };

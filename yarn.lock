@@ -5249,6 +5249,16 @@ nice-try@^1.0.4:
   resolved "https://registry.yarnpkg.com/nice-try/-/nice-try-1.0.5.tgz#a3378a7696ce7d223e88fc9b764bd7ef1089e366"
   integrity sha512-1nh45deeb5olNY7eX82BkPO7SSxR5SSYJiPTrTdFUVYwAl8CKMA5N9PjTYkHiRjisVcxcQ1HXdLhx2qxxJzLNQ==
 
+node-2fa-enhanced@^2.0.4:
+  version "2.0.4"
+  resolved "https://registry.yarnpkg.com/node-2fa-enhanced/-/node-2fa-enhanced-2.0.4.tgz#5fc589ce72dc543d9f117ccbca92b9a1468813d7"
+  integrity sha512-BETAvptE/FjCGgzDa7UtVI2ARr7EWRHAdnpH3ysiPt8W7L+evZ+VjxwJMKzLavSGAgGMdqDVwHHe2VqPtQibAg==
+  dependencies:
+    "@types/notp" "^2.0.0"
+    notp "^2.0.3"
+    thirty-two "1.0.2"
+    tslib "^2.1.0"
+
 node-2fa@^2.0.3:
   version "2.0.3"
   resolved "https://registry.yarnpkg.com/node-2fa/-/node-2fa-2.0.3.tgz#74a5f3c618e803c3b7a9b04c38d36cbf4a5e26d6"

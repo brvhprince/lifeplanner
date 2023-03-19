@@ -11,7 +11,7 @@ import {
 	S3MultipleFiles,
 	StorageFolderTypes
 } from "../types";
-import { readFileSync, existsSync, mkdirSync, copyFile } from "fs";
+import { readFileSync, existsSync, mkdirSync, copyFile, unlinkSync } from "fs";
 import path from "path";
 import { generateReference } from "./utils";
 
@@ -32,6 +32,8 @@ export const uploadFile = async (file: FileInput, type: StorageFolderTypes) => {
 		path = false;
 	}
 
+	unlinkFile(file.path)
+	
 	return path;
 };
 
@@ -228,5 +230,15 @@ export const uploadFiles = async (
 		paths = false;
 	}
 
+	files.forEach(file => {
+		unlinkFile(file.path)
+	});
+
 	return paths;
 };
+
+const unlinkFile = (path: string) => {
+	if (existsSync(path)) {
+	  	unlinkSync(path);
+	}
+  }

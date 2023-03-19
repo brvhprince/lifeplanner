@@ -24,7 +24,7 @@ export default function makeGenerateTwoFa({
 			);
 		}
 
-		const user = await plannerDb.findUserById({ userId });
+		const user = await plannerDb.findUserById({ userId , details:true });
 
 		if (!user.item) {
 			throw new Validation.ResponseError(

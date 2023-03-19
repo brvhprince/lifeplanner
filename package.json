@@ -38,6 +38,7 @@
     "ip-address-validator": "^1.0.9",
     "mailgun.js": "^8.2.0",
     "node-2fa": "^2.0.3",
+    "node-2fa-enhanced": "^2.0.4",
     "nodemailer": "^6.9.1",
     "sanitize-html": "^2.10.0",
     "supertest": "^6.3.3"
