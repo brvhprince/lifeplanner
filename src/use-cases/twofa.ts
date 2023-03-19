@@ -50,7 +50,7 @@ export default function makeGenerateTwoFa({
 			hash: Utils.md5(Utils.generateReference())
 		});
 
-		await plannerDb.updateUserProfile({ userId, two_fa_code: data.secret });
+		await plannerDb.updateUserProfile({ userId, two_fa_code: data.secret, two_fa: true });
 
 		await plannerDb.createActivity({
 			activity_id: Utils.Id.makeId(),
