@@ -2154,14 +2154,18 @@ export default function makePlannerDb({
 		userId?: string;
 	}) {
 		try {
-			let where: any;
+
+			const where: {
+				email?: string
+				user_id?: string
+			} = {};
 
 			if (email) {
-				where.email = email;
+				where.email = email
 			}
 
 			if (userId) {
-				where.user_id = userId;
+				where.user_id = userId
 			}
 
 			if (!where.email && !where.user_id) {
