@@ -19,7 +19,7 @@ export default function makeGenerateTwoFa({
 }) {
 	return async function generateTwoFa({ userId, source }: NewTwoFa) {
 		if (!userId) {
-			throw new Validation.ResponseError(
+			throw new Validation.PermissionError(
 				"You are not authorized to access this resource"
 			);
 		}
@@ -27,7 +27,7 @@ export default function makeGenerateTwoFa({
 		const user = await plannerDb.findUserById({ userId , details:true });
 
 		if (!user.item) {
-			throw new Validation.ResponseError(
+			throw new Validation.PermissionError(
 				"You are not authorized to access this resource"
 			);
 		}

@@ -22,7 +22,7 @@ export default function makeUpdateProfile({
 		const profile = makeUserProfile(profileInfo);
 
 		if (!profile.getUserId()) {
-			throw new Validation.ResponseError(
+			throw new Validation.PermissionError(
 				"You are not authorized to access this resource"
 			);
 		}
@@ -32,7 +32,7 @@ export default function makeUpdateProfile({
 		});
 
 		if (!exists.item) {
-			throw new Validation.ResponseError(
+			throw new Validation.PermissionError(
 				"You are not authorized to access this resource"
 			);
 		}

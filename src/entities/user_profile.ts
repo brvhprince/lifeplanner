@@ -56,6 +56,13 @@ export default function buildMakeUserProfile({
 			);
 		}
 
+		if (gender && gender === ProfileGender.other && !otherGender) {
+			throw new Validation.PropertyRequiredError(
+				"Other gender is required",
+				"otherGender"
+			);
+		}
+
 		if (pinCode && !Utils.isNumber(pinCode)) {
 			throw new Validation.ValidationError(
 				"Transaction pin code must be a valid number"
@@ -92,7 +99,7 @@ export default function buildMakeUserProfile({
 
 		return Object.freeze({
 			getUserId: () => userId,
-			getAbout: () => Utils.test_input(about),
+			getAbout: () => Utils.sanitizeRichText(about || ""),
 			getFunFacts: () => Utils.test_input(funFacts),
 			getGender: () => gender,
 			getDateOfBirth: () => dob,

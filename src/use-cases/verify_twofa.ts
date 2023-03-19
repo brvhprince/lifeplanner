@@ -23,7 +23,7 @@ export default function makeVerifyTwoFa({
 		source
 	}: TwoFaVerification) {
 		if (!userId) {
-			throw new Validation.ResponseError(
+			throw new Validation.PermissionError(
 				"You are not authorized to access this resource"
 			);
 		}
@@ -43,7 +43,7 @@ export default function makeVerifyTwoFa({
 		const profile = await plannerDb.findProfileByUserId({ userId });
 
 		if (!profile.item) {
-			throw new Validation.ResponseError(
+			throw new Validation.PermissionError(
 				"You are not authorized to access this resource"
 			);
 		}

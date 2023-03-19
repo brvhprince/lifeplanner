@@ -20,7 +20,7 @@ export default function makeVerifyPinCode({
 		source
 	}: PinCodeVerification) {
 		if (!userId) {
-			throw new Validation.ResponseError(
+			throw new Validation.PermissionError(
 				"You are not authorized to access this resource"
 			);
 		}
@@ -41,7 +41,7 @@ export default function makeVerifyPinCode({
 		const profile = await plannerDb.findProfileByUserId({ userId });
 
 		if (!profile.item) {
-			throw new Validation.ResponseError(
+			throw new Validation.PermissionError(
 				"You are not authorized to access this resource"
 			);
 		}

@@ -20,7 +20,7 @@ export default function makeVerifyPassword({
 		source
 	}: PasswordVerification) {
 		if (!userId) {
-			throw new Validation.ResponseError(
+			throw new Validation.PermissionError(
 				"You are not authorized to access this resource"
 			);
 		}
@@ -41,7 +41,7 @@ export default function makeVerifyPassword({
 		const login = await plannerDb.loginUser({ userId });
 
 		if (!login.item) {
-			throw new Validation.ResponseError(
+			throw new Validation.PermissionError(
 				"You are not authorized to access this resource"
 			);
 		}
