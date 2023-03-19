@@ -2128,12 +2128,32 @@ export default function makePlannerDb({
 		}
 	}
 
-	async function loginUser({ email }: { email: string }) {
+	async function loginUser({
+		email,
+		userId
+	}: {
+		email?: string;
+		userId?: string;
+	}) {
 		try {
+			let where: any;
+
+			if (email) {
+				where.email = email;
+			}
+
+			if (userId) {
+				where.user_id = userId;
+			}
+
+			if (!where.email && !where.user_id) {
+				return {
+					item: undefined
+				};
+			}
+
 			const user = await makeDb.user.findUnique({
-				where: {
-					email
-				},
+				where,
 				select: {
 					user_id: true,
 					salt: true,

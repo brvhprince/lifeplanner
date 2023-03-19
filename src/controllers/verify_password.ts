@@ -2,21 +2,20 @@ import {
 	AppRequest,
 	AppResponse,
 	ErrorInstance,
-	UserResponse,
+	VerifyPasswordResponse,
 	Source
 } from "../types";
 
-export default function makeFetchUserDetails({
-	getUserDetails,
+export default function makePasswordVerification({
+	verifyPassword,
 	formatErrorResponse
 }: {
-	getUserDetails: any;
+	verifyPassword: any;
 	formatErrorResponse: any;
 }) {
-	return async function fetchUserDetails(httpRequest: AppRequest) {
+	return async function passwordVerification(httpRequest: AppRequest) {
 		try {
-			const { ...userQueyParams } = httpRequest.query;
-			const { userId } = httpRequest.body;
+			const { userId, password } = httpRequest.body;
 
 			const source: Source = {
 				ip: httpRequest.ip
@@ -38,19 +37,18 @@ export default function makeFetchUserDetails({
 				source.platform = httpRequest.headers["planner-platform"];
 			}
 
-			const user: UserResponse = await getUserDetails({
-				...userQueyParams,
+			const passwordStatus: VerifyPasswordResponse = await verifyPassword({
 				userId,
+				password,
 				source
 			});
 
 			const response: AppResponse = {
 				headers: {
-					"Content-Type": "application/json",
-					"Last-Modified": new Date(user.item.updated_at).toUTCString()
+					"Content-Type": "application/json"
 				},
-				statusCode: user.status,
-				body: user
+				statusCode: passwordStatus.status,
+				body: passwordStatus
 			};
 			return response;
 		} catch (e) {

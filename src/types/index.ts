@@ -193,6 +193,35 @@ export type UserResponse = Response<User> & {
 	item: User;
 };
 
+interface TwoFaResponseItem {
+	qr: string;
+	uri: string;
+}
+export type TwoFaResponse = Response<TwoFaResponseItem> & {
+	item: TwoFaResponseItem;
+};
+
+interface VerifyTwoFaResponseItem {
+	status: true;
+}
+export type VerifyTwoFaResponse = Response<VerifyTwoFaResponseItem> & {
+	item: VerifyTwoFaResponseItem;
+};
+
+interface VerifyPasswordResponseItem {
+	status: true;
+}
+export type VerifyPasswordResponse = Response<VerifyPasswordResponseItem> & {
+	item: VerifyPasswordResponseItem;
+};
+
+interface VerifyPinCodeResponseItem {
+	status: true;
+}
+export type VerifyPinCodeResponse = Response<VerifyPinCodeResponseItem> & {
+	item: VerifyPinCodeResponseItem;
+};
+
 export type AccountResponse = Response<Account> & {
 	item: Account;
 };
@@ -412,4 +441,35 @@ export interface FileUpload {
 		files: FileInput[],
 		type: StorageFolderTypes
 	) => Promise<string[] | false>;
+}
+
+interface SecretInterface {
+	secret: string;
+	uri: string;
+	qr: string;
+}
+export interface TwoFa {
+	generate: (email: string) => SecretInterface;
+	verify: (secret: string, code: string) => Boolean;
+}
+
+export interface NewTwoFa {
+	userId: string;
+	source: Source;
+}
+
+export interface TwoFaVerification {
+	userId: string;
+	code: string;
+	source: Source;
+}
+export interface PasswordVerification {
+	userId: string;
+	password: string;
+	source: Source;
+}
+export interface PinCodeVerification {
+	userId: string;
+	code: string;
+	source: Source;
 }

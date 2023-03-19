@@ -120,10 +120,18 @@ export default function makeLoginUser({
 			...item
 		};
 
-		return {
-			status: 200,
-			message: "User logged in successfully",
-			item: details
-		};
+		if (item?.profile?.two_fa) {
+			return {
+				status: 202,
+				message: "2FA Verification Required",
+				item: details
+			};
+		} else {
+			return {
+				status: 200,
+				message: "User logged in successfully",
+				item: details
+			};
+		}
 	};
 }

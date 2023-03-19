@@ -13,7 +13,11 @@ import {
 	userLogin,
 	emailVerification,
 	fetchUserDetails,
-	createAccount
+	createAccount,
+	newTwoFa,
+	twoFaVerification,
+	passwordVerification,
+	pinCodeVerification
 } from "./controllers";
 import { validateEnvironmentVariables } from "./frameworks/environment";
 
@@ -51,17 +55,19 @@ app.get("/", makeCallback(welcome));
 
 app.post("/users", makeCallback(createUser));
 app.post("/login", makeCallback(userLogin));
+app.post("/verify/twofa", makeCallback(twoFaVerification));
 // app.post("/password/forgot", makeCallback(createUser));
 // app.post("/password/reset", makeCallback(createUser));
 // app.post("/verification/send", makeCallback(createUser));
 app.get("/verification/email/:code", makeCallback(emailVerification));
 
 /* Protected routes */
-app.post("/verify/password", authMiddleware, makeCallback(fetchUserDetails));
+app.get("/twofa", authMiddleware, makeCallback(newTwoFa));
+app.post("/verify/password", authMiddleware, makeCallback(passwordVerification));
 app.get(
 	"/verify/pincode/:code",
 	authMiddleware,
-	makeCallback(fetchUserDetails)
+	makeCallback(pinCodeVerification)
 );
 app.get("/users/details", authMiddleware, makeCallback(fetchUserDetails));
 app.post("/accounts", authMiddleware, makeCallback(createAccount));

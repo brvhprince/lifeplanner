@@ -2,20 +2,19 @@ import {
 	AppRequest,
 	AppResponse,
 	ErrorInstance,
-	UserResponse,
+	TwoFaResponse,
 	Source
 } from "../types";
 
-export default function makeFetchUserDetails({
-	getUserDetails,
+export default function makeNewTwoFa({
+	generateTwoFa,
 	formatErrorResponse
 }: {
-	getUserDetails: any;
+	generateTwoFa: any;
 	formatErrorResponse: any;
 }) {
-	return async function fetchUserDetails(httpRequest: AppRequest) {
+	return async function newTwoFa(httpRequest: AppRequest) {
 		try {
-			const { ...userQueyParams } = httpRequest.query;
 			const { userId } = httpRequest.body;
 
 			const source: Source = {
@@ -38,19 +37,17 @@ export default function makeFetchUserDetails({
 				source.platform = httpRequest.headers["planner-platform"];
 			}
 
-			const user: UserResponse = await getUserDetails({
-				...userQueyParams,
+			const twofa: TwoFaResponse = await generateTwoFa({
 				userId,
 				source
 			});
 
 			const response: AppResponse = {
 				headers: {
-					"Content-Type": "application/json",
-					"Last-Modified": new Date(user.item.updated_at).toUTCString()
+					"Content-Type": "application/json"
 				},
-				statusCode: user.status,
-				body: user
+				statusCode: twofa.status,
+				body: twofa
 			};
 			return response;
 		} catch (e) {

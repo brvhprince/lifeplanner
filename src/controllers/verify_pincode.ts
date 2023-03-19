@@ -2,21 +2,21 @@ import {
 	AppRequest,
 	AppResponse,
 	ErrorInstance,
-	UserResponse,
+	VerifyPinCodeResponse,
 	Source
 } from "../types";
 
-export default function makeFetchUserDetails({
-	getUserDetails,
+export default function makePinCodeVerification({
+	verifyPinCode,
 	formatErrorResponse
 }: {
-	getUserDetails: any;
+	verifyPinCode: any;
 	formatErrorResponse: any;
 }) {
-	return async function fetchUserDetails(httpRequest: AppRequest) {
+	return async function pinCodeVerification(httpRequest: AppRequest) {
 		try {
-			const { ...userQueyParams } = httpRequest.query;
 			const { userId } = httpRequest.body;
+			const { code } = httpRequest.params;
 
 			const source: Source = {
 				ip: httpRequest.ip
@@ -38,19 +38,18 @@ export default function makeFetchUserDetails({
 				source.platform = httpRequest.headers["planner-platform"];
 			}
 
-			const user: UserResponse = await getUserDetails({
-				...userQueyParams,
+			const pinCode: VerifyPinCodeResponse = await verifyPinCode({
 				userId,
+				code,
 				source
 			});
 
 			const response: AppResponse = {
 				headers: {
-					"Content-Type": "application/json",
-					"Last-Modified": new Date(user.item.updated_at).toUTCString()
+					"Content-Type": "application/json"
 				},
-				statusCode: user.status,
-				body: user
+				statusCode: pinCode.status,
+				body: pinCode
 			};
 			return response;
 		} catch (e) {
