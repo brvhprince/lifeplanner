@@ -17,7 +17,8 @@ import {
 	newTwoFa,
 	twoFaVerification,
 	passwordVerification,
-	pinCodeVerification
+	pinCodeVerification,
+	profileUpdate
 } from "./controllers";
 import { validateEnvironmentVariables } from "./frameworks/environment";
 
@@ -71,6 +72,7 @@ app.get(
 );
 app.get("/users/details", authMiddleware, makeCallback(fetchUserDetails));
 app.post("/accounts", authMiddleware, makeCallback(createAccount));
+app.patch("/profile", authMiddleware, makeCallback(profileUpdate));
 
 /* To resolve not found routes */
 app.use(makeCallback(notFound));

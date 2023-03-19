@@ -9,6 +9,7 @@ import makeNewTwoFa from "./twofa";
 import makeTwoFaVerification from "./verify_twofa";
 import makePasswordVerification from "./verify_password";
 import makePinCodeVerification from "./verify_pincode";
+import makeProfileUpdate from "./profile_update";
 
 /*
 Use cases Import
@@ -22,13 +23,16 @@ import {
 	generateTwoFa,
 	verifyTwoFa,
 	verifyPassword,
-	verifyPinCode
+	verifyPinCode,
+	updateProfile
 } from "../use-cases";
 import { formatErrorResponse } from "../frameworks/errors";
 
 const createUser = makeCreateUser({ newUser, formatErrorResponse });
 const createAccount = makeCreateAccount({ newAccount, formatErrorResponse });
 const userLogin = makeUserLogin({ loginUser, formatErrorResponse });
+const profileUpdate = makeProfileUpdate({ updateProfile, formatErrorResponse });
+
 const fetchUserDetails = makeFetchUserDetails({
 	getUserDetails,
 	formatErrorResponse
@@ -69,5 +73,6 @@ export {
 	newTwoFa,
 	twoFaVerification,
 	passwordVerification,
-	pinCodeVerification
+	pinCodeVerification,
+	profileUpdate
 };

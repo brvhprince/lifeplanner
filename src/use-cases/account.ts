@@ -6,8 +6,7 @@ import {
 	plannerDatabase,
 	Validation,
 	FileUpload,
-	StorageFolderTypes,
-	CreateFile
+	StorageFolderTypes
 } from "../types";
 
 export default function makeNewAccount({

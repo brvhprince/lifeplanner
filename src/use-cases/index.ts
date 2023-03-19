@@ -9,6 +9,7 @@ import makeGenerateTwoFa from "./twofa";
 import makeVerifyTwoFa from "./verify_twofa";
 import makeVerifyPassword from "./verify_password";
 import makeVerifyPinCode from "./verify_pincode";
+import makeUpdateProfile from "./profile_update";
 
 import { Validation, Utils, sendMail } from "../frameworks";
 import { uploadFile, uploadFiles } from "../frameworks/upload";
@@ -38,6 +39,7 @@ const generateTwoFa = makeGenerateTwoFa({
 const verifyTwoFa = makeVerifyTwoFa({ plannerDb, Validation, Utils, TwoFa });
 const verifyPassword = makeVerifyPassword({ plannerDb, Validation, Utils });
 const verifyPinCode = makeVerifyPinCode({ plannerDb, Validation, Utils });
+const updateProfile = makeUpdateProfile({ plannerDb, Validation, Upload });
 
 export {
 	newUser,
@@ -48,5 +50,6 @@ export {
 	generateTwoFa,
 	verifyTwoFa,
 	verifyPassword,
-	verifyPinCode
+	verifyPinCode,
+	updateProfile
 };

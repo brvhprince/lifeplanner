@@ -1918,7 +1918,25 @@ export default function makePlannerDb({
 				where: {
 					user_id: userId
 				},
-				data: rest
+				data: rest,
+				select: {
+					avatar: true,
+					cover: true,
+					date_of_birth: true,
+					gender: true,
+					other_gender: true,
+					place_of_birth: true,
+					about: true,
+					fun_facts: true,
+					nationality: true,
+					pin_code: true,
+					security_questions: true,
+					two_fa: true,
+					two_fa_code: true,
+					metadata: true,
+					created_at: true,
+					updated_at: true
+				}
 			});
 
 			return {

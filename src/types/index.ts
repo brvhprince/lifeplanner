@@ -226,6 +226,10 @@ export type AccountResponse = Response<Account> & {
 	item: Account;
 };
 
+export type ProfileResponse = Response<Profile> & {
+	item: Profile;
+};
+
 export interface LoginItemResponse extends User, Profile {
 	token: string;
 }
