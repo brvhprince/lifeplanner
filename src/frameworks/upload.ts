@@ -2,6 +2,10 @@ import {
 	S3Client,
 	PutObjectCommand,
 	PutObjectCommandInput,
+	DeleteObjectCommand,
+	DeleteObjectsCommand,
+	DeleteObjectsCommandInput,
+	DeleteObjectCommandInput,
 	CreateBucketCommand,
 	ListBucketsCommand
 } from "@aws-sdk/client-s3";
@@ -9,7 +13,8 @@ import {
 	FileInput,
 	LocalMultipleFiles,
 	S3MultipleFiles,
-	StorageFolderTypes
+	StorageFolderTypes,
+	DbFile
 } from "../types";
 import { readFileSync, existsSync, mkdirSync, copyFile, unlinkSync } from "fs";
 import path from "path";
@@ -32,9 +37,94 @@ export const uploadFile = async (file: FileInput, type: StorageFolderTypes) => {
 		path = false;
 	}
 
-	unlinkFile(file.path)
-	
+	unlinkFile(file.path);
+
 	return path;
+};
+
+export const uploadFiles = async (
+	files: FileInput[],
+	type: StorageFolderTypes
+) => {
+	let paths: string[] | false;
+
+	if (String(process.env.STORAGE).toUpperCase() === "S3") {
+		const s3Files: S3MultipleFiles[] = [];
+
+		for (const file of files) {
+			const fileExtension = file.originalFilename.split(".").pop();
+			const name = `${generateReference()}.${fileExtension}`;
+			const fileData = readFileSync(file.path);
+			const destinationPath = `${type}/${name}`;
+
+			s3Files.push({
+				name: destinationPath,
+				data: fileData
+			});
+		}
+
+		paths = await uploadFilesToS3(s3Files);
+	} else if (process.env.STORAGE === "local") {
+		const localFiles: LocalMultipleFiles[] = [];
+
+		for (const file of files) {
+			const fileExtension = file.originalFilename.split(".").pop();
+			const name = `${generateReference()}.${fileExtension}`;
+
+			localFiles.push({
+				name,
+				path: file.path
+			});
+		}
+
+		paths = await uploadFilesToLocal(type, localFiles);
+	} else {
+		paths = false;
+	}
+
+	files.forEach((file) => {
+		unlinkFile(file.path);
+	});
+
+	return paths;
+};
+
+export const deleteFiles = async (files: DbFile | DbFile[]) => {
+	let response = false;
+	if (String(process.env.STORAGE).toUpperCase() === "S3") {
+		if (Array.isArray(files)) {
+			const keys: string[] = [];
+
+			for (const file of files) {
+				const key = extractKeyFromUrl(file.path);
+				keys.push(key);
+			}
+
+			response = await deleteFilesFromS3(keys);
+		} else {
+			const key = extractKeyFromUrl(files.path);
+			response = await deleteFileFromS3(key);
+		}
+	} else if (process.env.STORAGE === "local") {
+		const basePath = path.join(
+			__dirname,
+			"../",
+			String(process.env.LOCAL_FOLDER_NAME)
+		);
+		if (Array.isArray(files)) {
+			for (const file of files) {
+				const key = path.join(basePath, extractKeyFromUrl(file.path));
+				response = unlinkFile(key);
+			}
+		} else {
+			const key = path.join(basePath, extractKeyFromUrl(files.path));
+			response = unlinkFile(key);
+		}
+	} else {
+		response = false;
+	}
+
+	return response;
 };
 
 const uploadFileToLocal = (
@@ -183,6 +273,46 @@ const uploadFilesToS3 = async (files: S3MultipleFiles[]) => {
 	}
 };
 
+const deleteFilesFromS3 = async (keys: string[]) => {
+	try {
+		const { s3Client, bucketName } = await getClientAndBucket();
+
+		// Set up the parameters for the DeleteObjectsCommand
+		const params: DeleteObjectsCommandInput = {
+			Bucket: bucketName,
+			Delete: {
+				Objects: keys.map((key) => ({ Key: key }))
+			}
+		};
+
+		await s3Client.send(new DeleteObjectsCommand(params));
+		return true;
+	} catch (error) {
+		console.error(`Error deleting file ${keys.toString()} from S3 bucket`, {
+			error
+		});
+		return false;
+	}
+};
+
+const deleteFileFromS3 = async (key: string) => {
+	try {
+		const { s3Client, bucketName } = await getClientAndBucket();
+
+		// Set up the parameters for the DeleteObjectCommand
+		const params: DeleteObjectCommandInput = {
+			Bucket: bucketName,
+			Key: key
+		};
+
+		await s3Client.send(new DeleteObjectCommand(params));
+		return true;
+	} catch (error) {
+		console.error(`Error deleting file ${key} from S3 bucket`, { error });
+		return false;
+	}
+};
+
 const generateS3Url = (fileName: string) => {
 	const region = String(process.env.AWS_REGION);
 	const bucket = String(process.env.AWS_BUCKET_NAME);
@@ -190,55 +320,18 @@ const generateS3Url = (fileName: string) => {
 	return `https://${bucket}.s3${regionString}.amazonaws.com/${fileName}`;
 };
 
-export const uploadFiles = async (
-	files: FileInput[],
-	type: StorageFolderTypes
-) => {
-	let paths: string[] | false;
-
-	if (String(process.env.STORAGE).toUpperCase() === "S3") {
-		const s3Files: S3MultipleFiles[] = [];
-
-		for (const file of files) {
-			const fileExtension = file.originalFilename.split(".").pop();
-			const name = `${generateReference()}.${fileExtension}`;
-			const fileData = readFileSync(file.path);
-			const destinationPath = `${type}/${name}`;
-
-			s3Files.push({
-				name: destinationPath,
-				data: fileData
-			});
-		}
-
-		paths = await uploadFilesToS3(s3Files);
-	} else if (process.env.STORAGE === "local") {
-		const localFiles: LocalMultipleFiles[] = [];
-
-		for (const file of files) {
-			const fileExtension = file.originalFilename.split(".").pop();
-			const name = `${generateReference()}.${fileExtension}`;
-
-			localFiles.push({
-				name,
-				path: file.path
-			});
-		}
-
-		paths = await uploadFilesToLocal(type, localFiles);
-	} else {
-		paths = false;
-	}
-
-	files.forEach(file => {
-		unlinkFile(file.path)
-	});
-
-	return paths;
-};
-
 const unlinkFile = (path: string) => {
 	if (existsSync(path)) {
-	  	unlinkSync(path);
+		unlinkSync(path);
+		return true;
 	}
-  }
+	return false;
+};
+
+const extractKeyFromUrl = (url: string) => {
+	const match = url.match(/(https?:\/\/[^/]+\/(?:static\/)?)(.*)/);
+	if (match && match.length > 2) {
+		return match[2];
+	}
+	return "";
+};

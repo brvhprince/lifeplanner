@@ -4,7 +4,8 @@ import {
 	Prisma,
 	Account,
 	Profile,
-	AppPlatform
+	AppPlatform,
+	File as DbFile
 } from "@prisma/client";
 import { Utils, Id } from "../frameworks";
 import {
@@ -51,7 +52,7 @@ export interface KeyValueStrings {
 	[key: string]: string | number;
 }
 
-export interface StringValueBooleans {
+export interface StringValuebooleans {
 	[key: string]: string | boolean;
 }
 
@@ -439,8 +440,11 @@ export interface LocalMultipleFiles {
 	name: string;
 	path: string;
 }
+export type { DbFile };
+
 export interface FileUpload {
 	file: (file: FileInput, type: StorageFolderTypes) => Promise<string | false>;
+	delete: (files: DbFile | DbFile[]) => Promise<boolean>;
 	files: (
 		files: FileInput[],
 		type: StorageFolderTypes
@@ -454,7 +458,7 @@ interface SecretInterface {
 }
 export interface TwoFa {
 	generate: (email: string) => SecretInterface;
-	verify: (secret: string, code: string) => Boolean;
+	verify: (secret: string, code: string) => boolean;
 }
 
 export interface NewTwoFa {

@@ -74,9 +74,7 @@ export default function makeVerifyTwoFa({
 				hash: Utils.md5(Utils.generateReference())
 			});
 
-			throw new Validation.ResponseError(
-				"Your verification code is invalid"
-			);
+			throw new Validation.ResponseError("Your verification code is invalid");
 		}
 
 		await plannerDb.createActivity({

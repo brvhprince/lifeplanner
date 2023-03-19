@@ -146,6 +146,10 @@ export default function makeUpdateProfile({
 		}
 
 		if (avatar_id) {
+			if (exists.item.avatar) {
+				await Upload.delete(exists.item.avatar);
+				await plannerDb.deleteFile({ id: exists.item.avatar.id });
+			}
 			profilePayload.avatar = {
 				connect: {
 					id: avatar_id
@@ -154,13 +158,16 @@ export default function makeUpdateProfile({
 		}
 
 		if (cover_id) {
+			if (exists.item.cover) {
+				await Upload.delete(exists.item.cover);
+				await plannerDb.deleteFile({ id: exists.item.cover.id });
+			}
 			profilePayload.cover = {
 				connect: {
 					id: cover_id
 				}
 			};
 		}
-		
 
 		if (Object.keys(profilePayload).length === 1) {
 			await plannerDb.createActivity({

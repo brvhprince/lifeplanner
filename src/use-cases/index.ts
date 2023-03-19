@@ -12,12 +12,13 @@ import makeVerifyPinCode from "./verify_pincode";
 import makeUpdateProfile from "./profile_update";
 
 import { Validation, Utils, sendMail } from "../frameworks";
-import { uploadFile, uploadFiles } from "../frameworks/upload";
+import { uploadFile, uploadFiles, deleteFiles } from "../frameworks/upload";
 import { generateSecret, verifyToken } from "../frameworks/twofactor";
 
 const Upload = {
 	file: uploadFile,
-	files: uploadFiles
+	files: uploadFiles,
+	delete: deleteFiles
 };
 
 const TwoFa = {

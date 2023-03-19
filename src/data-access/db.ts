@@ -127,7 +127,9 @@ export default function makePlannerDb({
 		createAppSession,
 		findUserAppSessionById,
 		createFiles,
-		removeAccountPrimaryStatus
+		removeAccountPrimaryStatus,
+		deleteFile,
+		deleteFiles
 	});
 
 	async function createUser(userInfo: CreateUser) {
@@ -1843,6 +1845,46 @@ export default function makePlannerDb({
 		}
 	}
 
+	async function deleteFile({ id }: { id: number }) {
+		try {
+			await makeDb.file.delete({
+				where: {
+					id: id
+				}
+			});
+
+			return true;
+		} catch (e) {
+			throw new DatabaseError(
+				"An error occurred removing file. Please retry after few minutes",
+				"deleteFile",
+				e as ErrorInstance,
+				"DataRemovalError"
+			);
+		}
+	}
+
+	async function deleteFiles({ ids }: { ids: number[] }) {
+		try {
+			await makeDb.file.deleteMany({
+				where: {
+					id: {
+						in: ids
+					}
+				}
+			});
+
+			return true;
+		} catch (e) {
+			throw new DatabaseError(
+				"An error occurred removing files. Please retry after few minutes",
+				"deleteFiles",
+				e as ErrorInstance,
+				"DataRemovalError"
+			);
+		}
+	}
+
 	async function deleteUserFiles({ userId }: { userId: string }) {
 		try {
 			await makeDb.file.deleteMany({
@@ -2154,18 +2196,17 @@ export default function makePlannerDb({
 		userId?: string;
 	}) {
 		try {
-
 			const where: {
-				email?: string
-				user_id?: string
+				email?: string;
+				user_id?: string;
 			} = {};
 
 			if (email) {
-				where.email = email
+				where.email = email;
 			}
 
 			if (userId) {
-				where.user_id = userId
+				where.user_id = userId;
 			}
 
 			if (!where.email && !where.user_id) {

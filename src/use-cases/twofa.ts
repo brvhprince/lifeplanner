@@ -24,7 +24,7 @@ export default function makeGenerateTwoFa({
 			);
 		}
 
-		const user = await plannerDb.findUserById({ userId , details:true });
+		const user = await plannerDb.findUserById({ userId, details: true });
 
 		if (!user.item) {
 			throw new Validation.PermissionError(
@@ -50,7 +50,11 @@ export default function makeGenerateTwoFa({
 			hash: Utils.md5(Utils.generateReference())
 		});
 
-		await plannerDb.updateUserProfile({ userId, two_fa_code: data.secret, two_fa: true });
+		await plannerDb.updateUserProfile({
+			userId,
+			two_fa_code: data.secret,
+			two_fa: true
+		});
 
 		await plannerDb.createActivity({
 			activity_id: Utils.Id.makeId(),
