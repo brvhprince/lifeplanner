@@ -102,7 +102,7 @@ export default function buildMakeUserProfile({
 			getAbout: () => Utils.sanitizeRichText(about || ""),
 			getFunFacts: () => Utils.test_input(funFacts),
 			getGender: () => gender,
-			getDateOfBirth: () => dob,
+			getDateOfBirth: () => dob ? new Date(dob) : undefined,
 			getOtherGender: () => Utils.Lp_Secure(otherGender),
 			getNationality: () => Utils.Lp_Secure(nationality),
 			getPlaceOfBirth: () => Utils.Lp_Secure(placeOfBirth),
