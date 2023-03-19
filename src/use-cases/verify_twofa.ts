@@ -75,7 +75,7 @@ export default function makeVerifyTwoFa({
 			});
 
 			throw new Validation.ResponseError(
-				"Your verification code is invalid or has expired. Retry again"
+				"Your verification code is invalid"
 			);
 		}
 
