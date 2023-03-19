@@ -160,6 +160,7 @@ export default function makeUpdateProfile({
 				}
 			};
 		}
+		
 
 		if (Object.keys(profilePayload).length === 1) {
 			await plannerDb.createActivity({
@@ -182,7 +183,9 @@ export default function makeUpdateProfile({
 			return {
 				status: 304,
 				message: "No changes were detected",
-				item: undefined
+				item: {
+					updated_at: new Date()
+				}
 			};
 		}
 

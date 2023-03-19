@@ -42,7 +42,8 @@ export default function makeProfileUpdate({
 				...profileInfo,
 				cover,
 				avatar,
-				source
+				source,
+				userId
 			});
 
 			const response: AppResponse = {
