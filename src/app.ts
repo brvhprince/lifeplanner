@@ -21,12 +21,19 @@ import {
 	profileUpdate
 } from "./controllers";
 import { validateEnvironmentVariables } from "./frameworks/environment";
+import helmet from "helmet";
 
 env.config();
 
 validateEnvironmentVariables();
 
 const app = express();
+
+// Disable server fingerprinting
+app.disable('x-powered-by');
+
+// Use helmet to set various HTTP headers
+app.use(helmet());
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));

@@ -102,7 +102,6 @@ export const test_output = (data: string, tags = false) => {
  * @uses cleanInput(), Lp_Secure(), test_input()
  */
 export const sanitize = (input: string) => {
-	if (typeof input !== "string") return "";
 	input = input.replace(/"/g, "");
 	input = input.replace(/'/g, "");
 	input = cleanInput(input);
@@ -116,10 +115,11 @@ export const isNumber = (number: string) =>
 	!isNaN(parseFloat(number)) && isFinite(parseFloat(number));
 
 export const isEmail = (emailAddress: string) =>
-	Boolean(emailAddress.match(/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/));
+	Boolean(emailAddress.match(/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/));
+
 
 export const isPhone = (phoneNumber: string) =>
-	Boolean(phoneNumber.match(/^\+(?:[0-9] ?){6,14}[0-9]$/));
+	Boolean(phoneNumber.match(/^\+(?:\d ?){6,14}\d$/));
 
 export const sanitizeRichText = (text: string) =>
 	sanitizeHtml(text, {
@@ -436,11 +436,9 @@ export const isSupportedDocumentFile = (mimeType: string) =>
 	mimeType === "application/msword";
 
 export const isSupportedAudioFile = (mimeType: string) =>
-	// return mimeType.startsWith('audio/');
 	["audio/mp3", "audio/wav", "audio/ogg"].includes(mimeType);
 
 export const isSupportedVideoFile = (mimeType: string) =>
-	// return mimeType.startsWith('video/');
 	["video/mp4", "video/webm", "video/ogg"].includes(mimeType);
 
 export const validateDate = (dateString: string) => {
