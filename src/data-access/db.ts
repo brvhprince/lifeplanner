@@ -89,7 +89,7 @@ export default function makePlannerDb({
 		createGoal,
 		createGoalSaving,
 		createTransactionCategory,
-		createSuscription,
+		createSubscription,
 		createExpense,
 		createIncome,
 		createNote,
@@ -406,7 +406,7 @@ export default function makePlannerDb({
 		}
 	}
 
-	async function createSuscription(subscriptionInfo: CreateSubscription) {
+	async function createSubscription(subscriptionInfo: CreateSubscription) {
 		try {
 			const results = await makeDb.subscription.create({
 				data: subscriptionInfo,
@@ -442,7 +442,7 @@ export default function makePlannerDb({
 		} catch (e) {
 			throw new DatabaseError(
 				"An error occurred creating subscription. Please retry after few minutes",
-				"createSuscription",
+				"createSubscription",
 				e as ErrorInstance,
 				"DataCreateError"
 			);

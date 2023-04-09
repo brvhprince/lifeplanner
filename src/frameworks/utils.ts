@@ -230,7 +230,7 @@ export const decryptString = (encryptedString: string) => {
 		.update(String(process.env.SECRET_HASH_KEY))
 		.digest("base64")
 		.substring(0, 32);
-	const decipher = crypto.createDecipheriv("aes-256-cbc", key, iv);
+	const decipher = crypto.createDecipheriv("aes-256-gcm", key, iv);
 	let decrypted = decipher.update(encryptedDataHex, "hex", "utf8");
 	decrypted += decipher.final("utf8");
 	return decrypted;
