@@ -1931,7 +1931,7 @@ export default function makePlannerDb({
 
 	async function verifyUserPhone({ phone }: { phone: string }) {
 		try {
-			const user = await makeDb.user.update({
+			await makeDb.user.update({
 				where: {
 					phone: phone
 				},
@@ -2171,7 +2171,7 @@ export default function makePlannerDb({
 
 	async function deleteSessionById({ session_id }: { session_id: string }) {
 		try {
-			const session = await makeDb.appSession.delete({
+			await makeDb.appSession.delete({
 				where: {
 					session_id
 				}
