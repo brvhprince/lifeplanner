@@ -32,7 +32,7 @@ export const uploadFile = async (file: FileInput, type: StorageFolderTypes) => {
 		const destinationPath = `${type}/${name}`;
 		path = await uploadFileToS3(destinationPath, fileData);
 	} else if (process.env.STORAGE === "local") {
-		path = await uploadFileToLocal(type, name, file.path);
+		path = uploadFileToLocal(type, name, file.path);
 	} else {
 		path = false;
 	}
@@ -77,7 +77,7 @@ export const uploadFiles = async (
 			});
 		}
 
-		paths = await uploadFilesToLocal(type, localFiles);
+		paths = uploadFilesToLocal(type, localFiles);
 	} else {
 		paths = false;
 	}

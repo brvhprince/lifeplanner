@@ -126,12 +126,11 @@ export default function makeLoginUser({
 				message: "2FA Verification Required",
 				item: details
 			};
-		} else {
-			return {
-				status: 200,
-				message: "User logged in successfully",
-				item: details
-			};
 		}
+		return {
+			status: 200,
+			message: "User logged in successfully",
+			item: details
+		};
 	};
 }

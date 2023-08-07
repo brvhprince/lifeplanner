@@ -418,12 +418,12 @@ export interface MailCompose {
 
 export interface MailTransporter {
 	// eslint-disable-next-line no-unused-vars
-	(mailBoody: MailBody): Promise<boolean>;
+	(mailBody: MailBody): Promise<boolean>;
 }
 
 export interface MailComposer {
 	// eslint-disable-next-line no-unused-vars
-	(mailBoody: MailCompose): Promise<boolean>;
+	(mailBody: MailCompose): Promise<boolean>;
 }
 
 export enum StorageFolderTypes {

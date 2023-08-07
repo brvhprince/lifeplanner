@@ -2,7 +2,7 @@ import Mailgun from "mailgun.js";
 import formData from "form-data";
 import { MailBody } from "../types";
 
-export const sendMailgunMail = async (mailBoody: MailBody) => {
+export const sendMailgunMail = async (mailBody: MailBody) => {
 	try {
 		const mailgun = new Mailgun(formData);
 		const mg = mailgun.client({
@@ -14,9 +14,9 @@ export const sendMailgunMail = async (mailBoody: MailBody) => {
 			String(process.env.MAILGUN_DOMAIN),
 			{
 				from: `${process.env.SMTP_FROM}" <${process.env.SMTP_FROM_EMAIL}>`,
-				to: mailBoody.recipient,
-				subject: mailBoody.subject,
-				html: mailBoody.body
+				to: mailBody.recipient,
+				subject: mailBody.subject,
+				html: mailBody.body
 			}
 		);
 

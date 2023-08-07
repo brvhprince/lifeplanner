@@ -335,10 +335,10 @@ export default function makePlannerDb({
 		}
 	}
 
-	async function createTransaction(tranasctionInfo: CreateTransaction) {
+	async function createTransaction(transactionInfo: CreateTransaction) {
 		try {
-			const results = await makeDb.transaction.create({
-				data: tranasctionInfo,
+			return await makeDb.transaction.create({
+				data: transactionInfo,
 				select: {
 					transaction_id: true,
 					transaction_type: true,
@@ -360,8 +360,6 @@ export default function makePlannerDb({
 					updated_at: true
 				}
 			});
-
-			return results;
 		} catch (e) {
 			throw new DatabaseError(
 				"An error occurred creating transaction. Please retry after few minutes",
@@ -373,11 +371,11 @@ export default function makePlannerDb({
 	}
 
 	async function createTransactionCategory(
-		tranasctionInfo: CreateTransactionCategory
+		transactionInfo: CreateTransactionCategory
 	) {
 		try {
 			const results = await makeDb.transactionCategory.create({
-				data: tranasctionInfo,
+				data: transactionInfo,
 				select: {
 					category_id: true,
 					transaction_type: true,
@@ -3859,20 +3857,19 @@ export default function makePlannerDb({
 		}
 	}
 
-	async function findFilesbyIds(ids: number[]) {
+	async function findFilesByIds(ids: number[]) {
 		try {
-			const files = await makeDb.file.findMany({
+			return await makeDb.file.findMany({
 				where: {
 					id: {
 						in: ids
 					}
 				}
 			});
-			return files;
 		} catch (e) {
 			throw new DatabaseError(
 				"An error occurred fetching files by ids. Please retry after few minutes",
-				"findFilesbyIds",
+				"findFilesByIds",
 				e as ErrorInstance,
 				"DataNotFoundException"
 			);
@@ -3885,7 +3882,7 @@ export default function makePlannerDb({
 				const files: string | null | undefined = response[entry].files;
 				if (files) {
 					const fileIds = files.split(",").map(Number);
-					response[entry].files = await findFilesbyIds(fileIds);
+					response[entry].files = await findFilesByIds(fileIds);
 				}
 			}
 		} else if (
@@ -3895,7 +3892,7 @@ export default function makePlannerDb({
 			const files: string | null | undefined = response.files;
 			if (files) {
 				const fileIds = files.split(",").map(Number);
-				response.files = await findFilesbyIds(fileIds);
+				response.files = await findFilesByIds(fileIds);
 			}
 		}
 

@@ -9,10 +9,10 @@ import {
 } from "../types";
 
 export default function buildMakeUserProfile({
-												 Utils,
-												 Validation,
-												 makeSource
-											 }: {
+	Utils,
+	Validation,
+	makeSource
+}: {
 	Utils: UtilType;
 	Id: IdType;
 	Validation: Validation;
@@ -36,7 +36,10 @@ export default function buildMakeUserProfile({
 		}
 	}
 
-	function validateOtherGender(gender: ProfileGender | undefined, otherGender: string | undefined) {
+	function validateOtherGender(
+		gender: ProfileGender | undefined,
+		otherGender: string | undefined
+	) {
 		if (gender && gender === ProfileGender.other && !otherGender) {
 			throw new Validation.PropertyRequiredError(
 				"Other gender is required",
@@ -71,7 +74,10 @@ export default function buildMakeUserProfile({
 		}
 	}
 
-	function validateTwoFa(twoFa: boolean | string | undefined, twoFaCode: string | undefined) {
+	function validateTwoFa(
+		twoFa: boolean | string | undefined,
+		twoFaCode: string | undefined
+	) {
 		if (typeof twoFa === "boolean" ? twoFa : twoFa === "true") {
 			if (!twoFaCode) {
 				throw new Validation.PropertyRequiredError(
@@ -83,23 +89,23 @@ export default function buildMakeUserProfile({
 	}
 
 	return function makeUserProfile({
-										userId,
-										about,
-										avatar,
-										cover,
-										dob,
-										funFacts,
-										gender,
-										metadata,
-										nationality,
-										otherGender,
-										pinCode,
-										placeOfBirth,
-										securityQuestions,
-										source,
-										twoFa,
-										twoFaCode
-									}: MakeCreateUserProfile) {
+		userId,
+		about,
+		avatar,
+		cover,
+		dob,
+		funFacts,
+		gender,
+		metadata,
+		nationality,
+		otherGender,
+		pinCode,
+		placeOfBirth,
+		securityQuestions,
+		source,
+		twoFa,
+		twoFaCode
+	}: MakeCreateUserProfile) {
 		if (!userId) {
 			throw new Validation.ResponseError(
 				"You are not authorized to access this resource"
@@ -137,6 +143,5 @@ export default function buildMakeUserProfile({
 			getCoverImage: () => cover,
 			getSource: () => accountSource
 		});
-
-	}
+	};
 }

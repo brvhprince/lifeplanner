@@ -115,8 +115,9 @@ export const isNumber = (number: string) =>
 	!isNaN(parseFloat(number)) && isFinite(parseFloat(number));
 
 export const isEmail = (emailAddress: string) =>
-	Boolean(emailAddress.match(/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/));
-
+	Boolean(
+		emailAddress.match(/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/)
+	);
 
 export const isPhone = (phoneNumber: string) =>
 	Boolean(phoneNumber.match(/^\+(?:\d ?){6,14}\d$/));

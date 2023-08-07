@@ -30,7 +30,7 @@ validateEnvironmentVariables();
 const app = express();
 
 // Disable server fingerprinting
-app.disable('x-powered-by');
+app.disable("x-powered-by");
 
 // Use helmet to set various HTTP headers
 app.use(helmet());
@@ -71,7 +71,11 @@ app.get("/verification/email/:code", makeCallback(emailVerification));
 
 /* Protected routes */
 app.get("/twofa", authMiddleware, makeCallback(newTwoFa));
-app.post("/verify/password", authMiddleware, makeCallback(passwordVerification));
+app.post(
+	"/verify/password",
+	authMiddleware,
+	makeCallback(passwordVerification)
+);
 app.get(
 	"/verify/pincode/:code",
 	authMiddleware,
@@ -84,7 +88,7 @@ app.patch("/profile", authMiddleware, makeCallback(profileUpdate));
 /* To resolve not found routes */
 app.use(makeCallback(notFound));
 
-const port = Number(process.env.PORT) || 3000;
+const port = Number(process.env.PORT) || 8000;
 const host = process.env.HOSTNAME || "0.0.0.0";
 
 app.listen(port, host, () =>
