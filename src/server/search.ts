@@ -7,6 +7,7 @@ import { tableFor, type RecordRow } from '@/server/modules/registry';
 import { formatMoney } from '@/lib/money';
 import { formatDate } from '@/lib/dates';
 import { normalizeQuery } from '@/lib/validate';
+import { findMatches, fold } from '@/lib/fold';
 
 export type SearchHit = { href: string; title: string; detail?: string; snippet?: string };
 export type SearchGroup = { label: string; hits: SearchHit[] };
@@ -14,22 +15,22 @@ export type SearchGroup = { label: string; hits: SearchHit[] };
 const PER_GROUP = 10;
 
 /**
- * Case-insensitive substring match. Uses the Unicode-aware lp_fold() function
- * (registered on the connection) and instr(), so accented letters fold
- * correctly and characters like % and _ are matched literally.
+ * Case-insensitive substring match using lp_fold() (registered on the
+ * connection) and instr(), with the same folding as result highlighting.
+ * Characters like % and _ are matched literally.
  */
 function matches(query: string, ...columns: SQLiteColumn[]): SQL {
-    const needle = query.toLowerCase();
+    const needle = fold(query);
     return or(...columns.map((c) => sql`instr(lp_fold(${c}), ${needle}) > 0`))!;
 }
 
 /** A short excerpt of `text` around the first match. */
 function snippet(text: unknown, query: string) {
     if (typeof text !== 'string' || !text) return undefined;
-    const i = text.toLowerCase().indexOf(query.toLowerCase());
-    if (i < 0) return undefined;
-    const start = Math.max(0, i - 40);
-    const end = Math.min(text.length, i + query.length + 80);
+    const match = findMatches(text, query)[0];
+    if (!match) return undefined;
+    const start = Math.max(0, match[0] - 40);
+    const end = Math.min(text.length, match[1] + 80);
     return `${start > 0 ? '…' : ''}${text.slice(start, end).replace(/\s+/g, ' ')}${end < text.length ? '…' : ''}`;
 }
 

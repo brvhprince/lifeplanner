@@ -4,6 +4,7 @@
   "private": true,
   "description": "Open source, self-hosted personal life planner",
   "license": "MIT",
+  "type": "module",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -12,7 +13,8 @@
     "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
     "db:studio": "drizzle-kit studio",
-    "lp": "node scripts/lp.mjs"
+    "lp": "node scripts/lp.mjs",
+    "test": "node --test \"src/**/*.test.ts\""
   },
   "dependencies": {
     "@node-rs/argon2": "^2.2.2",

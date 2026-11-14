@@ -15,4 +15,5 @@ export function isPhone(value: string) {
 
 /** Search query limits shared by the search box, page and server. */
 export const SEARCH_MAX_LENGTH = 100;
-export const normalizeQuery = (raw: string) => raw.trim().slice(0, SEARCH_MAX_LENGTH);
+// Trim again after cutting, in case the cut lands just after a space.
+export const normalizeQuery = (raw: string) => raw.trim().slice(0, SEARCH_MAX_LENGTH).trimEnd();
