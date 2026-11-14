@@ -5,7 +5,7 @@ name: Docker image
 # the DOCKERHUB_USERNAME and DOCKERHUB_TOKEN secrets are set.
 #
 #   push to main  -> :latest, :main, :sha-<short>
-#   tag v1.2.3    -> :1.2.3, :1.2, :1
+#   tag v1.2.3    -> :1.2.3, :1.2, :1   (0.x releases: :0.2.0, :0.2 only)
 #   pull request  -> build only, nothing is pushed
 
 on:
@@ -129,7 +129,8 @@ jobs:
             type=ref,event=branch
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
-            type=semver,pattern={{major}}
+            # No bare major tag before 1.0: 0.x minor releases may break things.
+            type=semver,pattern={{major}},enable=${{ !startsWith(github.ref, 'refs/tags/v0.') }}
             type=sha
 
       - name: Create manifest lists and push
@@ -141,3 +142,25 @@ jobs:
 
       - name: Inspect
         run: docker buildx imagetools inspect "${{ env.GHCR_IMAGE }}:${{ steps.meta.outputs.version }}"
+
+  # Keeps the Docker Hub page in sync with docker/DOCKERHUB.md. The token needs
+  # Docker Hub's "Read, Write, Delete" scope to edit descriptions.
+  dockerhub-description:
+    name: Update Docker Hub overview
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: publish
+    runs-on: ubuntu-24.04
+    env:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+    steps:
+      - uses: actions/checkout@v7
+        if: env.DOCKERHUB_USERNAME != ''
+
+      - uses: peter-evans/dockerhub-description@v5
+        if: env.DOCKERHUB_USERNAME != ''
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          repository: ${{ secrets.DOCKERHUB_USERNAME }}/lifeplanner
+          short-description: Self-hosted personal life planner for money, goals, plans and memories. Single SQLite file.
+          readme-filepath: docker/DOCKERHUB.md

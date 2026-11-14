@@ -59,6 +59,11 @@ Open <http://localhost:3000> (or `http://<server-ip>:3000` from another device).
 
 Images are published for `amd64` and `arm64`, so the same command works on a PC, a Mac, a cloud server or a Raspberry Pi 4/5.
 
+The image is available from two registries; use whichever you prefer:
+
+- `ghcr.io/brvhprince/lifeplanner` (GitHub Container Registry, the default in `docker-compose.yml`)
+- `pennycodes/lifeplanner` ([Docker Hub](https://hub.docker.com/r/pennycodes/lifeplanner))
+
 Without Compose:
 
 ```bash
@@ -90,7 +95,7 @@ Database migrations run automatically on start. Back up `data/` first.
 | Tag | Meaning |
 | --- | --- |
 | `latest` | Latest build of `main` |
-| `1.2.3`, `1.2`, `1` | Released versions (from git tags `v1.2.3`) |
+| `1.2.3`, `1.2`, `1` | Released versions (from git tags `v1.2.3`); `0.x` releases get `0.2.0` and `0.2` |
 | `sha-abc1234` | A specific commit |
 
 Pin a version tag once releases exist if you want upgrades only when you choose.
