@@ -2,7 +2,7 @@
 
 An open source, self-hosted planner for your private life: money, goals, plans, people and memories, kept in a single SQLite file on hardware you control. No third-party services, no telemetry.
 
-**Source and docs:** [github.com/brvhprince/lifeplanner-webapp-v2](https://github.com/brvhprince/lifeplanner-webapp-v2)
+**Source and docs:** [github.com/brvhprince/lifeplanner](https://github.com/brvhprince/lifeplanner)
 
 ## What it does
 
@@ -16,7 +16,7 @@ An open source, self-hosted planner for your private life: money, goals, plans, 
 
 ```bash
 mkdir lifeplanner && cd lifeplanner
-curl -fsSLO https://raw.githubusercontent.com/brvhprince/lifeplanner-webapp-v2/main/docker-compose.yml
+curl -fsSLO https://raw.githubusercontent.com/brvhprince/lifeplanner/main/docker-compose.yml
 # set TZ in docker-compose.yml to your time zone, then:
 docker compose up -d
 ```
