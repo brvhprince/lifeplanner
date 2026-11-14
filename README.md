@@ -50,7 +50,7 @@ docker compose version
 
 ```bash
 mkdir lifeplanner && cd lifeplanner
-curl -fsSLO https://raw.githubusercontent.com/brvhprince/lifeplanner-webapp-v2/main/docker-compose.yml
+curl -fsSLO https://raw.githubusercontent.com/brvhprince/lifeplanner/main/docker-compose.yml
 # edit TZ in docker-compose.yml to your time zone, then:
 docker compose up -d
 ```
@@ -103,7 +103,7 @@ Pin a version tag once releases exist if you want upgrades only when you choose.
 ### Build from source
 
 ```bash
-git clone https://github.com/brvhprince/lifeplanner-webapp-v2.git lifeplanner
+git clone https://github.com/brvhprince/lifeplanner.git
 cd lifeplanner
 docker build -t lifeplanner .
 ```
