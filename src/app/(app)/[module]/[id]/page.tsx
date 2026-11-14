@@ -6,7 +6,7 @@ import ConfirmButton from '@/components/ui/confirm-button';
 import RecordForm from '@/components/modules/record-form';
 import Timeline from '@/components/modules/timeline';
 import AttachmentsPanel from '@/components/files/attachments-panel';
-import { DebtPanel, GoalPanel, SchedulePanel, SubscriptionPanel } from '@/components/modules/extensions';
+import { DebtPanel, EmployerPanel, GoalPanel, SchedulePanel, SubscriptionPanel } from '@/components/modules/extensions';
 import { requireUser } from '@/server/auth/session';
 import { formOptions, getRecord, listTimeline } from '@/server/modules/registry';
 import { deleteRecord, saveRecord } from '@/server/modules/actions';
@@ -39,6 +39,8 @@ export default async function RecordPage({ params }: Props) {
             <DebtPanel debt={record} />
         ) : def.extension === 'schedule' ? (
             <SchedulePanel schedule={record} userId={user.id} />
+        ) : def.extension === 'employer' ? (
+            <EmployerPanel employer={record} userId={user.id} />
         ) : null;
 
     const editor = (

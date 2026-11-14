@@ -6,9 +6,9 @@ An open source, self-hosted planner for your private life. Your money, goals, pl
 
 - **Money:** accounts, income, expenses, transfers (including cross-currency, with fees), categories, bills and subscriptions (one-click "record payment"), goals with contributions and progress, savings plans, debts and loans, investments, and a wishlist
 - **Growth:** future plans, projects, learning, career and personal brand, each with a progress log
-- **Life:** notes, memories, people (birthdays and moments), responsibilities, and work/employers
+- **Life:** notes, memories, people (birthdays and moments), responsibilities, and work (employer contacts and linked projects)
 - **Time:** reminders and routines, plus a dashboard "Coming up" panel for anything due in the next 30 days
-- **Everywhere:** photo and file attachments, in-app notifications (with optional desktop alerts), and CSV/JSON export
+- **Everywhere:** search across all your data (press `/`), photo and file attachments, in-app notifications (with optional desktop alerts), and CSV/JSON export
 
 ## Install with Docker (recommended)
 

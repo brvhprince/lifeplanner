@@ -12,7 +12,7 @@ type Props = {
     def: ModuleDef;
     action: FormAction;
     record?: Record<string, unknown> | null;
-    options: { accounts: Option[]; categories: Option[] };
+    options: { accounts: Option[]; categories: Option[]; employers: Option[] };
     defaultCurrency: string;
     submitLabel: string;
     /** Show the status picker (edit forms). */
@@ -50,6 +50,8 @@ function Field({ field, record, options, defaultCurrency }: { field: FieldDef } 
             return <Select {...common} options={options.accounts} defaultValue={defaultValue ?? ''} placeholder="None" helpText={field.help} />;
         case 'category':
             return <Select {...common} options={options.categories} defaultValue={defaultValue ?? ''} placeholder="None" helpText={field.help} />;
+        case 'employer':
+            return <Select {...common} options={options.employers} defaultValue={defaultValue ?? ''} placeholder="None" helpText={field.help} />;
         case 'checkbox':
             return (
                 <label className={cn('flex items-center gap-2 text-body-2', common.className)}>

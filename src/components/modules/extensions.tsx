@@ -9,6 +9,8 @@ import ProgressBar from '@/components/ui/progress-bar';
 import Money from '@/components/finance/money';
 import { db, schema } from '@/server/db';
 import {
+    addEmployerContact,
+    deleteEmployerContact,
     addGoalContribution,
     addScheduleItem,
     deleteGoalContribution,
@@ -19,6 +21,10 @@ import {
 import type { RecordRow } from '@/server/modules/registry';
 import { daysBetween, formatDate, today } from '@/lib/dates';
 import { formatMoney, fromMinor } from '@/lib/money';
+import Link from '@/components/ui/link';
+import { Badge } from '@/components/ui/card';
+import { getModule, statusOf } from '@/lib/modules/definitions';
+import { HiOutlineEnvelope, HiOutlineGlobeAlt, HiOutlineMapPin, HiOutlinePhone, HiOutlineChatBubbleLeftEllipsis } from 'react-icons/hi2';
 
 const iconButton =
     'rounded p-1.5 text-body-muted hover:bg-grey-200 hover:text-danger-dark dark:hover:bg-dark-light/30';
@@ -205,8 +211,128 @@ export function SchedulePanel({ schedule, userId }: { schedule: RecordRow; userI
                 <Input label="Step" name="title" placeholder="e.g. 20 min walk" maxLength={160} required />
                 <Input label="Time" name="time" type="time" />
                 <Select label="How often" name="frequency" options={STEP_FREQUENCIES} defaultValue="daily" />
-                <SubmitButton className="text-sm sm:col-span-3 sm:w-auto">Add step</SubmitButton>
+                <SubmitButton className="justify-self-start text-sm sm:col-span-3">Add step</SubmitButton>
             </ActionForm>
         </Card>
+    );
+}
+
+const CONTACT_ICONS = {
+    email: HiOutlineEnvelope,
+    phone: HiOutlinePhone,
+    link: HiOutlineGlobeAlt,
+    address: HiOutlineMapPin,
+    other: HiOutlineChatBubbleLeftEllipsis,
+} as const;
+
+function contactHref(type: string, value: string) {
+    if (type === 'email') return `mailto:${value}`;
+    if (type === 'phone') return `tel:${value.replace(/[^\d+]/g, '')}`;
+    if (type === 'link' && /^https?:\/\//i.test(value)) return value;
+    return null;
+}
+
+export function EmployerPanel({ employer, userId }: { employer: RecordRow; userId: string }) {
+    const c = schema.employerContacts;
+    const contacts = db
+        .select()
+        .from(c)
+        .where(and(eq(c.employerId, employer.id), eq(c.userId, userId)))
+        .orderBy(c.createdAt)
+        .all();
+    const p = schema.projects;
+    const projects = db
+        .select({ id: p.id, title: p.title, status: p.status, dueOn: p.dueOn })
+        .from(p)
+        .where(and(eq(p.employerId, employer.id), eq(p.userId, userId)))
+        .orderBy(desc(p.updatedAt))
+        .all();
+    const projectsDef = getModule('projects')!;
+
+    return (
+        <>
+            <Card>
+                <CardTitle>Contacts</CardTitle>
+                {contacts.length > 0 && (
+                    <ul className="mb-5 divide-y divide-light-300 dark:divide-dark-light/20">
+                        {contacts.map((contact) => {
+                            const Icon = CONTACT_ICONS[contact.type];
+                            const href = contactHref(contact.type, contact.value);
+                            return (
+                                <li key={contact.id} className="flex items-start gap-3 py-2.5">
+                                    <Icon className="mt-0.5 h-5 w-5 shrink-0 text-body-muted" aria-hidden="true" />
+                                    <div className="min-w-0 flex-1">
+                                        <div className="text-caption text-body-muted">{contact.label}</div>
+                                        {href ? (
+                                            <a
+                                                href={href}
+                                                {...(contact.type === 'link' ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+                                                className="break-words text-body-2 font-medium text-brand hover:text-brand-light"
+                                            >
+                                                {contact.value}
+                                            </a>
+                                        ) : (
+                                            <div className="whitespace-pre-line break-words text-body-2 font-medium">{contact.value}</div>
+                                        )}
+                                    </div>
+                                    <form action={deleteEmployerContact.bind(null, employer.id, contact.id)}>
+                                        <button type="submit" aria-label={`Remove ${contact.label}`} className={iconButton}>
+                                            <HiOutlineTrash className="h-4 w-4" />
+                                        </button>
+                                    </form>
+                                </li>
+                            );
+                        })}
+                    </ul>
+                )}
+                <ActionForm action={addEmployerContact.bind(null, employer.id)} className="grid gap-3 sm:grid-cols-[140px_1fr_1fr] sm:items-end">
+                    <Select
+                        label="Type"
+                        name="type"
+                        defaultValue="email"
+                        options={[
+                            { value: 'email', label: 'Email' },
+                            { value: 'phone', label: 'Phone' },
+                            { value: 'link', label: 'Website' },
+                            { value: 'address', label: 'Address' },
+                            { value: 'other', label: 'Other' },
+                        ]}
+                    />
+                    <Input label="Label" name="label" placeholder="e.g. HR, Manager" maxLength={60} />
+                    <Input label="Contact" name="value" placeholder="hr@company.com" maxLength={500} required />
+                    <SubmitButton className="justify-self-start text-sm sm:col-span-3">Add contact</SubmitButton>
+                </ActionForm>
+            </Card>
+
+            <Card>
+                <CardTitle
+                    action={
+                        <Link href="/projects" className="text-sm font-semibold text-brand hover:text-brand-light">
+                            New project
+                        </Link>
+                    }
+                >
+                    Projects
+                </CardTitle>
+                {projects.length ? (
+                    <ul className="divide-y divide-light-300 dark:divide-dark-light/20">
+                        {projects.map((project) => {
+                            const status = statusOf(projectsDef, project.status);
+                            return (
+                                <li key={project.id}>
+                                    <Link href={`/projects/${project.id}`} className="flex items-center gap-3 py-2.5 hover:text-brand">
+                                        <span className="min-w-0 flex-1 truncate text-body-2 font-medium">{project.title}</span>
+                                        {project.dueOn && <span className="text-caption text-body-muted">Due {formatDate(project.dueOn)}</span>}
+                                        {status && <Badge tone={status.tone}>{status.label}</Badge>}
+                                    </Link>
+                                </li>
+                            );
+                        })}
+                    </ul>
+                ) : (
+                    <EmptyState title="No linked projects">Pick this employer on a project to see it here.</EmptyState>
+                )}
+            </Card>
+        </>
     );
 }

@@ -52,11 +52,18 @@ const counterLeg = alias(transactions, 'counter_leg');
 
 export function listTransactions(
     userId: string,
-    { accountId, month, limit = 50, offset = 0 }: { accountId?: string; month?: string; limit?: number; offset?: number } = {}
+    {
+        accountId,
+        categoryId,
+        month,
+        limit = 50,
+        offset = 0,
+    }: { accountId?: string; categoryId?: string; month?: string; limit?: number; offset?: number } = {}
 ) {
     const where = and(
         eq(transactions.userId, userId),
         accountId ? eq(transactions.accountId, accountId) : undefined,
+        categoryId ? eq(transactions.categoryId, categoryId) : undefined,
         month ? like(transactions.occurredOn, `${month}-%`) : undefined
     );
 

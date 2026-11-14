@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { HiOutlineArchiveBox } from 'react-icons/hi2';
 import { Card, CardTitle, EmptyState, PageHeader } from '@/components/ui/card';
+import Link from '@/components/ui/link';
 import { ActionForm, SubmitButton } from '@/components/ui/forms/action-form';
 import Input from '@/components/ui/forms/input';
 import Select from '@/components/ui/forms/select';
@@ -17,7 +18,9 @@ function CategoryRow({ c }: { c: Category }) {
             <details className="group">
                 <summary className="flex cursor-pointer list-none items-center gap-3">
                     <span className="h-3 w-3 rounded-full" style={{ background: c.color ?? '#A6B7D4' }} aria-hidden="true" />
-                    <span className="flex-1 text-body-2 font-medium">{c.name}</span>
+                    <Link href={`/transactions?category=${c.id}`} className="flex-1 text-body-2 font-medium hover:text-brand">
+                        {c.name}
+                    </Link>
                     <span className="text-caption font-semibold text-brand group-open:hidden">Edit</span>
                 </summary>
                 <div className="mt-3 flex flex-wrap items-end gap-3 rounded-lg bg-grey-100 p-3 dark:bg-dark-dark">

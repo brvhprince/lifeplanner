@@ -12,6 +12,7 @@ import { toMinor } from '@/lib/money';
 import { getRecord, tableFor } from './registry';
 import { parseRecord } from './validate';
 import { deleteEntityFiles } from '@/server/files';
+import { isHttpUrl, isPhone } from '@/lib/validate';
 
 function moduleOrThrow(key: string) {
     const def = getModule(key);
@@ -248,4 +249,46 @@ export async function deleteScheduleItem(scheduleId: string, itemId: string) {
     const s = schema.scheduleItems;
     db.delete(s).where(and(eq(s.id, itemId), eq(s.userId, user.id), eq(s.scheduleId, scheduleId))).run();
     refresh('schedules', scheduleId);
+}
+
+// ---------------------------------------------------------------------------
+// Employer contacts
+// ---------------------------------------------------------------------------
+
+const CONTACT_TYPES = ['email', 'phone', 'link', 'address', 'other'] as const;
+type ContactType = (typeof CONTACT_TYPES)[number];
+
+function contactProblem(type: ContactType, value: string) {
+    if (!value) return 'Enter the contact detail';
+    if (value.length > 500) return 'Keep it under 500 characters';
+    if (type === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return 'Enter a valid email';
+    if (type === 'phone' && !isPhone(value)) return 'Enter a valid phone number';
+    if (type === 'link' && !isHttpUrl(value)) return 'Enter a full link starting with https://';
+    return null;
+}
+
+export async function addEmployerContact(employerId: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
+    const user = await requireUser();
+    if (!getRecord(moduleOrThrow('work'), user.id, employerId)) return { error: 'Employer not found' };
+
+    const type = String(formData.get('type') ?? '') as ContactType;
+    const value = String(formData.get('value') ?? '').trim();
+    const label = String(formData.get('label') ?? '').trim();
+    if (!CONTACT_TYPES.includes(type)) return { error: 'Choose a contact type', fieldErrors: { type: 'Choose a type' }, values: formValues(formData) };
+    const problem = contactProblem(type, value);
+    if (problem) return { error: problem, fieldErrors: { value: problem }, values: formValues(formData) };
+    if (label.length > 60) return { error: 'Keep the label short', fieldErrors: { label: 'Max 60 characters' }, values: formValues(formData) };
+
+    db.insert(schema.employerContacts)
+        .values({ userId: user.id, employerId, type, value, label: label || type[0].toUpperCase() + type.slice(1) })
+        .run();
+    refresh('work', employerId);
+    return { ok: true, message: 'Contact added' };
+}
+
+export async function deleteEmployerContact(employerId: string, contactId: string) {
+    const user = await requireUser();
+    const c = schema.employerContacts;
+    db.delete(c).where(and(eq(c.id, contactId), eq(c.userId, user.id), eq(c.employerId, employerId))).run();
+    refresh('work', employerId);
 }
