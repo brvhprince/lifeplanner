@@ -16,14 +16,27 @@ export const metadata: Metadata = { title: 'Transactions' };
 
 const PAGE_SIZE = 50;
 
-export default async function TransactionsPage({ searchParams }: { searchParams: Promise<{ month?: string; page?: string }> }) {
+export default async function TransactionsPage({
+    searchParams,
+}: {
+    searchParams: Promise<{ month?: string; page?: string; category?: string }>;
+}) {
     const user = await requireUser();
     const params = await searchParams;
     const month = /^\d{4}-\d{2}$/.test(params.month ?? '') ? params.month! : currentMonth();
     const page = Math.max(1, Number(params.page) || 1);
 
+    const categories = listCategories(user.id, { includeArchived: true });
+    // A category filter shows that category's entries across all time.
+    const category = categories.find((c) => c.id === params.category);
+
     const summary = financeSummary(user.id, user.currency, month);
-    const { rows, hasMore } = listTransactions(user.id, { month, limit: PAGE_SIZE, offset: (page - 1) * PAGE_SIZE });
+    const { rows, hasMore } = listTransactions(user.id, {
+        month: category ? undefined : month,
+        categoryId: category?.id,
+        limit: PAGE_SIZE,
+        offset: (page - 1) * PAGE_SIZE,
+    });
     const monthHref = (m: string) => `${routes.transactions}?month=${m}`;
     const isCurrent = month === currentMonth();
 
@@ -31,8 +44,20 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
         <>
             <PageHeader
                 title="Transactions"
-                subtitle={formatMonth(month)}
+                subtitle={
+                    category ? (
+                        <span>
+                            All entries in <strong>{category.name}</strong> ·{' '}
+                            <Link href={routes.transactions} className="font-semibold text-brand">
+                                Clear filter
+                            </Link>
+                        </span>
+                    ) : (
+                        formatMonth(month)
+                    )
+                }
                 actions={
+                    !category && (
                     <div className="flex items-center gap-1 text-sm font-semibold">
                         <Link href={monthHref(shiftMonth(month, -1))} className="rounded-md px-3 py-2 hover:bg-grey-200 dark:hover:bg-dark-light/30">
                             ← Previous
@@ -48,23 +73,26 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
                             </Link>
                         )}
                     </div>
+                    )
                 }
             />
 
-            <div className="mb-6 grid gap-4 sm:grid-cols-2">
-                <StatTile label="Income" amounts={summary.income} fallbackCurrency={user.currency} />
-                <StatTile label="Spent" amounts={summary.expense} fallbackCurrency={user.currency} />
-            </div>
+            {!category && (
+                <div className="mb-6 grid gap-4 sm:grid-cols-2">
+                    <StatTile label="Income" amounts={summary.income} fallbackCurrency={user.currency} />
+                    <StatTile label="Spent" amounts={summary.expense} fallbackCurrency={user.currency} />
+                </div>
+            )}
 
             <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
                 <Card>
-                    <TransactionList rows={rows} emptyText={`Nothing recorded in ${formatMonth(month)}.`} />
-                    <Pager page={page} hasMore={hasMore} base={routes.transactions} query={{ month }} />
+                    <TransactionList rows={rows} emptyText={category ? 'Nothing recorded in this category yet.' : `Nothing recorded in ${formatMonth(month)}.`} />
+                    <Pager page={page} hasMore={hasMore} base={routes.transactions} query={category ? { category: category.id } : { month }} />
                 </Card>
                 {summary.accounts.length > 0 && (
                     <Card>
                         <CardTitle>Add entry</CardTitle>
-                        <EntryForm {...entryFormProps(summary.accounts, listCategories(user.id))} today={today()} />
+                        <EntryForm {...entryFormProps(summary.accounts, categories.filter((c) => !c.archivedAt))} today={today()} />
                     </Card>
                 )}
             </div>

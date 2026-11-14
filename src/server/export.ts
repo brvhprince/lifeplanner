@@ -70,7 +70,7 @@ function rawValue(field: FieldDef, record: Record<string, unknown>, names: Map<s
     const value = record[field.name];
     if (value === null || value === undefined) return '';
     if (field.type === 'money') return fromMinor(Number(value), String(record[field.currencyField ?? 'currency'] ?? 'USD'));
-    if (field.type === 'account' || field.type === 'category') return names.get(String(value)) ?? '';
+    if (field.type === 'account' || field.type === 'category' || field.type === 'employer') return names.get(String(value)) ?? '';
     return value as string | number | boolean;
 }
 
@@ -80,6 +80,7 @@ function moduleCsv(key: string, userId: string) {
     const names = new Map<string, string>([
         ...db.select({ id: accounts.id, name: accounts.name }).from(accounts).where(eq(accounts.userId, userId)).all().map((a) => [a.id, a.name] as const),
         ...db.select({ id: categories.id, name: categories.name }).from(categories).where(eq(categories.userId, userId)).all().map((c) => [c.id, c.name] as const),
+        ...db.select({ id: schema.employers.id, name: schema.employers.name }).from(schema.employers).where(eq(schema.employers.userId, userId)).all().map((e) => [e.id, e.name] as const),
     ]);
     const header = [...def.fields.map((f) => f.name.replace(/Minor$/, '')), ...(def.statuses ? ['status'] : []), 'created', 'updated', 'id'];
     return toCsv(

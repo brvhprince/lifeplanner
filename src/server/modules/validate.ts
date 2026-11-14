@@ -9,7 +9,7 @@ import type { FieldDef, ModuleDef } from '@/lib/modules/types';
 
 const DEFAULT_MAX = { text: 200, textarea: 5000, url: 2000, email: 254 } as const;
 
-function owns(table: typeof schema.accounts | typeof schema.categories, userId: string, id: string) {
+function owns(table: typeof schema.accounts | typeof schema.categories | typeof schema.employers, userId: string, id: string) {
     return Boolean(db.select({ id: table.id }).from(table).where(and(eq(table.id, id), eq(table.userId, userId))).get());
 }
 
@@ -91,6 +91,10 @@ export function parseRecord(
             case 'category':
                 if (owns(schema.categories, ctx.userId, value)) values[field.name] = value;
                 else errors[field.name] = 'Choose a category';
+                break;
+            case 'employer':
+                if (owns(schema.employers, ctx.userId, value)) values[field.name] = value;
+                else errors[field.name] = 'Choose an employer';
                 break;
         }
     }

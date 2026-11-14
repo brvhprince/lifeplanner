@@ -16,6 +16,7 @@ export type FieldType =
     | 'money'
     | 'account'
     | 'category'
+    | 'employer'
     | 'checkbox';
 
 export type Option = { value: string; label: string };
@@ -83,5 +84,5 @@ export type ModuleDef = {
     /** Default ordering for lists. */
     sort?: { field: string; dir: 'asc' | 'desc' };
     /** Module-specific behaviour on the detail page. */
-    extension?: 'goal' | 'subscription' | 'debt' | 'schedule';
+    extension?: 'goal' | 'subscription' | 'debt' | 'schedule' | 'employer';
 };

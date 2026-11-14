@@ -110,12 +110,23 @@ export function formOptions(userId: string) {
         .where(eq(schema.categories.userId, userId))
         .orderBy(asc(schema.categories.kind), asc(schema.categories.name))
         .all();
+    const employers = db
+        .select({ id: schema.employers.id, name: schema.employers.name })
+        .from(schema.employers)
+        .where(eq(schema.employers.userId, userId))
+        .orderBy(asc(schema.employers.name))
+        .all();
     return {
+        employers: employers.map((e) => ({ value: e.id, label: e.name })),
         accounts: accounts.filter((a) => !a.archivedAt).map((a) => ({ value: a.id, label: `${a.name} (${a.currency})` })),
         categories: categories
             .filter((c) => !c.archivedAt)
             .map((c) => ({ value: c.id, label: `${c.name} · ${c.kind === 'income' ? 'in' : 'out'}` })),
-        names: new Map<string, string>([...accounts.map((a) => [a.id, a.name] as const), ...categories.map((c) => [c.id, c.name] as const)]),
+        names: new Map<string, string>([
+            ...accounts.map((a) => [a.id, a.name] as const),
+            ...categories.map((c) => [c.id, c.name] as const),
+            ...employers.map((e) => [e.id, e.name] as const),
+        ]),
     };
 }
 

@@ -4,6 +4,8 @@ import NavLinks from '@/components/layout/nav-links';
 import { signOut } from '@/app/auth/actions';
 import type { User } from '@/server/db/schema';
 import NotificationBell from '@/components/layout/notification-bell';
+import SearchBox from '@/components/layout/search-box';
+import { Suspense } from 'react';
 import { unreadCount } from '@/server/notifications';
 
 export default function AppShell({ user, children }: { user: User; children: React.ReactNode }) {
@@ -16,6 +18,11 @@ export default function AppShell({ user, children }: { user: User; children: Rea
                 <div className="mb-6 flex items-center justify-between px-3">
                     <FullLogo className="w-36" />
                     <NotificationBell initialCount={unread} />
+                </div>
+                <div className="mb-4 px-1">
+                    <Suspense>
+                        <SearchBox shortcut />
+                    </Suspense>
                 </div>
                 <div className="-mx-2 flex-1 overflow-y-auto px-2 pb-4">
                     <NavLinks layout="sidebar" />
@@ -50,6 +57,11 @@ export default function AppShell({ user, children }: { user: User; children: Rea
                             </button>
                         </form>
                     </div>
+                </div>
+                <div className="mb-2">
+                    <Suspense>
+                        <SearchBox />
+                    </Suspense>
                 </div>
                 <NavLinks layout="bar" />
             </header>
