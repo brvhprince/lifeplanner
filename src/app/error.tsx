@@ -1,20 +1,17 @@
-/**
- * Project: lifeplanner-webapp
- * File: error
- * Created by pennycodes on 10/08/2023.
- * Copyright lifeplanner-webapp
- */
-"use client"
-export default function Error() {
-    return (
-        <main className="flex min-h-screen flex-col items-center justify-between p-24">
-            <div className="z-10 max-w-5xl w-full items-center justify-between font-mono text-sm lg:flex">
-                <p className="fixed left-0 top-0 flex w-full justify-center border-b border-gray-300 bg-gradient-to-b from-zinc-200 pb-6 pt-8 backdrop-blur-2xl dark:border-neutral-800 dark:bg-zinc-800/30 dark:from-inherit lg:static lg:w-auto  lg:rounded-xl lg:border lg:bg-gray-200 lg:p-4 lg:dark:bg-zinc-800/30">
-                Welcome to the Life Planner App Error Page
-                    <code className="font-mono font-bold">src/app/error.tsx</code>
-                </p>
-                </div>
+'use client';
 
+import Button from '@/components/ui/button';
+
+export default function Error({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
+    return (
+        <main className="flex min-h-screen flex-col items-center justify-center gap-4 p-8 text-center">
+            <h1 className="text-heading-2 font-semibold text-heading-dark dark:text-heading-light">
+                Something went wrong
+            </h1>
+            <p className="max-w-md text-body-muted">
+                {error.digest ? `Error reference: ${error.digest}. Check the server logs for details.` : error.message}
+            </p>
+            <Button onClick={reset}>Try again</Button>
         </main>
-    )
+    );
 }

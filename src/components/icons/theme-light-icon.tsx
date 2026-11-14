@@ -4,7 +4,7 @@
  * Created by pennycodes on 10/08/2023.
  * Copyright lifeplanner-webapp
  */
-export const ThemeLightIcon: React.FC<React.SVGAttributes<{}>> = (props) => {
+export const ThemeLightIcon: React.FC<React.SVGAttributes<SVGElement>> = (props) => {
     return (
         <svg
             viewBox="0 0 20 20"

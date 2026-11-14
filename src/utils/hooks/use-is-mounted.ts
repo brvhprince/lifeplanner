@@ -5,26 +5,15 @@
  * Copyright lifeplanner-webapp
  */
 
-import { useEffect, useState } from 'react';
+import { useSyncExternalStore } from 'react';
 
+const subscribe = () => () => {};
+
+/** False during server rendering and hydration, true once on the client. */
 export function useIsMounted() {
-    const [mounted, setMounted] = useState(false);
-    useEffect(() => setMounted(true), []);
-    return mounted;
+    return useSyncExternalStore(
+        subscribe,
+        () => true,
+        () => false
+    );
 }
-// Compare this snippet from src/utils/hooks/use-is-mounted.ts:
-// /**
-//  * Project: lifeplanner-webapp
-//  * File: use-is-mounted
-//  * Created by pennycodes on 10/08/2023.
-//  *
-//  * This hook is used to prevent memory leaks when using async functions
-//  * in useEffect. It checks if the component is mounted before updating state.
-//  *
-//  * Usage:
-//  * const isMounted = useIsMounted();
-//  * useEffect(() => { if (isMounted) { // do something } }, [isMounted]);
-//  *
-//  * @param {void}
-//  * @returns {boolean}
-//  */
