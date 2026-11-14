@@ -60,7 +60,7 @@ export default function AppShell({ user, children }: { user: User; children: Rea
                 </div>
                 <div className="mb-2">
                     <Suspense>
-                        <SearchBox />
+                        <SearchBox shortcut />
                     </Suspense>
                 </div>
                 <NavLinks layout="bar" />

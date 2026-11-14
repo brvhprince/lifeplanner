@@ -4,7 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="ab2547a8-c701-4e9e-b43f-87839b41b3aa" name="Changes" comment="" />
+    <list default="true" id="ab2547a8-c701-4e9e-b43f-87839b41b3aa" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -128,7 +130,7 @@
     "WebServerToolWindowFactoryState": "false",
     "codeWithMe.voiceChat.enabledByDefault": "false",
     "dart.analysis.tool.window.visible": "false",
-    "git-widget-placeholder": "rebuild/single-app",
+    "git-widget-placeholder": "#3 on feature/follow-ups",
     "js.debugger.nextJs.config.created.client": "true",
     "js.debugger.nextJs.config.created.server": "true",
     "last_opened_file_path": "/Users/wanpeninsula/Sites/js/lifeplanner-webapp-v2",
@@ -194,7 +196,7 @@
       <workItem from="1717664122492" duration="1110000" />
       <workItem from="1719778568258" duration="8905000" />
       <workItem from="1720000891706" duration="721000" />
-      <workItem from="1794681249633" duration="6850000" />
+      <workItem from="1794681249633" duration="7969000" />
     </task>
     <servers />
   </component>

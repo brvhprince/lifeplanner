@@ -4,13 +4,14 @@ import Highlight from '@/components/ui/highlight';
 import { Card, CardTitle, EmptyState, PageHeader } from '@/components/ui/card';
 import { requireUser } from '@/server/auth/session';
 import { search } from '@/server/search';
+import { normalizeQuery } from '@/lib/validate';
 
 export const metadata: Metadata = { title: 'Search' };
 
 export default async function SearchPage({ searchParams }: { searchParams: Promise<{ q?: string | string[] }> }) {
     const user = await requireUser();
     const raw = (await searchParams).q;
-    const query = (Array.isArray(raw) ? raw[0] : (raw ?? '')).trim();
+    const query = normalizeQuery(Array.isArray(raw) ? (raw[0] ?? '') : (raw ?? ''));
     const groups = search(user.id, query);
     const total = groups.reduce((n, g) => n + g.hits.length, 0);
 

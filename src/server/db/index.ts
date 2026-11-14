@@ -11,6 +11,11 @@ function open(): Db {
     sqlite.pragma('foreign_keys = ON');
     sqlite.pragma('busy_timeout = 5000');
     sqlite.pragma('synchronous = NORMAL');
+    // Unicode-aware lower-casing for search; SQLite's built-in lower() and
+    // LIKE only fold ASCII letters, so "Élodie" wouldn't match "élodie".
+    sqlite.function('lp_fold', { deterministic: true }, (value: unknown) =>
+        typeof value === 'string' ? value.toLowerCase() : value
+    );
     return drizzle(sqlite, { schema });
 }
 

@@ -6,6 +6,7 @@ import { formValues, type ActionState } from '@/lib/action-state';
 import { isCurrency, toMinor } from '@/lib/money';
 import { isIsoDate } from '@/lib/dates';
 import type { FieldDef, ModuleDef } from '@/lib/modules/types';
+import { isHttpUrl } from '@/lib/validate';
 
 const DEFAULT_MAX = { text: 200, textarea: 5000, url: 2000, email: 254 } as const;
 
@@ -57,7 +58,7 @@ export function parseRecord(
             case 'email': {
                 const max = field.max ?? DEFAULT_MAX[field.type];
                 if (value.length > max) errors[field.name] = `Keep it under ${max} characters`;
-                else if (field.type === 'url' && !/^https?:\/\/\S+$/i.test(value)) errors[field.name] = 'Enter a full link starting with https://';
+                else if (field.type === 'url' && !isHttpUrl(value)) errors[field.name] = 'Enter a full link starting with https://';
                 else if (field.type === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) errors[field.name] = 'Enter a valid email';
                 else values[field.name] = value;
                 break;

@@ -6,16 +6,21 @@ import { MODULES, getModule, statusOf } from '@/lib/modules/definitions';
 import { tableFor, type RecordRow } from '@/server/modules/registry';
 import { formatMoney } from '@/lib/money';
 import { formatDate } from '@/lib/dates';
+import { normalizeQuery } from '@/lib/validate';
 
 export type SearchHit = { href: string; title: string; detail?: string; snippet?: string };
 export type SearchGroup = { label: string; hits: SearchHit[] };
 
 const PER_GROUP = 10;
 
-/** Case-insensitive substring match with LIKE wildcards in the query escaped. */
+/**
+ * Case-insensitive substring match. Uses the Unicode-aware lp_fold() function
+ * (registered on the connection) and instr(), so accented letters fold
+ * correctly and characters like % and _ are matched literally.
+ */
 function matches(query: string, ...columns: SQLiteColumn[]): SQL {
-    const pattern = `%${query.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
-    return or(...columns.map((c) => sql`${c} like ${pattern} escape '\\'`))!;
+    const needle = query.toLowerCase();
+    return or(...columns.map((c) => sql`instr(lp_fold(${c}), ${needle}) > 0`))!;
 }
 
 /** A short excerpt of `text` around the first match. */
@@ -29,7 +34,7 @@ function snippet(text: unknown, query: string) {
 }
 
 export function search(userId: string, rawQuery: string): SearchGroup[] {
-    const q = rawQuery.trim().slice(0, 100);
+    const q = normalizeQuery(rawQuery);
     if (q.length < 2) return [];
     const groups: SearchGroup[] = [];
     const add = (label: string, hits: SearchHit[]) => hits.length && groups.push({ label, hits });

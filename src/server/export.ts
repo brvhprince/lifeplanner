@@ -126,6 +126,7 @@ function everythingJson(userId: string) {
         goalContributions: db.select().from(goalContributions).where(eq(goalContributions.userId, userId)).all(),
         scheduleItems: db.select().from(scheduleItems).where(eq(scheduleItems.userId, userId)).all(),
         timeline: db.select().from(timelineEntries).where(eq(timelineEntries.userId, userId)).all(),
+        employerContacts: db.select().from(schema.employerContacts).where(eq(schema.employerContacts.userId, userId)).all(),
     };
     for (const def of MODULES) {
         const { table, columns } = tableFor(def);

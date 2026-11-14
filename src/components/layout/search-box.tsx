@@ -3,19 +3,23 @@
 import { useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { HiOutlineMagnifyingGlass } from 'react-icons/hi2';
+import { SEARCH_MAX_LENGTH, normalizeQuery } from '@/lib/validate';
 
 /** Search field that submits to /search. Press "/" anywhere to focus it. */
 export default function SearchBox({ shortcut = false }: { shortcut?: boolean }) {
     const ref = useRef<HTMLInputElement>(null);
-    const query = useSearchParams().get('q') ?? '';
+    const query = normalizeQuery(useSearchParams().get('q') ?? '');
 
     useEffect(() => {
         if (!shortcut) return;
         const onKey = (e: KeyboardEvent) => {
             const target = e.target as HTMLElement;
             if (e.key !== '/' || e.metaKey || e.ctrlKey || target.closest('input, textarea, select, [contenteditable]')) return;
+            // Sidebar and header both render a box; only the visible one takes the shortcut.
+            const input = ref.current;
+            if (!input || input.getClientRects().length === 0) return;
             e.preventDefault();
-            ref.current?.focus();
+            input.focus();
         };
         window.addEventListener('keydown', onKey);
         return () => window.removeEventListener('keydown', onKey);
@@ -33,6 +37,7 @@ export default function SearchBox({ shortcut = false }: { shortcut?: boolean }) 
                 placeholder="Search everything"
                 aria-label="Search everything"
                 minLength={2}
+                maxLength={SEARCH_MAX_LENGTH}
                 className="h-9 w-full rounded-lg border border-light-400 bg-grey-100 pl-9 pr-8 text-sm placeholder:text-body-muted focus:border-brand focus:ring-brand dark:border-dark-light/40 dark:bg-dark-dark"
             />
             {shortcut && (

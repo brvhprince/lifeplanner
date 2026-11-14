@@ -12,6 +12,7 @@ import { toMinor } from '@/lib/money';
 import { getRecord, tableFor } from './registry';
 import { parseRecord } from './validate';
 import { deleteEntityFiles } from '@/server/files';
+import { isHttpUrl, isPhone } from '@/lib/validate';
 
 function moduleOrThrow(key: string) {
     const def = getModule(key);
@@ -261,8 +262,8 @@ function contactProblem(type: ContactType, value: string) {
     if (!value) return 'Enter the contact detail';
     if (value.length > 500) return 'Keep it under 500 characters';
     if (type === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return 'Enter a valid email';
-    if (type === 'phone' && !/^\+?[\d\s()-]{5,30}$/.test(value)) return 'Enter a valid phone number';
-    if (type === 'link' && !/^https?:\/\/\S+$/i.test(value)) return 'Enter a full link starting with https://';
+    if (type === 'phone' && !isPhone(value)) return 'Enter a valid phone number';
+    if (type === 'link' && !isHttpUrl(value)) return 'Enter a full link starting with https://';
     return null;
 }
 

@@ -2,7 +2,8 @@
 export default function Highlight({ text, query }: { text: string; query: string }) {
     if (!query) return <>{text}</>;
     const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const parts = text.split(new RegExp(`(${escaped})`, 'gi'));
+    // Same Unicode-aware, case-insensitive comparison as the search query.
+    const parts = text.split(new RegExp(`(${escaped})`, 'giu'));
     return (
         <>
             {parts.map((part, i) =>
