@@ -1,0 +1,14 @@
+services:
+  lifeplanner:
+    build: .
+    image: lifeplanner:latest
+    container_name: lifeplanner
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./data:/data
+    # environment:
+    #   TZ: Africa/Accra        # so reminders fire at your local time
+    #   APP_SECRET: change-me   # optional; otherwise generated into ./data/secret.key
+    #   COOKIE_SECURE: "true"   # set when served over HTTPS behind a reverse proxy

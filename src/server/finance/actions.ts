@@ -1,0 +1,441 @@
+'use server';
+
+import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
+import { and, eq, isNull } from 'drizzle-orm';
+import { z } from 'zod';
+import { db, schema } from '@/server/db';
+import { requireUser } from '@/server/auth/session';
+import { formValues, parseForm, type ActionState } from '@/lib/action-state';
+import { isCurrency, toMinor } from '@/lib/money';
+import { isIsoDate } from '@/lib/dates';
+import { ACCOUNT_TYPES } from '@/server/db/schema';
+import { deleteEntityFiles } from '@/server/files';
+
+const { accounts, categories, transactions, transfers } = schema;
+
+const optionalText = (max: number) =>
+    z
+        .string()
+        .trim()
+        .max(max)
+        .transform((v) => v || null)
+        .optional();
+
+const isoDate = z.string().refine(isIsoDate, 'Enter a valid date');
+
+function fieldError(formData: FormData, field: string, message: string): ActionState {
+    return { error: message, fieldErrors: { [field]: message }, values: formValues(formData) };
+}
+
+function refresh() {
+    revalidatePath('/', 'layout');
+}
+
+function ownedAccount(userId: string, accountId: string) {
+    return db
+        .select()
+        .from(accounts)
+        .where(and(eq(accounts.id, accountId), eq(accounts.userId, userId), isNull(accounts.archivedAt)))
+        .get();
+}
+
+// ---------------------------------------------------------------------------
+// Accounts
+// ---------------------------------------------------------------------------
+
+const accountSchema = z.object({
+    name: z.string().trim().min(1, 'Name is required').max(100),
+    type: z.enum(ACCOUNT_TYPES, 'Choose an account type'),
+    currency: z.string().trim().toUpperCase().refine(isCurrency, 'Choose a valid currency'),
+    openingBalance: z.string().trim().default('0'),
+    description: optionalText(500),
+    isPrimary: z.literal('on').optional(),
+});
+
+export async function createAccount(_prev: ActionState, formData: FormData): Promise<ActionState> {
+    const user = await requireUser();
+    const parsed = parseForm(accountSchema, formData);
+    if (!parsed.data) return parsed.state;
+    const { openingBalance, isPrimary, ...data } = parsed.data;
+
+    const openingBalanceMinor = toMinor(openingBalance || '0', data.currency);
+    if (openingBalanceMinor === null) return fieldError(formData, 'openingBalance', 'Enter a valid amount');
+
+    db.transaction((tx) => {
+        const hasAccounts = tx.select({ id: accounts.id }).from(accounts).where(eq(accounts.userId, user.id)).get();
+        const primary = Boolean(isPrimary) || !hasAccounts;
+        if (primary) {
+            tx.update(accounts).set({ isPrimary: false }).where(eq(accounts.userId, user.id)).run();
+        }
+        tx.insert(accounts)
+            .values({ ...data, userId: user.id, openingBalanceMinor, isPrimary: primary })
+            .run();
+    });
+
+    refresh();
+    return { ok: true, message: `Account “${data.name}” created` };
+}
+
+export async function makePrimaryAccount(accountId: string) {
+    const user = await requireUser();
+    if (!ownedAccount(user.id, accountId)) return;
+    db.transaction((tx) => {
+        tx.update(accounts).set({ isPrimary: false }).where(eq(accounts.userId, user.id)).run();
+        tx.update(accounts)
+            .set({ isPrimary: true })
+            .where(and(eq(accounts.id, accountId), eq(accounts.userId, user.id)))
+            .run();
+    });
+    refresh();
+}
+
+export async function setAccountArchived(accountId: string, archived: boolean) {
+    const user = await requireUser();
+    db.update(accounts)
+        .set({ archivedAt: archived ? new Date() : null, ...(archived ? { isPrimary: false } : {}) })
+        .where(and(eq(accounts.id, accountId), eq(accounts.userId, user.id)))
+        .run();
+    refresh();
+}
+
+// ---------------------------------------------------------------------------
+// Categories
+// ---------------------------------------------------------------------------
+
+const categorySchema = z.object({
+    kind: z.enum(['income', 'expense'], 'Choose income or expense'),
+    name: z.string().trim().min(1, 'Name is required').max(60),
+    color: z
+        .string()
+        .regex(/^#[0-9a-fA-F]{6}$/)
+        .optional()
+        .or(z.literal('').transform(() => undefined)),
+});
+
+export async function createCategory(_prev: ActionState, formData: FormData): Promise<ActionState> {
+    const user = await requireUser();
+    const parsed = parseForm(categorySchema, formData);
+    if (!parsed.data) return parsed.state;
+
+    const duplicate = db
+        .select({ id: categories.id, archivedAt: categories.archivedAt })
+        .from(categories)
+        .where(
+            and(
+                eq(categories.userId, user.id),
+                eq(categories.kind, parsed.data.kind),
+                eq(categories.name, parsed.data.name)
+            )
+        )
+        .get();
+
+    if (duplicate?.archivedAt) {
+        db.update(categories).set({ archivedAt: null, color: parsed.data.color }).where(eq(categories.id, duplicate.id)).run();
+    } else if (duplicate) {
+        return fieldError(formData, 'name', 'A category with this name already exists');
+    } else {
+        db.insert(categories).values({ ...parsed.data, userId: user.id }).run();
+    }
+
+    refresh();
+    return { ok: true, message: `Category “${parsed.data.name}” saved` };
+}
+
+export async function archiveCategory(categoryId: string) {
+    const user = await requireUser();
+    db.update(categories)
+        .set({ archivedAt: new Date() })
+        .where(and(eq(categories.id, categoryId), eq(categories.userId, user.id)))
+        .run();
+    refresh();
+}
+
+// ---------------------------------------------------------------------------
+// Transactions
+// ---------------------------------------------------------------------------
+
+const entrySchema = z.object({
+    kind: z.enum(['income', 'expense', 'transfer']),
+    accountId: z.string().min(1, 'Choose an account'),
+    amount: z.string().trim().min(1, 'Amount is required'),
+    title: z.string().trim().max(120).default(''),
+    occurredOn: isoDate,
+    note: optionalText(1000),
+    categoryId: z.string().optional(),
+    toAccountId: z.string().optional(),
+    toAmount: z.string().trim().optional(),
+    fee: z.string().trim().optional(),
+});
+
+export async function createEntry(_prev: ActionState, formData: FormData): Promise<ActionState> {
+    const user = await requireUser();
+    const parsed = parseForm(entrySchema, formData);
+    if (!parsed.data) return parsed.state;
+    const input = parsed.data;
+
+    const account = ownedAccount(user.id, input.accountId);
+    if (!account) return fieldError(formData, 'accountId', 'Choose an account');
+
+    const amountMinor = toMinor(input.amount, account.currency);
+    if (amountMinor === null || amountMinor <= 0) {
+        return fieldError(formData, 'amount', 'Enter an amount greater than zero');
+    }
+
+    if (input.kind === 'transfer') {
+        return createTransfer(user.id, account, amountMinor, input, formData);
+    }
+
+    let categoryId: string | null = null;
+    if (input.categoryId) {
+        const category = db
+            .select()
+            .from(categories)
+            .where(and(eq(categories.id, input.categoryId), eq(categories.userId, user.id)))
+            .get();
+        if (!category || category.kind !== input.kind) {
+            return fieldError(formData, 'categoryId', 'Choose a matching category');
+        }
+        categoryId = category.id;
+    }
+
+    const title = input.title || (input.kind === 'income' ? 'Income' : 'Expense');
+    db.insert(transactions)
+        .values({
+            userId: user.id,
+            accountId: account.id,
+            kind: input.kind,
+            amountMinor: input.kind === 'expense' ? -amountMinor : amountMinor,
+            categoryId,
+            title,
+            note: input.note ?? null,
+            occurredOn: input.occurredOn,
+        })
+        .run();
+
+    refresh();
+    return { ok: true, message: `${input.kind === 'income' ? 'Income' : 'Expense'} recorded` };
+}
+
+function createTransfer(
+    userId: string,
+    from: typeof accounts.$inferSelect,
+    fromAmountMinor: number,
+    input: z.infer<typeof entrySchema>,
+    formData: FormData
+): ActionState {
+    if (!input.toAccountId) return fieldError(formData, 'toAccountId', 'Choose the destination account');
+    if (input.toAccountId === from.id) return fieldError(formData, 'toAccountId', 'Choose a different account');
+
+    const to = ownedAccount(userId, input.toAccountId);
+    if (!to) return fieldError(formData, 'toAccountId', 'Choose the destination account');
+
+    let toAmountMinor = fromAmountMinor;
+    if (to.currency !== from.currency) {
+        const parsed = input.toAmount ? toMinor(input.toAmount, to.currency) : null;
+        if (parsed === null || parsed <= 0) {
+            return fieldError(formData, 'toAmount', `Enter the amount received in ${to.currency}`);
+        }
+        toAmountMinor = parsed;
+    }
+
+    const feeMinor = input.fee ? toMinor(input.fee, from.currency) : 0;
+    if (feeMinor === null || feeMinor < 0) return fieldError(formData, 'fee', 'Enter a valid fee');
+
+    const title = input.title || `Transfer to ${to.name}`;
+
+    db.transaction((tx) => {
+        const transfer = tx
+            .insert(transfers)
+            .values({
+                userId,
+                fromAccountId: from.id,
+                toAccountId: to.id,
+                fromAmountMinor,
+                toAmountMinor,
+                feeMinor,
+                title,
+                note: input.note ?? null,
+                occurredOn: input.occurredOn,
+            })
+            .returning({ id: transfers.id })
+            .get();
+
+        const leg = { userId, kind: 'transfer' as const, transferId: transfer.id, note: input.note ?? null, occurredOn: input.occurredOn };
+        tx.insert(transactions)
+            .values([
+                { ...leg, accountId: from.id, amountMinor: -(fromAmountMinor + feeMinor), title },
+                { ...leg, accountId: to.id, amountMinor: toAmountMinor, title: input.title || `Transfer from ${from.name}` },
+            ])
+            .run();
+    });
+
+    refresh();
+    return { ok: true, message: 'Transfer recorded' };
+}
+
+/** Marks a ledger entry (and its transfer counterpart) reversed; history is kept. */
+export async function setTransactionReversed(transactionId: string, reversed: boolean) {
+    const user = await requireUser();
+    const row = db
+        .select()
+        .from(transactions)
+        .where(and(eq(transactions.id, transactionId), eq(transactions.userId, user.id)))
+        .get();
+    if (!row) return;
+
+    const status = reversed ? 'reversed' : 'active';
+    db.transaction((tx) => {
+        if (row.transferId) {
+            tx.update(transfers).set({ status }).where(eq(transfers.id, row.transferId)).run();
+            tx.update(transactions).set({ status }).where(eq(transactions.transferId, row.transferId)).run();
+        } else {
+            tx.update(transactions).set({ status }).where(eq(transactions.id, row.id)).run();
+        }
+    });
+    refresh();
+}
+
+// ---------------------------------------------------------------------------
+// Editing
+// ---------------------------------------------------------------------------
+
+const accountUpdateSchema = z.object({
+    name: z.string().trim().min(1, 'Name is required').max(100),
+    type: z.enum(ACCOUNT_TYPES, 'Choose an account type'),
+    currency: z.string().trim().toUpperCase().refine(isCurrency, 'Choose a valid currency'),
+    openingBalance: z.string().trim().default('0'),
+    description: optionalText(500),
+});
+
+export async function updateAccount(accountId: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
+    const user = await requireUser();
+    const account = db.select().from(accounts).where(and(eq(accounts.id, accountId), eq(accounts.userId, user.id))).get();
+    if (!account) return { error: 'Account not found' };
+
+    const parsed = parseForm(accountUpdateSchema, formData);
+    if (!parsed.data) return parsed.state;
+    const { openingBalance, ...data } = parsed.data;
+
+    if (data.currency !== account.currency) {
+        const used = db.select({ id: transactions.id }).from(transactions).where(eq(transactions.accountId, accountId)).get();
+        if (used) return fieldError(formData, 'currency', 'The currency can’t change once the account has entries');
+    }
+    const openingBalanceMinor = toMinor(openingBalance || '0', data.currency);
+    if (openingBalanceMinor === null) return fieldError(formData, 'openingBalance', 'Enter a valid amount');
+
+    db.update(accounts).set({ ...data, description: data.description ?? null, openingBalanceMinor }).where(eq(accounts.id, accountId)).run();
+    refresh();
+    return { ok: true, message: 'Account updated' };
+}
+
+export async function deleteAccount(accountId: string) {
+    const user = await requireUser();
+    const used = db.select({ id: transactions.id }).from(transactions).where(eq(transactions.accountId, accountId)).get();
+    // Accounts with history are archived instead, so balances elsewhere stay correct.
+    if (used) return setAccountArchived(accountId, true);
+    db.delete(accounts).where(and(eq(accounts.id, accountId), eq(accounts.userId, user.id))).run();
+    refresh();
+    redirect('/accounts');
+}
+
+export async function updateCategory(categoryId: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
+    const user = await requireUser();
+    const name = String(formData.get('name') ?? '').trim();
+    const color = String(formData.get('color') ?? '');
+    if (!name || name.length > 60) return fieldError(formData, 'name', 'Enter a name');
+    if (color && !/^#[0-9a-fA-F]{6}$/.test(color)) return fieldError(formData, 'color', 'Pick a colour');
+
+    try {
+        db.update(categories)
+            .set({ name, color: color || null })
+            .where(and(eq(categories.id, categoryId), eq(categories.userId, user.id)))
+            .run();
+    } catch {
+        return fieldError(formData, 'name', 'A category with this name already exists');
+    }
+    refresh();
+    return { ok: true, message: 'Category updated' };
+}
+
+export async function restoreCategory(categoryId: string) {
+    const user = await requireUser();
+    db.update(categories).set({ archivedAt: null }).where(and(eq(categories.id, categoryId), eq(categories.userId, user.id))).run();
+    refresh();
+}
+
+const entryUpdateSchema = z.object({
+    title: z.string().trim().min(1, 'Description is required').max(120),
+    occurredOn: isoDate,
+    note: optionalText(1000),
+    amount: z.string().trim().optional(),
+    accountId: z.string().optional(),
+    categoryId: z.string().optional(),
+});
+
+/** Edits a ledger entry. Transfers only allow title, date and note (both legs). */
+export async function updateEntry(transactionId: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
+    const user = await requireUser();
+    const row = db.select().from(transactions).where(and(eq(transactions.id, transactionId), eq(transactions.userId, user.id))).get();
+    if (!row) return { error: 'Entry not found' };
+
+    const parsed = parseForm(entryUpdateSchema, formData);
+    if (!parsed.data) return parsed.state;
+    const input = parsed.data;
+
+    if (row.transferId) {
+        const shared = { occurredOn: input.occurredOn, note: input.note ?? null };
+        db.transaction((tx) => {
+            tx.update(transfers).set({ ...shared, title: input.title }).where(eq(transfers.id, row.transferId!)).run();
+            tx.update(transactions).set(shared).where(eq(transactions.transferId, row.transferId!)).run();
+            tx.update(transactions).set({ title: input.title }).where(eq(transactions.id, row.id)).run();
+        });
+        refresh();
+        return { ok: true, message: 'Transfer updated' };
+    }
+
+    const account = ownedAccount(user.id, input.accountId || row.accountId);
+    if (!account) return fieldError(formData, 'accountId', 'Choose an active account');
+
+    const amountMinor = toMinor(input.amount ?? '', account.currency);
+    if (amountMinor === null || amountMinor <= 0) return fieldError(formData, 'amount', 'Enter an amount greater than zero');
+
+    let categoryId: string | null = null;
+    if (input.categoryId) {
+        const category = db.select().from(categories).where(and(eq(categories.id, input.categoryId), eq(categories.userId, user.id))).get();
+        if (!category || category.kind !== row.kind) return fieldError(formData, 'categoryId', 'Choose a matching category');
+        categoryId = category.id;
+    }
+
+    db.update(transactions)
+        .set({
+            title: input.title,
+            occurredOn: input.occurredOn,
+            note: input.note ?? null,
+            accountId: account.id,
+            categoryId,
+            amountMinor: row.kind === 'expense' ? -amountMinor : amountMinor,
+        })
+        .where(eq(transactions.id, row.id))
+        .run();
+    refresh();
+    return { ok: true, message: 'Entry updated' };
+}
+
+/** Permanently removes an entry (and the other leg of a transfer). */
+export async function deleteEntry(transactionId: string) {
+    const user = await requireUser();
+    const row = db.select().from(transactions).where(and(eq(transactions.id, transactionId), eq(transactions.userId, user.id))).get();
+    if (row) {
+        const legs = row.transferId
+            ? db.select({ id: transactions.id }).from(transactions).where(eq(transactions.transferId, row.transferId)).all().map((l) => l.id)
+            : [row.id];
+        await deleteEntityFiles(user.id, 'transaction', legs);
+        db.transaction((tx) => {
+            if (row.transferId) tx.delete(transfers).where(eq(transfers.id, row.transferId)).run();
+            else tx.delete(transactions).where(eq(transactions.id, row.id)).run();
+        });
+    }
+    refresh();
+    redirect('/transactions');
+}

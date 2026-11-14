@@ -17,7 +17,7 @@ import {FullPrimaryLogo} from "@/components/ui/logo/full/primary";
 export default function FullLogo({
                                      className = 'w-20',
                                      ...props
-                                 }: React.AnchorHTMLAttributes<{}>) {
+                                 }: React.AnchorHTMLAttributes<HTMLAnchorElement>) {
     const isMounted = useIsMounted();
     const { isDarkMode } = useIsDarkMode();
     return (

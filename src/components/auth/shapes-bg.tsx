@@ -5,7 +5,7 @@
  * Copyright lifeplanner-webapp
  */
 "use client";
-export const ShapesBg: React.FC<React.SVGAttributes<{}>> = (props) => {
+export const ShapesBg: React.FC<React.SVGAttributes<SVGElement>> = (props) => {
     return (
         <svg viewBox="0 0 698 950" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
             <g clipPath="url(#clip0_2616_40424)">

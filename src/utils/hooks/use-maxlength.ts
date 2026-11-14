@@ -34,8 +34,7 @@ const useMaxlength = ({
         (event: React.KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
             if (!maxLength) return;
 
-            // @ts-ignore
-            const { value } = event.target;
+            const { value } = event.target as HTMLInputElement | HTMLTextAreaElement;
             const length = utf8 ? encodeURI(value).split(/%..|./).length - 1 : value.length;
 
             if (length >= maxLength) {
@@ -64,7 +63,7 @@ const useMaxlength = ({
             }
 
         },
-        [maxLength, threshold, utf8],
+        [maxLength, threshold, utf8, validate],
     );
 
 

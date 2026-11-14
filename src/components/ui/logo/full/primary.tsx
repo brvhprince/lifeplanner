@@ -4,7 +4,7 @@
  * Created by pennycodes on 10/08/2023.
  * Copyright lifeplanner-webapp
  */
-export const FullPrimaryLogo: React.FC<React.SVGAttributes<{}>> = (props) => {
+export const FullPrimaryLogo: React.FC<React.SVGAttributes<SVGElement>> = (props) => {
     return (
         <svg viewBox="0 0 290 61" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
             <rect y="0.86499" width="60" height="60" rx="10" fill="#4C6FFF"/>

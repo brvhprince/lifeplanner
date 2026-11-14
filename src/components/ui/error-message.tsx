@@ -27,16 +27,3 @@ const ErrorMessage: React.FC<ErrorProps> = ({ message }) => {
 
 export default ErrorMessage;
 
-
-export const ErrorBoundaryFallback: React.FC<{ error: Error, resetErrorBoundary:any }> = ({ error, resetErrorBoundary }) => {
-    return (
-        <div className="flex flex-col items-center justify-center min-h-screen">
-            <p className="text-center text-2xl font-semibold text-red-500">
-                Something went wrong:
-            </p>
-            <p className="text-center text-lg font-semibold text-red-500">
-                {error.message}
-            </p>
-        </div>
-    );
-}

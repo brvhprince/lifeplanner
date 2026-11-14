@@ -1,17 +1,13 @@
-/**
- * Project: lifeplanner-webapp
- * File: routes
- * Created by pennycodes on 10/08/2023.
- * Copyright lifeplanner-webapp
- */
 const routes = {
     home: '/',
-    authors: '/authors',
-    explore: '/explore',
-    popularProducts: '/popular-products',
-    about: '/about-us',
-    forgotPassword: '/forgot-password',
-    signUp: '/auth/sign-up',
+    setup: '/setup',
     signIn: '/auth/sign-in',
+    twoFactor: '/auth/two-factor',
+    accounts: '/accounts',
+    account: (id: string) => `/accounts/${id}`,
+    transactions: '/transactions',
+    transaction: (id: string) => `/transactions/${id}`,
+    categories: '/categories',
+    settings: '/settings',
 };
 export default routes;

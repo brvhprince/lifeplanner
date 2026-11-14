@@ -4,7 +4,7 @@
  * Created by pennycodes on 10/08/2023.
  * Copyright lifeplanner-webapp
  */
-export const SpinnerIcon: React.FC<React.SVGAttributes<{}>> = (props) => {
+export const SpinnerIcon: React.FC<React.SVGAttributes<SVGElement>> = (props) => {
     return (
         <svg
             fill="none"
