@@ -12,13 +12,64 @@ An open source, self-hosted planner for your private life. Your money, goals, pl
 
 ## Install with Docker (recommended)
 
+LifePlanner runs as a single container. You need **Docker** and **Docker Compose**; Compose comes with Docker on every platform below.
+
+### 1. Install Docker
+
+**Linux (Ubuntu, Debian, Fedora, Raspberry Pi OS…)**
+
 ```bash
-git clone https://github.com/brvhprince/lifeplanner-webapp-v2.git lifeplanner
-cd lifeplanner
-docker compose up -d --build
+curl -fsSL https://get.docker.com | sh
+sudo usermod -aG docker $USER   # run docker without sudo; log out and back in afterwards
+docker compose version          # confirms Compose is installed
 ```
 
-Open <http://localhost:3000>. On the first visit you create the owner account. Everything lives in `./data`:
+The script installs Docker Engine and the Compose plugin from Docker’s official repositories. Prefer doing it by hand? Follow [the Docker Engine install guide](https://docs.docker.com/engine/install/) for your distribution.
+
+**macOS**
+
+Install [Docker Desktop](https://docs.docker.com/desktop/setup/install/mac-install/), which includes Compose. A lighter, free alternative is [Colima](https://github.com/abiosoft/colima):
+
+```bash
+brew install colima docker docker-compose
+colima start
+```
+
+**Windows**
+
+Install [Docker Desktop](https://docs.docker.com/desktop/setup/install/windows-install/) with the WSL 2 backend, then run the commands below from a WSL terminal or PowerShell.
+
+Check it works:
+
+```bash
+docker run --rm hello-world
+docker compose version
+```
+
+### 2. Run LifePlanner
+
+```bash
+mkdir lifeplanner && cd lifeplanner
+curl -fsSLO https://raw.githubusercontent.com/brvhprince/lifeplanner-webapp-v2/main/docker-compose.yml
+# edit TZ in docker-compose.yml to your time zone, then:
+docker compose up -d
+```
+
+Open <http://localhost:3000> (or `http://<server-ip>:3000` from another device). On the first visit you create the owner account.
+
+Images are published for `amd64` and `arm64`, so the same command works on a PC, a Mac, a cloud server or a Raspberry Pi 4/5.
+
+Without Compose:
+
+```bash
+docker run -d --name lifeplanner --restart unless-stopped \
+  -p 3000:3000 -v "$PWD/data:/data" -e TZ=Africa/Accra \
+  ghcr.io/brvhprince/lifeplanner:latest
+```
+
+### Where your data lives
+
+Everything is stored in `./data`:
 
 | File | What it is |
 | --- | --- |
@@ -26,7 +77,33 @@ Open <http://localhost:3000>. On the first visit you create the owner account. E
 | `data/secret.key` | Key that encrypts sensitive fields such as 2FA secrets. Generated on first start. |
 | `data/uploads/` | Uploaded files |
 
-Upgrading: `git pull && docker compose up -d --build`. Database migrations run automatically on start.
+### Upgrading
+
+```bash
+docker compose pull && docker compose up -d
+```
+
+Database migrations run automatically on start. Back up `data/` first.
+
+### Image tags
+
+| Tag | Meaning |
+| --- | --- |
+| `latest` | Latest build of `main` |
+| `1.2.3`, `1.2`, `1` | Released versions (from git tags `v1.2.3`) |
+| `sha-abc1234` | A specific commit |
+
+Pin a version tag once releases exist if you want upgrades only when you choose.
+
+### Build from source
+
+```bash
+git clone https://github.com/brvhprince/lifeplanner-webapp-v2.git lifeplanner
+cd lifeplanner
+docker build -t lifeplanner .
+```
+
+Or, in `docker-compose.yml`, replace `image:` with `build: .` and run `docker compose up -d --build`.
 
 ## Run without Docker
 
@@ -47,7 +124,7 @@ From **Settings → Your data** you can download CSV files for every section, a 
 For server-side backups, copy the whole `data/` folder (database, `secret.key` and `uploads/`). To get a consistent copy of the database while the app is running:
 
 ```bash
-docker exec lifeplanner node scripts/lp.mjs backup /data/backup-$(date +%F).db
+docker exec lifeplanner lp backup /data/backup-$(date +%F).db
 # or, without Docker
 npm run lp backup ./backup.db
 ```
@@ -59,8 +136,8 @@ Keep `secret.key` with your backups. Without it, 2FA secrets can't be decrypted 
 There is no email, so account recovery happens on the server:
 
 ```bash
-docker exec -it lifeplanner node scripts/lp.mjs reset-password   # prints a new random password, signs out all sessions
-docker exec -it lifeplanner node scripts/lp.mjs disable-2fa
+docker exec -it lifeplanner lp reset-password   # prints a new random password, signs out all sessions
+docker exec -it lifeplanner lp disable-2fa
 ```
 
 Outside Docker use `npm run lp <command>` with `DATA_DIR` pointing at your data folder.
@@ -77,6 +154,7 @@ All optional:
 | `COOKIE_SECURE` | auto (from `X-Forwarded-Proto`) | Force `Secure` cookies when served over HTTPS |
 | `PORT` | `3000` | HTTP port |
 | `TZ` | system (`UTC` in Docker) | Time zone for due dates and reminder times, e.g. `Africa/Accra` |
+| `PUID` / `PGID` | `1000` / `1000` | Docker only: the user and group that own the files in `data/`. Set them to your host user's `id -u` / `id -g` (or your NAS user) if needed. |
 
 To reach it from outside your home network, put it behind a reverse proxy with HTTPS (Caddy, Traefik, nginx) or a private network such as Tailscale, rather than exposing port 3000 directly.
 

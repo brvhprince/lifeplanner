@@ -1,14 +1,24 @@
+# LifePlanner: self-hosted with Docker Compose.
+#
+#   docker compose up -d          start (pulls the image the first time)
+#   docker compose pull && docker compose up -d   upgrade
+#
+# Everything you record lives in ./data next to this file. Back it up.
 services:
   lifeplanner:
-    build: .
-    image: lifeplanner:latest
+    image: ghcr.io/brvhprince/lifeplanner:latest
+    # To build from source instead, comment out `image` and uncomment:
+    # build: .
     container_name: lifeplanner
     restart: unless-stopped
     ports:
       - "3000:3000"
     volumes:
       - ./data:/data
-    # environment:
-    #   TZ: Africa/Accra        # so reminders fire at your local time
-    #   APP_SECRET: change-me   # optional; otherwise generated into ./data/secret.key
-    #   COOKIE_SECURE: "true"   # set when served over HTTPS behind a reverse proxy
+    environment:
+      # Your time zone, so reminders and due dates use local time.
+      TZ: Africa/Accra
+      # Set to "true" when serving over HTTPS behind a reverse proxy.
+      # COOKIE_SECURE: "true"
+      # Optional; otherwise generated into ./data/secret.key on first start.
+      # APP_SECRET: change-me

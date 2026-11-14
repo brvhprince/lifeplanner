@@ -29,13 +29,18 @@ COPY --from=build --chown=node:node /app/.next/static ./.next/static
 COPY --from=build --chown=node:node /app/public ./public
 COPY --from=build --chown=node:node /app/drizzle ./drizzle
 COPY --from=build --chown=node:node /app/scripts ./scripts
+COPY docker/entrypoint.sh /usr/local/bin/docker-entrypoint
+COPY docker/lp /usr/local/bin/lp
+RUN chmod 755 /usr/local/bin/docker-entrypoint /usr/local/bin/lp
 
-RUN mkdir -p /data && chown node:node /data
-USER node
+# Starts as root only to fix ownership of /data, then drops to PUID:PGID
+# (default 1000:1000, the image's `node` user). See docker/entrypoint.sh.
+ENV PUID=1000 PGID=1000
 VOLUME /data
 EXPOSE 3000
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s \
     CMD node -e "fetch('http://127.0.0.1:'+process.env.PORT+'/auth/sign-in',{redirect:'manual'}).then(r=>process.exit(r.status<500?0:1)).catch(()=>process.exit(1))"
 
+ENTRYPOINT ["docker-entrypoint"]
 CMD ["node", "server.js"]

@@ -1,0 +1,8 @@
+#!/bin/sh
+# Admin CLI wrapper: `docker exec -it lifeplanner lp reset-password`.
+# Runs as the app user so it never leaves root-owned files in the data directory.
+set -eu
+if [ "$(id -u)" = "0" ]; then
+    exec setpriv --reuid="${PUID:-1000}" --regid="${PGID:-1000}" --clear-groups -- node /app/scripts/lp.mjs "$@"
+fi
+exec node /app/scripts/lp.mjs "$@"
