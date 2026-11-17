@@ -20,7 +20,6 @@ function legTotals(debtIds: string[], client: Tx | typeof db = db) {
             repaid: sql<number>`coalesce(sum(case when ${active} and ${t.debtRole} in ('repayment', 'interest') then abs(${t.amountMinor}) end), 0)`,
             interestPaid: sql<number>`coalesce(sum(case when ${active} and ${t.debtRole} = 'interest' then abs(${t.amountMinor}) end), 0)`,
             disbursed: sql<number>`count(case when ${active} and ${t.debtRole} = 'disbursement' then 1 end)`,
-            repaymentLegs: sql<number>`count(case when ${t.debtRole} in ('repayment', 'interest') then 1 end)`,
         })
         .from(t)
         .where(inArray(t.debtId, debtIds))
@@ -69,25 +68,30 @@ export function debtLedger(userId: string, debtId: string) {
 }
 
 /**
- * Keeps the status in line with the ledger: settled once nothing is
- * outstanding, reopened if a repayment is reversed or deleted. Debts settled
- * by hand without any recorded repayments are left alone.
+ * Keeps the status in line with the ledger: settled once repayments clear the
+ * loan, reopened if one of those repayments is reversed or deleted. Loans
+ * settled by hand (or before this was tracked) are never reopened.
  */
 export function syncDebtStatus(userId: string, debtId: string, client: Tx | typeof db = db) {
     const debt = getDebt(userId, debtId, client);
     if (!debt || debt.status === 'cancelled') return;
     const state = debtState(debt, client);
 
-    if (debt.status === 'active' && state.outstanding === 0 && state.hasRepayments) {
+    if (debt.status === 'active' && state.outstanding === 0 && state.repaid > 0) {
         const last = client
             .select({ on: sql<string>`max(${transactions.occurredOn})` })
             .from(transactions)
             .where(and(eq(transactions.debtId, debtId), eq(transactions.status, 'active')))
             .get();
-        client.update(debts).set({ status: 'paid', paidOn: last?.on ?? null }).where(eq(debts.id, debtId)).run();
-    } else if (debt.status === 'paid' && state.outstanding > 0 && state.hasRepayments) {
-        client.update(debts).set({ status: 'active', paidOn: null }).where(eq(debts.id, debtId)).run();
+        client.update(debts).set({ status: 'paid', settledBy: 'ledger', paidOn: last?.on ?? null }).where(eq(debts.id, debtId)).run();
+    } else if (debt.status === 'paid' && debt.settledBy === 'ledger' && state.outstanding > 0) {
+        client.update(debts).set({ status: 'active', settledBy: null, paidOn: null }).where(eq(debts.id, debtId)).run();
     }
+}
+
+/** True when any transaction (in any state) is linked to the loan. */
+export function hasLoanEntries(debtId: string, client: Tx | typeof db = db) {
+    return Boolean(client.select({ id: transactions.id }).from(transactions).where(eq(transactions.debtId, debtId)).get());
 }
 
 /** Finds or creates the category used for loan charges / interest received. */

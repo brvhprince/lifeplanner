@@ -27,7 +27,7 @@ test('partial repayments split proportionally and always add up', () => {
         assert.equal(split.principal + split.interest, amount);
         principalPaid += split.principal;
         interestPaid += split.interest;
-        state = computeDebtState(fido, { repaid: principalPaid + interestPaid, interestPaid, disbursed: 1, repaymentLegs: 1 });
+        state = computeDebtState(fido, { repaid: principalPaid + interestPaid, interestPaid, disbursed: 1 });
     }
     assert.equal(state.outstanding, 0);
     assert.equal(interestPaid, 7874, 'all charges paid, no more, no less');
@@ -47,6 +47,6 @@ test('principal above the total is capped (no negative charges)', () => {
 });
 
 test('outstanding never goes below zero', () => {
-    const s = computeDebtState(fido, { repaid: 50000, interestPaid: 7874, disbursed: 1, repaymentLegs: 2 });
+    const s = computeDebtState(fido, { repaid: 50000, interestPaid: 7874, disbursed: 1 });
     assert.equal(s.outstanding, 0);
 });

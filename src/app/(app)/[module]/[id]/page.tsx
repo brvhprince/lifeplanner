@@ -12,6 +12,8 @@ import { formOptions, getRecord, listTimeline } from '@/server/modules/registry'
 import { deleteRecord, saveRecord } from '@/server/modules/actions';
 import { getModule, statusOf } from '@/lib/modules/definitions';
 import { today } from '@/lib/dates';
+import { hasLoanEntries } from '@/server/finance/debts';
+import { LOCKED_LOAN_FIELDS } from '@/lib/loans';
 
 type Props = { params: Promise<{ module: string; id: string }> };
 
@@ -56,6 +58,9 @@ export default async function RecordPage({ params }: Props) {
                 defaultCurrency={user.currency}
                 submitLabel="Save changes"
                 withStatus
+                {...(def.key === 'debts' && hasLoanEntries(record.id)
+                    ? { locked: LOCKED_LOAN_FIELDS, lockedHelp: 'Locked: money is recorded for this loan.' }
+                    : {})}
             />
             <div className="mt-6 border-t border-light-300 pt-4 dark:border-dark-light/30">
                 <ConfirmButton

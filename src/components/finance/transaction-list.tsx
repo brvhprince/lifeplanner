@@ -66,6 +66,8 @@ export default function TransactionList({
                                                 <Link href={`/debts/${t.debtId}`} className="hover:text-brand">
                                                     {t.kind === 'debt' ? loanLabel(t.debtRole, t.debtDirection) : (t.categoryName ?? 'Loan charges')} · {t.debtTitle}
                                                 </Link>
+                                            ) : t.kind === 'debt' ? (
+                                                <span>Loan entry (loan deleted)</span>
                                             ) : (
                                                 <span>{t.categoryName ?? 'Uncategorised'}</span>
                                             )}

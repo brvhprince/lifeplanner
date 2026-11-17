@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "8ea1d8ea-1685-485a-9b28-bfe2ba53a995",
+  "id": "83ecab09-8b84-4833-8eba-e6c7822ef0dc",
   "prevId": "e713ba53-dedb-49ec-b8b2-583673a8690f",
   "tables": {
     "accounts": {
@@ -743,6 +743,13 @@
           "notNull": true,
           "autoincrement": false,
           "default": "'active'"
+        },
+        "settled_by": {
+          "name": "settled_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
         },
         "image_id": {
           "name": "image_id",

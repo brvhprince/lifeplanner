@@ -13,7 +13,7 @@ import { getRecord, tableFor } from './registry';
 import { parseRecord } from './validate';
 import { deleteEntityFiles } from '@/server/files';
 import { isHttpUrl, isPhone } from '@/lib/validate';
-import { chargeCategory, debtState, getDebt, insertDisbursement, insertRepayment, syncDebtStatus } from '@/server/finance/debts';
+import { chargeCategory, debtState, getDebt, hasLoanEntries, insertDisbursement, insertRepayment, syncDebtStatus } from '@/server/finance/debts';
 
 function moduleOrThrow(key: string) {
     const def = getModule(key);
@@ -45,7 +45,7 @@ export async function saveRecord(moduleKey: string, id: string | null, _prev: Ac
 
     const recordNow = def.key === 'debts' && !id && formData.get('recordNow') === 'on';
     if (def.key === 'debts') {
-        const problem = checkDebtValues(values, user.id, recordNow);
+        const problem = (id && checkDebtUpdate(values, user.id, id)) || checkDebtValues(values, user.id, recordNow);
         if (problem) return { ...problem, values: formValues(formData) };
     }
 
@@ -71,6 +71,41 @@ export async function saveRecord(moduleKey: string, id: string | null, _prev: Ac
     if (recordNow) revalidatePath('/', 'layout');
     refresh(def.key);
     return { ok: true, message: recordNow ? `${def.singular} added and recorded in the account` : `${def.singular} added` };
+}
+
+const LOCKED_MESSAGE = 'Locked because money is recorded for this loan. Delete its money movements first to change it.';
+
+/**
+ * Rules for editing an existing loan: once money is recorded, the fields that
+ * money depends on are fixed, the total can't drop below what's repaid, and
+ * changing the status by hand is remembered as a manual settlement.
+ * May adjust `values` (fills an unchanged principal, sets settledBy).
+ */
+function checkDebtUpdate(values: Record<string, unknown>, userId: string, id: string): ActionState | null {
+    const existing = getDebt(userId, id);
+    if (!existing) return null;
+    const fail = (field: string, message: string) => ({ error: message, fieldErrors: { [field]: message } });
+
+    if (hasLoanEntries(id)) {
+        if (values.direction !== existing.direction) return fail('direction', LOCKED_MESSAGE);
+        if (values.currency !== existing.currency) return fail('currency', LOCKED_MESSAGE);
+        if (((values.upfrontFeeMinor as number | undefined) ?? 0) !== existing.upfrontFeeMinor) return fail('upfrontFeeMinor', LOCKED_MESSAGE);
+
+        // An empty "amount borrowed" means "same as the total"; with money
+        // recorded, keep the principal fixed so a new total only changes charges.
+        const recordedPrincipal = Math.min(existing.principalMinor ?? existing.amountMinor, existing.amountMinor);
+        if (values.principalMinor == null) values.principalMinor = recordedPrincipal;
+        else if (values.principalMinor !== recordedPrincipal) return fail('principalMinor', LOCKED_MESSAGE);
+
+        const { repaid } = debtState(existing);
+        if ((values.amountMinor as number) < repaid) {
+            return fail('amountMinor', `Can’t be less than the ${formatMoney(repaid, existing.currency)} already repaid`);
+        }
+    }
+
+    if (values.status === 'paid' && existing.status !== 'paid') values.settledBy = 'manual';
+    else if (values.status && values.status !== 'paid') values.settledBy = null;
+    return null;
 }
 
 /** Cross-field checks for loans that the generic field validation can't express. */
@@ -247,7 +282,7 @@ export async function recordSubscriptionPayment(subscriptionId: string, _prev: A
 export async function settleDebt(debtId: string) {
     const user = await requireUser();
     db.update(schema.debts)
-        .set({ status: 'paid', paidOn: today() })
+        .set({ status: 'paid', settledBy: 'manual', paidOn: today() })
         .where(and(eq(schema.debts.id, debtId), eq(schema.debts.userId, user.id)))
         .run();
     refresh('debts', debtId);

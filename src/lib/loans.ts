@@ -11,11 +11,9 @@ export type DebtState = {
     outstanding: number;
     /** True when the money borrowed/lent is recorded in an account. */
     disbursed: boolean;
-    /** True when any repayment was ever recorded (even if later reversed). */
-    hasRepayments: boolean;
 };
 
-export type LegTotals = { repaid: number; interestPaid: number; disbursed: number; repaymentLegs: number };
+export type LegTotals = { repaid: number; interestPaid: number; disbursed: number };
 
 export function computeDebtState(
     debt: { amountMinor: number; principalMinor: number | null },
@@ -30,7 +28,6 @@ export function computeDebtState(
         interestPaid: legs?.interestPaid ?? 0,
         outstanding: Math.max(0, debt.amountMinor - repaid),
         disbursed: (legs?.disbursed ?? 0) > 0,
-        hasRepayments: (legs?.repaymentLegs ?? 0) > 0,
     };
 }
 
@@ -44,3 +41,6 @@ export function splitRepayment(amount: number, state: Pick<DebtState, 'charges' 
     const interest = Math.min(remainingCharges, Math.round((amount * remainingCharges) / state.outstanding));
     return { principal: amount - interest, interest };
 }
+
+/** Loan fields that can't change once money is recorded for the loan. */
+export const LOCKED_LOAN_FIELDS = ['direction', 'principalMinor', 'upfrontFeeMinor', 'currency'];

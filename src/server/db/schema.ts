@@ -360,6 +360,12 @@ export const debts = sqliteTable('debts', {
     dueOn: text('due_on'),
     paidOn: text('paid_on'),
     status: text('status', { enum: ['active', 'cancelled', 'paid'] }).notNull().default('active'),
+    /**
+     * How a `paid` debt was settled: `ledger` = repayments cleared it (reopens if
+     * one is removed); `manual` = marked settled by hand (never reopened). Null
+     * for debts settled before this was tracked.
+     */
+    settledBy: text('settled_by', { enum: ['ledger', 'manual'] }),
     imageId: imageId(),
     metadata: metadata(),
     ...timestamps,

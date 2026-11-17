@@ -21,9 +21,23 @@ import routes from '@/config/routes';
 
 export const metadata: Metadata = { title: 'Edit entry' };
 
-export default async function TransactionPage({ params }: { params: Promise<{ id: string }> }) {
+const NOTICES: Record<string, string> = {
+    'restore-overpay':
+        'This repayment can’t be restored: together with the repayments recorded since, it would repay more than the loan is owed. Delete it, or delete the newer repayment first.',
+    'restore-disbursement':
+        'This entry can’t be restored because the loan’s money has been recorded again since. Delete one of the two instead.',
+};
+
+export default async function TransactionPage({
+    params,
+    searchParams,
+}: {
+    params: Promise<{ id: string }>;
+    searchParams: Promise<{ notice?: string }>;
+}) {
     const user = await requireUser();
     const { id } = await params;
+    const notice = NOTICES[(await searchParams).notice ?? ''];
     const t = schema.transactions;
     const row = db.select().from(t).where(and(eq(t.id, id), eq(t.userId, user.id))).get();
     if (!row) notFound();
@@ -48,13 +62,23 @@ export default async function TransactionPage({ params }: { params: Promise<{ id
                     </Link>
                 }
             />
+            {notice && (
+                <p role="alert" className="mb-6 max-w-4xl rounded-md border border-warning bg-warning-soft px-4 py-3 text-sm font-semibold text-warning-dark">
+                    {notice}
+                </p>
+            )}
             <div className="grid max-w-4xl gap-6 lg:grid-cols-[1fr_280px]">
                 <div className="space-y-6">
                 <Card>
                     <CardTitle>Edit {row.debtId ? 'loan entry' : row.kind}</CardTitle>
                     <ActionForm action={updateEntry.bind(null, row.id)} className="space-y-4">
                         <Input label="Description" name="title" defaultValue={row.title} maxLength={120} required />
-                        {row.debtId ? (
+                        {!row.debtId && row.kind === 'debt' ? (
+                            <p className="rounded-md bg-grey-100 p-3 text-body-2 dark:bg-dark-dark">
+                                This entry belonged to a loan that has since been deleted. It stays in the account so the balance is unchanged;
+                                delete it if that money shouldn’t count.
+                            </p>
+                        ) : row.debtId ? (
                             <p className="rounded-md bg-grey-100 p-3 text-body-2 dark:bg-dark-dark">
                                 Part of a loan. Amounts and accounts are managed on{' '}
                                 <Link href={`/debts/${row.debtId}`} className="font-semibold text-brand">

@@ -12,7 +12,7 @@ import { getAccount } from '@/server/finance/queries';
 import { isIsoDate } from '@/lib/dates';
 import { ACCOUNT_TYPES } from '@/server/db/schema';
 import { deleteEntityFiles } from '@/server/files';
-import { loanGroupIds, syncDebtStatus } from '@/server/finance/debts';
+import { debtState, getDebt, loanGroupIds, syncDebtStatus } from '@/server/finance/debts';
 
 const { accounts, categories, transactions, transfers } = schema;
 
@@ -299,6 +299,25 @@ function createTransfer(
     return { ok: true, message: `Transfer recorded${overdraftNote(userId, from.id)}` };
 }
 
+/**
+ * Why restoring a reversed loan entry would double-count money, or null if it's
+ * fine: e.g. a replacement repayment was recorded after this one was reversed.
+ */
+function loanRestoreProblem(userId: string, row: typeof transactions.$inferSelect) {
+    const debt = getDebt(userId, row.debtId!);
+    if (!debt) return null;
+    const legs = db
+        .select({ role: transactions.debtRole, amountMinor: transactions.amountMinor })
+        .from(transactions)
+        .where(inArray(transactions.id, loanGroupIds(db, row)))
+        .all();
+    const state = debtState(debt);
+    if (legs.some((l) => l.role === 'disbursement') && state.disbursed) return 'restore-disbursement';
+    const repaying = legs.filter((l) => l.role === 'repayment' || l.role === 'interest').reduce((sum, l) => sum + Math.abs(l.amountMinor), 0);
+    if (repaying > state.outstanding) return 'restore-overpay';
+    return null;
+}
+
 /** Marks a ledger entry (and its transfer counterpart) reversed; history is kept. */
 export async function setTransactionReversed(transactionId: string, reversed: boolean) {
     const user = await requireUser();
@@ -310,6 +329,10 @@ export async function setTransactionReversed(transactionId: string, reversed: bo
     if (!row) return;
 
     const status = reversed ? 'reversed' : 'active';
+    if (!reversed && row.debtId) {
+        const blocked = loanRestoreProblem(user.id, row);
+        if (blocked) redirect(`/transactions/${row.id}?notice=${blocked}`);
+    }
     db.transaction((tx) => {
         if (row.transferId) {
             tx.update(transfers).set({ status }).where(eq(transfers.id, row.transferId)).run();
@@ -416,15 +439,16 @@ export async function updateEntry(transactionId: string, _prev: ActionState, for
     if (!parsed.data) return parsed.state;
     const input = parsed.data;
 
-    if (row.debtId) {
-        // Loan entries: amounts and accounts are managed from the loan page.
+    if (row.debtId || row.kind === 'debt') {
+        // Loan entries (including ones whose loan was deleted): amounts and
+        // accounts are managed from the loan, so only details change here.
         db.transaction((tx) => {
             tx.update(transactions)
                 .set({ occurredOn: input.occurredOn, note: input.note ?? null })
                 .where(inArray(transactions.id, loanGroupIds(tx, row)))
                 .run();
             tx.update(transactions).set({ title: input.title }).where(eq(transactions.id, row.id)).run();
-            syncDebtStatus(user.id, row.debtId!, tx);
+            if (row.debtId) syncDebtStatus(user.id, row.debtId, tx);
         });
         refresh();
         return { ok: true, message: 'Entry updated' };

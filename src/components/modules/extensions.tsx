@@ -184,6 +184,8 @@ export function DebtPanel({ debtId, userId }: { debtId: string; userId: string }
                   .all()
             : [];
 
+    // Settled by hand (or before repayments were tracked) with money unrecorded.
+    const settledByHand = debt.status === 'paid' && state.outstanding > 0;
     const received = state.principal - (borrowing ? debt.upfrontFeeMinor : 0);
     const cost = (borrowing ? debt.upfrontFeeMinor : 0) + state.charges;
     const days = debt.dueOn ? daysBetween(today(), debt.dueOn) : null;
@@ -211,7 +213,11 @@ export function DebtPanel({ debtId, userId }: { debtId: string; userId: string }
                         <div className="text-caption font-semibold uppercase tracking-wide text-body-muted">
                             {debt.status === 'paid' ? 'Settled' : borrowing ? 'Outstanding' : 'Still owed to you'}
                         </div>
-                        <Money minor={state.outstanding} currency={currency} className="text-heading-2 font-bold text-heading-dark dark:text-heading-light" />
+                        <Money
+                            minor={settledByHand ? 0 : state.outstanding}
+                            currency={currency}
+                            className="text-heading-2 font-bold text-heading-dark dark:text-heading-light"
+                        />
                     </div>
                     {days !== null && debt.status === 'active' && (
                         <span className={days < 0 ? 'text-body-2 font-semibold text-danger-dark dark:text-danger' : 'text-body-2 text-body-muted'}>
@@ -219,7 +225,17 @@ export function DebtPanel({ debtId, userId }: { debtId: string; userId: string }
                         </span>
                     )}
                 </div>
-                <ProgressBar value={state.repaid} max={debt.amountMinor} color={debt.status === 'paid' ? '#4AAE8C' : undefined} />
+                <ProgressBar
+                    value={settledByHand ? debt.amountMinor : state.repaid}
+                    max={debt.amountMinor}
+                    color={debt.status === 'paid' ? '#4AAE8C' : undefined}
+                />
+                {settledByHand && (
+                    <p className="mt-2 text-caption text-body-muted">
+                        Marked settled by hand. {money(state.outstanding)} wasn’t recorded as repaid in your accounts. To track it, set the status back
+                        to Outstanding and record the repayment.
+                    </p>
+                )}
                 <dl className="mt-4 grid grid-cols-2 gap-x-6 gap-y-1.5 text-body-2">
                     {rows.map(([label, value, strong]) => (
                         <div key={label} className="contents">
