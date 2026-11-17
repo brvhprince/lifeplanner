@@ -76,7 +76,9 @@ const commands = {
         const target = path.resolve(file);
         await openDb().backup(target);
         console.log(`Database copied to ${target}.`);
-        console.log(`Also keep ${path.join(dataDir, 'secret.key')} (unless APP_SECRET is set) and ${path.join(dataDir, 'uploads')}.`);
+        const secret = process.env.APP_SECRET ? 'your APP_SECRET value' : path.join(dataDir, 'secret.key');
+        const vapid = process.env.VAPID_PRIVATE_KEY ? 'your VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY values' : path.join(dataDir, 'vapid.json');
+        console.log(`Also keep ${secret}, ${vapid} and ${path.join(dataDir, 'uploads')}.`);
     },
 };
 

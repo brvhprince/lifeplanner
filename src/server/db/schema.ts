@@ -58,6 +58,8 @@ export const users = sqliteTable('users', {
     totpEnabled: integer('totp_enabled', { mode: 'boolean' }).notNull().default(false),
     /** Default currency for new accounts and summaries. */
     currency: text('currency').notNull().default('USD'),
+    /** Days ahead to warn about bills, loans and deadlines (0 = only on the day). */
+    notifyDaysBefore: integer('notify_days_before').notNull().default(3),
     ...timestamps,
 });
 
@@ -663,6 +665,23 @@ export const notifications = sqliteTable(
         createdAt: timestamps.createdAt,
     },
     (t) => [index('notifications_user_idx').on(t.userId, t.readAt), uniqueIndex('notifications_user_key_idx').on(t.userId, t.key)]
+);
+
+/** Browsers/devices that receive Web Push notifications. */
+export const pushSubscriptions = sqliteTable(
+    'push_subscriptions',
+    {
+        id: id(),
+        userId: userId(),
+        endpoint: text('endpoint').notNull().unique(),
+        p256dh: text('p256dh').notNull(),
+        auth: text('auth').notNull(),
+        /** Friendly device description, e.g. "Safari on iPhone". */
+        label: text('label'),
+        createdAt: timestamps.createdAt,
+        lastSuccessAt: integer('last_success_at', { mode: 'timestamp_ms' }),
+    },
+    (t) => [index('push_subscriptions_user_idx').on(t.userId)]
 );
 
 export const reports = sqliteTable('reports', {

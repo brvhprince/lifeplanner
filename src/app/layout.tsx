@@ -11,6 +11,8 @@ export const metadata: Metadata = {
     title: { default: APP_NAME, template: `%s · ${APP_NAME}` },
     description: 'A private, self-hosted planner for your money, goals and life.',
     robots: { index: false, follow: false },
+    icons: { icon: '/favicon.ico', apple: '/icons/apple-touch-icon.png' },
+    appleWebApp: { capable: true, title: APP_NAME, statusBarStyle: 'default' },
 };
 
 export const viewport: Viewport = {

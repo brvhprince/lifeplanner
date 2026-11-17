@@ -1,6 +1,6 @@
 # LifePlanner
 
-An open source, self-hosted planner for your private life: money, goals, plans, people and memories, kept in a single SQLite file on hardware you control. No third-party services, no telemetry.
+An open source, self-hosted planner for your private life: money, goals, plans, people and memories, kept in a single SQLite file on hardware you control. No third-party services required, no telemetry (push notifications, if you turn them on, go through your browser’s push service).
 
 **Source and docs:** [github.com/brvhprince/lifeplanner](https://github.com/brvhprince/lifeplanner)
 
@@ -10,7 +10,7 @@ An open source, self-hosted planner for your private life: money, goals, plans, 
 - **Growth:** future plans, projects, learning, career and personal brand, each with a progress log
 - **Life:** notes, memories, people (birthdays and moments), responsibilities, employers and contacts
 - **Time:** reminders, routines, and a "Coming up" view of everything due in the next 30 days
-- **Everywhere:** search, photo and file attachments, in-app notifications, CSV/JSON/SQLite export, optional two-factor sign-in
+- **Everywhere:** search, photo and file attachments, push notifications on your phone (installable app; needs HTTPS), CSV/JSON/SQLite export, optional two-factor sign-in
 
 ## Quick start
 
@@ -35,7 +35,7 @@ The image runs on `linux/amd64` and `linux/arm64` (PCs, servers, Apple Silicon, 
 
 ## Data
 
-Everything lives in the `/data` volume: the database (`lifeplanner.db`), the encryption key (`secret.key`) and uploads (`uploads/`). Back up the whole folder.
+Everything lives in the `/data` volume: the database (`lifeplanner.db`), the encryption key (`secret.key`), push notification keys (`vapid.json`) and uploads (`uploads/`). Back up the whole folder.
 
 ## Configuration
 
