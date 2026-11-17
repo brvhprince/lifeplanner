@@ -59,9 +59,11 @@ docker exec lifeplanner lp backup /data/backup.db
 
 | Tag | Meaning |
 | --- | --- |
-| `latest` | Latest build of `main` |
-| `0.2.0`, `0.2` | Released versions |
-| `sha-<commit>` | A specific commit |
+| `latest` | The newest release |
+| `0.3.0` | Exactly that release |
+| `0.3` | The newest `0.3.x` release |
+
+Release notes: [github.com/brvhprince/lifeplanner/releases](https://github.com/brvhprince/lifeplanner/releases)
 
 ## Upgrading
 

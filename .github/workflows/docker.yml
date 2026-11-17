@@ -1,19 +1,42 @@
 name: Docker image
 
 # Builds a multi-architecture image (amd64 + arm64) on native runners and
-# publishes it to GitHub Container Registry. Also publishes to Docker Hub when
-# the DOCKERHUB_USERNAME and DOCKERHUB_TOKEN secrets are set.
+# publishes it to GitHub Container Registry, and to Docker Hub when the
+# DOCKERHUB_USERNAME and DOCKERHUB_TOKEN secrets are set.
 #
-#   push to main  -> :latest, :main, :sha-<short>
-#   tag v1.2.3    -> :1.2.3, :1.2, :1   (0.x releases: :0.2.0, :0.2 only)
-#   pull request  -> build only, nothing is pushed
+#   tag v1.2.3       -> :1.2.3, :1.2, :1, :latest  (0.x releases: no :0)
+#                       + a GitHub Release with generated notes
+#                       + Docker Hub overview update
+#   tag v1.3.0-rc.1  -> :1.3.0-rc.1 only (pre-release)
+#   pull request     -> build only, and only when Docker-related files change
+#   Run workflow     -> rebuild and republish a version (pick its tag under
+#                       "Use workflow from" and enter the same version)
+#
+# Merges to main don't publish anything; CI (ci.yml) still checks them.
 
 on:
   push:
-    branches: [main]
     tags: ['v*.*.*']
   pull_request:
+    paths:
+      - Dockerfile
+      - .dockerignore
+      - docker/**
+      - package.json
+      - yarn.lock
+      - next.config.ts
+      - .github/workflows/docker.yml
   workflow_dispatch:
+    inputs:
+      version:
+        description: Version to (re)publish, e.g. 0.3.0
+        required: true
+        type: string
+      latest:
+        description: Also move :latest to this build
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -124,14 +147,17 @@ jobs:
           images: |
             ${{ env.GHCR_IMAGE }}
             name=docker.io/${{ secrets.DOCKERHUB_USERNAME }}/lifeplanner,enable=${{ env.DOCKERHUB_USERNAME != '' }}
+          # No bare major tag before 1.0 (0.x minor releases may break things),
+          # and pre-releases (v1.3.0-rc.1) only get their exact version.
+          flavor: latest=false
           tags: |
-            type=raw,value=latest,enable={{is_default_branch}}
-            type=ref,event=branch
             type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            # No bare major tag before 1.0: 0.x minor releases may break things.
-            type=semver,pattern={{major}},enable=${{ !startsWith(github.ref, 'refs/tags/v0.') }}
-            type=sha
+            type=semver,pattern={{major}}.{{minor}},enable=${{ !contains(github.ref_name, '-') }}
+            type=semver,pattern={{major}},enable=${{ !startsWith(github.ref, 'refs/tags/v0.') && !contains(github.ref_name, '-') }}
+            type=raw,value=latest,enable=${{ github.event_name == 'push' && !contains(github.ref_name, '-') }}
+            type=semver,pattern={{version}},value=${{ inputs.version }},enable=${{ github.event_name == 'workflow_dispatch' }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ inputs.version }},enable=${{ github.event_name == 'workflow_dispatch' }}
+            type=raw,value=latest,enable=${{ github.event_name == 'workflow_dispatch' && inputs.latest }}
 
       - name: Create manifest lists and push
         working-directory: ${{ runner.temp }}/digests
@@ -147,7 +173,7 @@ jobs:
   # Docker Hub's "Read, Write, Delete" scope to edit descriptions.
   dockerhub-description:
     name: Update Docker Hub overview
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' && !contains(github.ref_name, '-')
     needs: publish
     runs-on: ubuntu-24.04
     env:
@@ -164,3 +190,29 @@ jobs:
           repository: ${{ secrets.DOCKERHUB_USERNAME }}/lifeplanner
           short-description: Self-hosted personal life planner for money, goals, plans and memories. Single SQLite file.
           readme-filepath: docker/DOCKERHUB.md
+
+  release:
+    name: Create GitHub Release
+    if: github.event_name == 'push'
+    needs: publish
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Create release with notes since the previous version
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release $TAG already exists"; exit 0
+          fi
+          args=(--verify-tag --generate-notes --title "LifePlanner ${TAG#v}")
+          previous=$(git describe --tags --abbrev=0 --match 'v*.*.*' "$TAG^" 2>/dev/null || true)
+          [ -n "$previous" ] && args+=(--notes-start-tag "$previous")
+          case "$TAG" in *-*) args+=(--prerelease) ;; esac
+          gh release create "$TAG" "${args[@]}"
