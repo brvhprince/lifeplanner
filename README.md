@@ -81,7 +81,7 @@ Everything is stored in `./data`:
 | `data/lifeplanner.db` | The database (SQLite, WAL mode) |
 | `data/secret.key` | Key that encrypts sensitive fields such as 2FA secrets. Generated on first start. |
 | `data/uploads/` | Uploaded files |
-| `data/vapid.json` | Keys that sign push notifications (unless set with `VAPID_*` variables). Generated on first use. If lost, open **Settings → Notifications** on each device and tap **Turn on notifications** again. |
+| `data/vapid.json` | Keys that sign push notifications (unless set with `VAPID_*` variables). Generated on first use. If lost, open **Settings → Notifications** on each device and tap **Turn on notifications** again (if a device still shows “On”, tap **Turn off here** first). |
 
 ### Upgrading
 
@@ -132,7 +132,7 @@ LifePlanner can send push notifications for bills, loans, savings, deadlines and
 2. **iPhone/iPad (iOS 16.4+):** open it in Safari, tap Share → **Add to Home Screen**, then open it from the Home Screen. **Android and desktop:** use Chrome, Edge or Firefox (you can also install it from the browser menu).
 3. Go to **Settings → Notifications → Turn on notifications on this device**, allow notifications, and tap **Send a test**.
 
-Push messages travel through your browser's push service (Apple, Google, Mozilla or Microsoft). Each message is end-to-end encrypted and contains the notification title and text, a link to the page in LifePlanner, and a notification id. The push service also receives a contact address for this server: the owner's email by default, or `VAPID_SUBJECT` if set. Only those push services are ever contacted; `PUSH_ALLOWED_HOSTS` can add others for unusual browsers.
+Push messages travel through your browser's push service (Apple, Google, Mozilla or Microsoft). Each message is end-to-end encrypted and contains the notification title and text, a link to the page in LifePlanner, and a tag (the notification’s id, or `test` for test messages). The push service also receives a contact address for this server: the owner's email by default, or `VAPID_SUBJECT` if set. Only those push services are ever contacted; `PUSH_ALLOWED_HOSTS` can add others for unusual browsers.
 
 ## Your data and backups
 

@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { and, eq } from 'drizzle-orm';
 import { db, schema } from '@/server/db';
 import { requireUser } from '@/server/auth/session';
-import { isAllowedEndpoint, sendPush } from '@/server/push';
+import { isAllowedEndpoint, sendPush, vapidPublicKey as vapidPublicKeyOrNull } from '@/server/push';
 import { logActivity } from '@/server/activity';
 import type { ActionState } from '@/lib/action-state';
 
@@ -21,17 +21,27 @@ export async function savePushSubscription(subscription: BrowserSubscription, la
     if (!isAllowedEndpoint(endpoint) || endpoint.length > 2000 || !p256dh || !auth || p256dh.length > 200 || auth.length > 100) {
         return { ok: false };
     }
-    const values = { userId: user.id, endpoint, p256dh, auth, label: label.slice(0, 80) || null };
+    const vapidPublicKey = vapidPublicKeyOrNull();
+    if (!vapidPublicKey) return { ok: false };
+    const values = { userId: user.id, endpoint, p256dh, auth, vapidPublicKey, label: label.slice(0, 80) || null };
     db.insert(p).values(values).onConflictDoUpdate({ target: p.endpoint, set: values }).run();
     logActivity(user.id, 'push.enabled', `Notifications turned on for ${values.label ?? 'a device'}`);
     revalidatePath('/settings');
     return { ok: true };
 }
 
-/** Whether the server will deliver to this browser's subscription. */
-export async function isPushRegistered(endpoint: string) {
+/**
+ * Whether the server can deliver to this browser's subscription:
+ * `current` = registered with the server's current key; `stale` = registered
+ * with an older key (must re-subscribe); `missing` = not registered.
+ */
+export async function pushRegistrationStatus(endpoint: string): Promise<'current' | 'stale' | 'missing'> {
     const user = await requireUser();
-    return Boolean(db.select({ id: p.id }).from(p).where(and(eq(p.userId, user.id), eq(p.endpoint, endpoint))).get());
+    const row = db.select({ key: p.vapidPublicKey }).from(p).where(and(eq(p.userId, user.id), eq(p.endpoint, endpoint))).get();
+    if (!row) return 'missing';
+    const current = vapidPublicKeyOrNull();
+    // Rows saved before keys were recorded can't be checked; assume they still work.
+    return !row.key || row.key === current ? 'current' : 'stale';
 }
 
 /** Called when this browser turns notifications off. */
