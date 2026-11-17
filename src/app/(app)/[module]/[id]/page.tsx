@@ -12,6 +12,8 @@ import { formOptions, getRecord, listTimeline } from '@/server/modules/registry'
 import { deleteRecord, saveRecord } from '@/server/modules/actions';
 import { getModule, statusOf } from '@/lib/modules/definitions';
 import { today } from '@/lib/dates';
+import { hasLoanEntries } from '@/server/finance/debts';
+import { LOCKED_LOAN_FIELDS } from '@/lib/loans';
 
 type Props = { params: Promise<{ module: string; id: string }> };
 
@@ -36,7 +38,7 @@ export default async function RecordPage({ params }: Props) {
         ) : def.extension === 'subscription' ? (
             <SubscriptionPanel sub={record} userId={user.id} />
         ) : def.extension === 'debt' ? (
-            <DebtPanel debt={record} />
+            <DebtPanel debtId={record.id} userId={user.id} />
         ) : def.extension === 'schedule' ? (
             <SchedulePanel schedule={record} userId={user.id} />
         ) : def.extension === 'employer' ? (
@@ -56,9 +58,20 @@ export default async function RecordPage({ params }: Props) {
                 defaultCurrency={user.currency}
                 submitLabel="Save changes"
                 withStatus
+                {...(def.key === 'debts' && hasLoanEntries(record.id)
+                    ? { locked: LOCKED_LOAN_FIELDS, lockedHelp: 'Locked: money is recorded for this loan.' }
+                    : {})}
             />
             <div className="mt-6 border-t border-light-300 pt-4 dark:border-dark-light/30">
-                <ConfirmButton action={deleteRecord.bind(null, def.key, record.id)} label={`Delete ${def.singular.toLowerCase()}`} />
+                <ConfirmButton
+                    action={deleteRecord.bind(null, def.key, record.id)}
+                    label={`Delete ${def.singular.toLowerCase()}`}
+                    warning={
+                        def.key === 'debts'
+                            ? 'This can’t be undone. Money already recorded in your accounts stays there.'
+                            : undefined
+                    }
+                />
             </div>
         </Card>
     );

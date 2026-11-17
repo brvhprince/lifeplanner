@@ -39,6 +39,10 @@ export type FieldDef = {
     full?: boolean;
     /** Show on list cards. */
     summary?: boolean;
+    /** Form-only input (e.g. an option at creation); never stored or exported. */
+    virtual?: boolean;
+    /** Only shown when creating a record. */
+    createOnly?: boolean;
 };
 
 export type Tone = 'neutral' | 'brand' | 'success' | 'warning' | 'danger';

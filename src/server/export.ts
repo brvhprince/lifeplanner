@@ -82,11 +82,12 @@ function moduleCsv(key: string, userId: string) {
         ...db.select({ id: categories.id, name: categories.name }).from(categories).where(eq(categories.userId, userId)).all().map((c) => [c.id, c.name] as const),
         ...db.select({ id: schema.employers.id, name: schema.employers.name }).from(schema.employers).where(eq(schema.employers.userId, userId)).all().map((e) => [e.id, e.name] as const),
     ]);
-    const header = [...def.fields.map((f) => f.name.replace(/Minor$/, '')), ...(def.statuses ? ['status'] : []), 'created', 'updated', 'id'];
+    const stored = def.fields.filter((f) => !f.virtual);
+    const header = [...stored.map((f) => f.name.replace(/Minor$/, '')), ...(def.statuses ? ['status'] : []), 'created', 'updated', 'id'];
     return toCsv(
         header,
         records.map((r) => [
-            ...def.fields.map((f) => rawValue(f, r, names)),
+            ...stored.map((f) => rawValue(f, r, names)),
             ...(def.statuses ? [statusOf(def, r.status)?.label ?? String(r.status)] : []),
             r.createdAt.toISOString(),
             r.updatedAt.toISOString(),

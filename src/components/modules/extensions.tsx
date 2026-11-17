@@ -1,10 +1,10 @@
-import { and, desc, eq } from 'drizzle-orm';
+import { and, desc, eq, isNull } from 'drizzle-orm';
+import { debtLedger, debtState, getDebt } from '@/server/finance/debts';
 import { HiOutlineTrash } from 'react-icons/hi2';
 import { Card, CardTitle, EmptyState } from '@/components/ui/card';
 import { ActionForm, SubmitButton } from '@/components/ui/forms/action-form';
 import Input from '@/components/ui/forms/input';
 import Select from '@/components/ui/forms/select';
-import Button from '@/components/ui/button';
 import ProgressBar from '@/components/ui/progress-bar';
 import Money from '@/components/finance/money';
 import { db, schema } from '@/server/db';
@@ -17,6 +17,9 @@ import {
     deleteScheduleItem,
     recordSubscriptionPayment,
     settleDebt,
+    recordDebtDisbursement,
+    recordDebtRepayment,
+    linkDebtTransaction,
 } from '@/server/modules/actions';
 import type { RecordRow } from '@/server/modules/registry';
 import { daysBetween, formatDate, today } from '@/lib/dates';
@@ -135,26 +138,216 @@ export function SubscriptionPanel({ sub, userId }: { sub: RecordRow; userId: str
     );
 }
 
-export function DebtPanel({ debt }: { debt: RecordRow }) {
-    if (debt.status !== 'active') return null;
-    const days = debt.dueOn ? daysBetween(today(), String(debt.dueOn)) : null;
+const ROLE_LABELS: Record<string, { owed: string; lent: string }> = {
+    disbursement: { owed: 'Loan received', lent: 'Money lent' },
+    fee: { owed: 'Upfront fee', lent: 'Fee' },
+    repayment: { owed: 'Repayment', lent: 'Repaid to you' },
+    interest: { owed: 'Finance charge', lent: 'Interest received' },
+};
+
+export function DebtPanel({ debtId, userId }: { debtId: string; userId: string }) {
+    const debt = getDebt(userId, debtId);
+    if (!debt) return null;
+    const state = debtState(debt);
+    const ledger = debtLedger(userId, debt.id);
+    const borrowing = debt.direction === 'owed';
+    const currency = debt.currency;
+    const money = (minor: number) => formatMoney(minor, currency);
+
+    const a = schema.accounts;
+    const accountOptions = db
+        .select({ id: a.id, name: a.name })
+        .from(a)
+        .where(and(eq(a.userId, userId), eq(a.currency, currency), isNull(a.archivedAt)))
+        .orderBy(desc(a.isPrimary), a.name)
+        .all()
+        .map((x) => ({ value: x.id, label: x.name }));
+
+    const t = schema.transactions;
+    const linkable =
+        debt.status === 'active' && !state.disbursed
+            ? db
+                  .select({ id: t.id, title: t.title, amountMinor: t.amountMinor, occurredOn: t.occurredOn, account: a.name })
+                  .from(t)
+                  .innerJoin(a, eq(a.id, t.accountId))
+                  .where(
+                      and(
+                          eq(t.userId, userId),
+                          isNull(t.debtId),
+                          eq(t.kind, borrowing ? 'income' : 'expense'),
+                          eq(t.status, 'active'),
+                          eq(a.currency, currency)
+                      )
+                  )
+                  .orderBy(desc(t.occurredOn))
+                  .limit(30)
+                  .all()
+            : [];
+
+    // Settled by hand (or before repayments were tracked) with money unrecorded.
+    const settledByHand = debt.status === 'paid' && state.outstanding > 0;
+    const received = state.principal - (borrowing ? debt.upfrontFeeMinor : 0);
+    const cost = (borrowing ? debt.upfrontFeeMinor : 0) + state.charges;
+    const days = debt.dueOn ? daysBetween(today(), debt.dueOn) : null;
+    const defaultAccount = debt.accountId && accountOptions.some((o) => o.value === debt.accountId) ? debt.accountId : accountOptions[0]?.value;
+
+    const rows: [string, string, boolean?][] = [
+        [borrowing ? 'Borrowed' : 'Lent', money(state.principal)],
+        ...(borrowing && debt.upfrontFeeMinor > 0
+            ? ([
+                  ['Fees deducted upfront', `− ${money(debt.upfrontFeeMinor)}`],
+                  ['Received', money(received)],
+              ] as [string, string][])
+            : []),
+        ...(state.charges > 0 ? ([[borrowing ? 'Finance charge' : 'Interest', money(state.charges)]] as [string, string][]) : []),
+        ['Total to repay', money(debt.amountMinor), true],
+        ['Repaid so far', money(state.repaid)],
+    ];
+
     return (
-        <Card>
-            <CardTitle>{debt.direction === 'lent' ? 'Owed to you' : 'You owe'}</CardTitle>
-            <Money
-                minor={Number(debt.amountMinor)}
-                currency={String(debt.currency)}
-                className="block text-heading-2 font-bold text-heading-dark dark:text-heading-light"
-            />
-            {days !== null && (
-                <p className="mt-1 text-body-2 text-body-muted">
-                    {days < 0 ? `${-days} days overdue` : days === 0 ? 'Due today' : `Due in ${days} days`}
-                </p>
+        <>
+            <Card>
+                <CardTitle>{borrowing ? 'Loan' : 'Money you lent'}</CardTitle>
+                <div className="mb-2 flex flex-wrap items-end justify-between gap-2">
+                    <div>
+                        <div className="text-caption font-semibold uppercase tracking-wide text-body-muted">
+                            {debt.status === 'paid' ? 'Settled' : borrowing ? 'Outstanding' : 'Still owed to you'}
+                        </div>
+                        <Money
+                            minor={settledByHand ? 0 : state.outstanding}
+                            currency={currency}
+                            className="text-heading-2 font-bold text-heading-dark dark:text-heading-light"
+                        />
+                    </div>
+                    {days !== null && debt.status === 'active' && (
+                        <span className={days < 0 ? 'text-body-2 font-semibold text-danger-dark dark:text-danger' : 'text-body-2 text-body-muted'}>
+                            {days < 0 ? `${-days} days overdue` : days === 0 ? 'Due today' : `Due in ${days} days`} · {formatDate(debt.dueOn!)}
+                        </span>
+                    )}
+                </div>
+                <ProgressBar
+                    value={settledByHand ? debt.amountMinor : state.repaid}
+                    max={debt.amountMinor}
+                    color={debt.status === 'paid' ? '#4AAE8C' : undefined}
+                />
+                {settledByHand && (
+                    <p className="mt-2 text-caption text-body-muted">
+                        Marked settled by hand. {money(state.outstanding)} wasn’t recorded as repaid in your accounts. To track it, set the status back
+                        to Outstanding and record the repayment.
+                    </p>
+                )}
+                <dl className="mt-4 grid grid-cols-2 gap-x-6 gap-y-1.5 text-body-2">
+                    {rows.map(([label, value, strong]) => (
+                        <div key={label} className="contents">
+                            <dt className="text-body-muted">{label}</dt>
+                            <dd className={strong ? 'text-right font-semibold' : 'text-right'}>{value}</dd>
+                        </div>
+                    ))}
+                </dl>
+                {cost > 0 && received > 0 && (
+                    <p className="mt-3 rounded-md bg-grey-100 px-3 py-2 text-caption dark:bg-dark-dark">
+                        {borrowing ? 'Cost of borrowing' : 'You earn'}: <strong>{money(cost)}</strong> ({((cost / received) * 100).toFixed(1)}% of what{' '}
+                        {borrowing ? 'you received' : 'you lent'}). {borrowing ? 'Recorded as spending under “Loan charges”.' : 'Recorded as income when repaid.'}
+                    </p>
+                )}
+            </Card>
+
+            {debt.status === 'active' && !state.disbursed && (
+                <Card>
+                    <CardTitle>{borrowing ? 'Record the money you received' : 'Record the money you lent'}</CardTitle>
+                    <p className="mb-4 text-body-2 text-body-muted">
+                        {borrowing
+                            ? `Adds ${money(received)} to the account${debt.upfrontFeeMinor > 0 ? ` (${money(state.principal)} borrowed, ${money(debt.upfrontFeeMinor)} fee as spending)` : ''}. It isn’t counted as income.`
+                            : `Takes ${money(state.principal)} out of the account. It isn’t counted as spending.`}
+                    </p>
+                    {accountOptions.length ? (
+                        <ActionForm action={recordDebtDisbursement.bind(null, debt.id)} className="grid gap-3 sm:grid-cols-[1fr_170px] sm:items-end">
+                            <Select label="Account" name="accountId" options={accountOptions} defaultValue={defaultAccount} />
+                            <Input label="Date" name="occurredOn" type="date" defaultValue={debt.startedOn ?? today()} />
+                            <SubmitButton className="justify-self-start text-sm sm:col-span-2">Record it</SubmitButton>
+                        </ActionForm>
+                    ) : (
+                        <EmptyState title={`No ${currency} account yet`}>Add one under Accounts first.</EmptyState>
+                    )}
+                    {linkable.length > 0 && (
+                        <div className="mt-6 border-t border-light-300 pt-4 dark:border-dark-light/30">
+                            <div className="mb-2 text-body-2 font-semibold">
+                                Already entered it as {borrowing ? 'income' : 'an expense'}?
+                            </div>
+                            <p className="mb-3 text-caption text-body-muted">
+                                Link that entry instead. It becomes part of this loan and stops counting as {borrowing ? 'income' : 'spending'}.
+                            </p>
+                            <ActionForm action={linkDebtTransaction.bind(null, debt.id)} className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
+                                <Select
+                                    label="Entry"
+                                    name="transactionId"
+                                    placeholder="Choose an entry"
+                                    options={linkable.map((x) => ({
+                                        value: x.id,
+                                        label: `${formatDate(x.occurredOn)} · ${x.title} · ${formatMoney(Math.abs(x.amountMinor), currency)} · ${x.account}`,
+                                    }))}
+                                />
+                                <SubmitButton variant="outline" className="text-sm">
+                                    Link
+                                </SubmitButton>
+                            </ActionForm>
+                        </div>
+                    )}
+                </Card>
             )}
-            <form action={settleDebt.bind(null, debt.id)} className="mt-4">
-                <Button className="text-sm">Mark as settled</Button>
-            </form>
-        </Card>
+
+            {debt.status === 'active' && state.outstanding > 0 && (
+                <Card>
+                    <CardTitle>{borrowing ? 'Record a repayment' : 'Record money paid back to you'}</CardTitle>
+                    {accountOptions.length ? (
+                        <ActionForm action={recordDebtRepayment.bind(null, debt.id)} className="grid gap-3 sm:grid-cols-2 sm:items-end">
+                            <Input label={`Amount (${currency})`} name="amount" inputMode="decimal" defaultValue={fromMinor(state.outstanding, currency)} required />
+                            <Input label="Date" name="occurredOn" type="date" defaultValue={today()} />
+                            <Select label={borrowing ? 'Paid from' : 'Received into'} name="accountId" options={accountOptions} defaultValue={defaultAccount} />
+                            <Input label="Note (optional)" name="note" maxLength={500} />
+                            <SubmitButton className="justify-self-start text-sm sm:col-span-2">{borrowing ? 'Record repayment' : 'Record payment'}</SubmitButton>
+                        </ActionForm>
+                    ) : (
+                        <EmptyState title={`No ${currency} account yet`}>Add one under Accounts first.</EmptyState>
+                    )}
+                    {state.charges > 0 && (
+                        <p className="mt-3 text-caption text-body-muted">
+                            Each payment is split between principal and {borrowing ? 'finance charge' : 'interest'} in proportion; the{' '}
+                            {borrowing ? 'charge part counts as spending' : 'interest part counts as income'}.
+                        </p>
+                    )}
+                    <form action={settleDebt.bind(null, debt.id)} className="mt-4 border-t border-light-300 pt-3 dark:border-dark-light/30">
+                        <button type="submit" className="text-caption font-semibold text-body-muted hover:text-brand">
+                            Mark settled without recording money (paid outside the app, or forgiven)
+                        </button>
+                    </form>
+                </Card>
+            )}
+
+            {ledger.length > 0 && (
+                <Card>
+                    <CardTitle>Money movements</CardTitle>
+                    <ul className="divide-y divide-light-300 dark:divide-dark-light/20">
+                        {ledger.map((leg) => (
+                            <li key={leg.id}>
+                                <Link href={`/transactions/${leg.id}`} className="flex items-center gap-3 py-2.5 hover:text-brand">
+                                    <span className="min-w-0 flex-1">
+                                        <span className={leg.status === 'reversed' ? 'block text-body-2 font-medium line-through opacity-60' : 'block text-body-2 font-medium'}>
+                                            {ROLE_LABELS[leg.role ?? '']?.[debt.direction] ?? leg.title}
+                                        </span>
+                                        <span className="block text-caption text-body-muted">
+                                            {formatDate(leg.occurredOn)} · {leg.accountName}
+                                            {leg.status === 'reversed' && ' · reversed'}
+                                        </span>
+                                    </span>
+                                    <Money minor={leg.amountMinor} currency={currency} signed colored={leg.status === 'active'} className="text-body-2 font-semibold" />
+                                </Link>
+                            </li>
+                        ))}
+                    </ul>
+                </Card>
+            )}
+        </>
     );
 }
 

@@ -3,6 +3,7 @@ import Link from '@/components/ui/link';
 import { Card, CardTitle, EmptyState, PageHeader } from '@/components/ui/card';
 import StatTile from '@/components/finance/stat-tile';
 import Money from '@/components/finance/money';
+import OverdraftLine from '@/components/finance/overdraft-line';
 import EntryForm from '@/components/finance/entry-form';
 import AccountForm from '@/components/finance/account-form';
 import TransactionList from '@/components/finance/transaction-list';
@@ -14,7 +15,7 @@ import { currentMonth, formatMonth, today } from '@/lib/dates';
 import routes from '@/config/routes';
 import UpcomingCard from '@/components/dashboard/upcoming-card';
 import ProgressBar from '@/components/ui/progress-bar';
-import { activeGoals, upcoming } from '@/server/upcoming';
+import { activeGoals, relativeDay, upcoming } from '@/server/upcoming';
 import { formatMoney } from '@/lib/money';
 
 export const metadata: Metadata = { title: 'Dashboard' };
@@ -66,10 +67,31 @@ export default async function DashboardPage() {
         <>
             <PageHeader title={`${greeting()}, ${user.firstName}`} subtitle={formatMonth(month)} />
 
-            <div className="mb-6 grid gap-4 sm:grid-cols-3">
-                <StatTile label="Total balance" amounts={summary.net} fallbackCurrency={user.currency} />
-                <StatTile label="Income this month" amounts={summary.income} fallbackCurrency={user.currency} />
-                <StatTile label="Spent this month" amounts={summary.expense} fallbackCurrency={user.currency} />
+            <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+                <StatTile label="Total balance" amounts={summary.balance} fallbackCurrency={user.currency} note="In your accounts" />
+                <StatTile
+                    label="You owe"
+                    amounts={summary.owe}
+                    fallbackCurrency={user.currency}
+                    note={
+                        summary.overdraftUsed.length
+                            ? `Loans + ${summary.overdraftUsed.map((o) => formatMoney(o.minor, o.currency)).join(', ')} overdraft`
+                            : 'Outstanding loans'
+                    }
+                />
+                <StatTile
+                    label="Net position"
+                    amounts={summary.position}
+                    fallbackCurrency={user.currency}
+                    colored
+                    note={
+                        summary.owedToYou.length
+                            ? `Incl. ${summary.owedToYou.map((o) => formatMoney(o.minor, o.currency)).join(', ')} owed to you`
+                            : 'Balance minus what you owe'
+                    }
+                />
+                <StatTile label="Income this month" amounts={summary.income} fallbackCurrency={user.currency} note="Loans not counted" />
+                <StatTile label="Spent this month" amounts={summary.expense} fallbackCurrency={user.currency} note="Incl. loan charges" />
             </div>
 
             <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
@@ -97,11 +119,50 @@ export default async function DashboardPage() {
                                         </div>
                                         <div className="truncate font-semibold text-heading-dark dark:text-heading-light">{a.name}</div>
                                         <Money minor={a.balanceMinor} currency={a.currency} className="text-heading-4 font-bold" />
+                                        <OverdraftLine balanceMinor={a.balanceMinor} overdraftLimitMinor={a.overdraftLimitMinor} currency={a.currency} />
                                     </Link>
                                 </li>
                             ))}
                         </ul>
                     </Card>
+
+                    {summary.nextLoans.length > 0 && (
+                        <Card>
+                            <CardTitle
+                                action={
+                                    <Link href="/debts" className="text-sm font-semibold text-brand hover:text-brand-light">
+                                        All debts
+                                    </Link>
+                                }
+                            >
+                                Loans to repay
+                            </CardTitle>
+                            <ul className="space-y-4">
+                                {summary.nextLoans.slice(0, 6).map(({ debt, state }) => (
+                                    <li key={debt.id}>
+                                        <Link href={`/debts/${debt.id}`} className="block hover:text-brand">
+                                            <div className="mb-1 flex items-baseline justify-between gap-3">
+                                                <span className="min-w-0 truncate text-body-2 font-medium">
+                                                    {debt.title}
+                                                    {debt.counterparty && <span className="text-body-muted"> · {debt.counterparty}</span>}
+                                                </span>
+                                                <Money minor={state.outstanding} currency={debt.currency} className="shrink-0 text-body-2 font-semibold" />
+                                            </div>
+                                            <ProgressBar value={state.repaid} max={debt.amountMinor} />
+                                            <div className="mt-1 flex justify-between text-caption text-body-muted">
+                                                <span>
+                                                    {state.repaid > 0
+                                                        ? `${formatMoney(state.repaid, debt.currency)} of ${formatMoney(debt.amountMinor, debt.currency)} repaid`
+                                                        : `${formatMoney(debt.amountMinor, debt.currency)} to repay`}
+                                                </span>
+                                                {debt.dueOn && <span className={debt.dueOn < today() ? 'font-semibold text-danger-dark dark:text-danger' : ''}>{relativeDay(debt.dueOn)}</span>}
+                                            </div>
+                                        </Link>
+                                    </li>
+                                ))}
+                            </ul>
+                        </Card>
+                    )}
 
                     <Card>
                         <CardTitle

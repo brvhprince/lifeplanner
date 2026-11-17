@@ -36,10 +36,13 @@ export function parseRecord(
 
     const empty = (field: FieldDef) => {
         if (field.required) errors[field.name] = `${field.label} is required`;
-        else values[field.name] = columns[field.name]?.notNull ? undefined : null;
+        // NOT NULL money columns (e.g. fees) mean "none" when emptied; other
+        // NOT NULL columns keep their database default.
+        else values[field.name] = columns[field.name]?.notNull ? (field.type === 'money' ? 0 : undefined) : null;
     };
 
     for (const field of def.fields) {
+        if (field.virtual) continue;
         const value = raw(field.name);
 
         if (field.type === 'checkbox') {

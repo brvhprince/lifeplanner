@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from '@/components/ui/link';
 import { Badge, Card, CardTitle, EmptyState, PageHeader } from '@/components/ui/card';
 import Money from '@/components/finance/money';
+import OverdraftLine from '@/components/finance/overdraft-line';
 import AccountForm from '@/components/finance/account-form';
 import { requireUser } from '@/server/auth/session';
 import { listAccounts } from '@/server/finance/queries';
@@ -36,6 +37,7 @@ export default async function AccountsPage() {
                                             {a.name}
                                         </div>
                                         <Money minor={a.balanceMinor} currency={a.currency} className="mt-2 block text-heading-3 font-bold" />
+                                        <OverdraftLine balanceMinor={a.balanceMinor} overdraftLimitMinor={a.overdraftLimitMinor} currency={a.currency} />
                                         <div className="mt-1 text-caption text-body-muted">
                                             {a.transactionCount} {a.transactionCount === 1 ? 'entry' : 'entries'}
                                         </div>

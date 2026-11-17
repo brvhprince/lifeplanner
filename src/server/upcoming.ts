@@ -1,6 +1,7 @@
 import { and, eq, isNotNull, lte, sql } from 'drizzle-orm';
 import { db, schema } from '@/server/db';
 import { addPeriod, daysBetween, nextOccurrence, today } from '@/lib/dates';
+import { listDebtStates } from '@/server/finance/debts';
 
 export type UpcomingItem = {
     date: string;
@@ -34,14 +35,15 @@ export function upcoming(userId: string, days = 30): UpcomingItem[] {
         items.push({ date: r.nextDueOn!, title: r.title, detail: 'Savings due', href: `/savings/${r.id}`, amountMinor: r.amountMinor, currency: r.currency });
     }
 
-    const d = schema.debts;
-    for (const r of db.select().from(d).where(and(eq(d.userId, userId), eq(d.status, 'active'), isNotNull(d.dueOn), lte(d.dueOn, end))).all()) {
+    // Debts show what is still outstanding, not the original total.
+    for (const { debt: r, state } of listDebtStates(userId, { activeOnly: true })) {
+        if (!r.dueOn || r.dueOn > end || state.outstanding === 0) continue;
         items.push({
-            date: r.dueOn!,
+            date: r.dueOn,
             title: r.title,
             detail: r.direction === 'lent' ? `${r.counterparty ?? 'Someone'} owes you` : `Pay ${r.counterparty ?? 'back'}`,
             href: `/debts/${r.id}`,
-            amountMinor: r.amountMinor,
+            amountMinor: state.outstanding,
             currency: r.currency,
         });
     }

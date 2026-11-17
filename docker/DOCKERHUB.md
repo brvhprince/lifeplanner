@@ -6,7 +6,7 @@ An open source, self-hosted planner for your private life: money, goals, plans, 
 
 ## What it does
 
-- **Money:** accounts with ledger-based balances, income and expenses, transfers (including cross-currency, with fees), categories, bills and subscriptions with one-click payments, goals, savings plans, debts, investments, wishlist
+- **Money:** accounts with ledger-based balances and overdraft limits, income and expenses, transfers (including cross-currency, with fees), categories, bills and subscriptions with one-click payments, goals, savings plans, loans with fees, finance charges and part-repayments, investments, wishlist, and your net position
 - **Growth:** future plans, projects, learning, career and personal brand, each with a progress log
 - **Life:** notes, memories, people (birthdays and moments), responsibilities, employers and contacts
 - **Time:** reminders, routines, and a "Coming up" view of everything due in the next 30 days

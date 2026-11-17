@@ -8,6 +8,12 @@ import type { LedgerRow } from '@/server/finance/queries';
 import { formatDate } from '@/lib/dates';
 import routes from '@/config/routes';
 
+function loanLabel(role: string | null, direction: string | null) {
+    const lent = direction === 'lent';
+    if (role === 'disbursement') return lent ? 'Money lent' : 'Loan received';
+    return lent ? 'Repaid to you' : 'Loan repayment';
+}
+
 export default function TransactionList({
     rows,
     showAccount = true,
@@ -36,7 +42,7 @@ export default function TransactionList({
                                         className="h-2.5 w-2.5 shrink-0 rounded-full"
                                         style={{
                                             background:
-                                                t.kind === 'transfer' ? '#A6B7D4' : (t.categoryColor ?? (t.amountMinor < 0 ? '#F16063' : '#66CB9F')),
+                                                t.kind === 'transfer' ? '#A6B7D4' : t.kind === 'debt' ? '#F7936F' : (t.categoryColor ?? (t.amountMinor < 0 ? '#F16063' : '#66CB9F')),
                                         }}
                                     />
                                     <div className="min-w-0 flex-1">
@@ -56,6 +62,12 @@ export default function TransactionList({
                                                         ? 'Transfer'
                                                         : `Transfer ${t.amountMinor < 0 ? 'to' : 'from'} ${t.counterAccountName}`}
                                                 </span>
+                                            ) : t.debtId ? (
+                                                <Link href={`/debts/${t.debtId}`} className="hover:text-brand">
+                                                    {t.kind === 'debt' ? loanLabel(t.debtRole, t.debtDirection) : (t.categoryName ?? 'Loan charges')} · {t.debtTitle}
+                                                </Link>
+                                            ) : t.kind === 'debt' ? (
+                                                <span>Loan entry (loan deleted)</span>
                                             ) : (
                                                 <span>{t.categoryName ?? 'Uncategorised'}</span>
                                             )}

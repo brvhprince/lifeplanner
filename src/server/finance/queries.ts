@@ -21,6 +21,7 @@ export function listAccounts(userId: string, { includeArchived = false } = {}) {
             isPrimary: accounts.isPrimary,
             archivedAt: accounts.archivedAt,
             openingBalanceMinor: accounts.openingBalanceMinor,
+            overdraftLimitMinor: accounts.overdraftLimitMinor,
             balanceMinor: sql<number>`${accounts.openingBalanceMinor} + ${activeAmount}`,
             transactionCount: sql<number>`count(${transactions.id})`,
         })
@@ -81,12 +82,17 @@ export function listTransactions(
             accountName: accounts.name,
             currency: accounts.currency,
             categoryName: categories.name,
+            debtId: transactions.debtId,
+            debtRole: transactions.debtRole,
+            debtTitle: schema.debts.title,
+            debtDirection: schema.debts.direction,
             categoryColor: categories.color,
             counterAccountName: counterAccount.name,
         })
         .from(transactions)
         .innerJoin(accounts, eq(accounts.id, transactions.accountId))
         .leftJoin(categories, eq(categories.id, transactions.categoryId))
+        .leftJoin(schema.debts, eq(schema.debts.id, transactions.debtId))
         .leftJoin(
             counterLeg,
             and(

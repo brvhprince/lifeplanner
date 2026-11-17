@@ -6,19 +6,19 @@ import { formatField } from '@/components/modules/format';
 import { statusOf } from '@/lib/modules/definitions';
 import type { ModuleDef } from '@/lib/modules/types';
 import type { RecordRow } from '@/server/modules/registry';
-import { formatMoney } from '@/lib/money';
 
 export default function RecordCard({
     def,
     record,
     names,
-    progressMinor,
+    progress,
     coverId,
 }: {
     def: ModuleDef;
     record: RecordRow;
     names: Map<string, string>;
-    progressMinor?: number;
+    /** Optional progress bar, e.g. goal savings or loan repayment. */
+    progress?: { value: number; max: number; label: string };
     coverId?: string;
 }) {
     const status = statusOf(def, record.status);
@@ -60,12 +60,10 @@ export default function RecordCard({
                 </dl>
             )}
 
-            {progressMinor !== undefined && typeof record.targetMinor === 'number' && (
+            {progress && (
                 <div className="mt-auto pt-4">
-                    <ProgressBar value={progressMinor} max={record.targetMinor} />
-                    <div className="mt-1 text-caption text-body-muted">
-                        {formatMoney(progressMinor, String(record.currency))} of {formatMoney(record.targetMinor, String(record.currency))}
-                    </div>
+                    <ProgressBar value={progress.value} max={progress.max} />
+                    <div className="mt-1 text-caption text-body-muted">{progress.label}</div>
                 </div>
             )}
         </Link>

@@ -17,6 +17,9 @@ type Props = {
     submitLabel: string;
     /** Show the status picker (edit forms). */
     withStatus?: boolean;
+    /** Fields shown but not editable (their current value is still submitted). */
+    locked?: string[];
+    lockedHelp?: string;
 };
 
 function defaultFor(field: FieldDef, record: Props['record'], defaultCurrency: string) {
@@ -27,9 +30,21 @@ function defaultFor(field: FieldDef, record: Props['record'], defaultCurrency: s
     return String(value);
 }
 
-function Field({ field, record, options, defaultCurrency }: { field: FieldDef } & Omit<Props, 'def' | 'action' | 'submitLabel'>) {
+function Field({ field, record, options, defaultCurrency, isLocked, lockedHelp }: { field: FieldDef; isLocked: boolean; lockedHelp?: string } & Omit<Props, 'def' | 'action' | 'submitLabel' | 'locked'>) {
     const common = { label: field.label, name: field.name, className: cn(field.full && 'sm:col-span-2') };
     const defaultValue = defaultFor(field, record, defaultCurrency);
+
+    if (isLocked) {
+        // Selects can't be read-only, so show the value and submit it hidden.
+        const shown =
+            field.type === 'select' ? (field.options?.find((o) => o.value === defaultValue)?.label ?? defaultValue) : defaultValue;
+        return (
+            <div className={common.className}>
+                <input type="hidden" name={field.name} value={defaultValue ?? ''} />
+                <Input label={field.label} defaultValue={shown ?? ''} readOnly helpText={lockedHelp} />
+            </div>
+        );
+    }
 
     switch (field.type) {
         case 'textarea':
@@ -81,12 +96,20 @@ function Field({ field, record, options, defaultCurrency }: { field: FieldDef } 
     }
 }
 
-export default function RecordForm({ def, action, record, options, defaultCurrency, submitLabel, withStatus }: Props) {
+export default function RecordForm({ def, action, record, options, defaultCurrency, submitLabel, withStatus, locked = [], lockedHelp }: Props) {
     return (
         <ActionForm action={action} className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
-                {def.fields.map((field) => (
-                    <Field key={field.name} field={field} record={record} options={options} defaultCurrency={defaultCurrency} />
+                {def.fields.filter((field) => !(record && field.createOnly)).map((field) => (
+                    <Field
+                        key={field.name}
+                        field={field}
+                        record={record}
+                        options={options}
+                        defaultCurrency={defaultCurrency}
+                        isLocked={locked.includes(field.name)}
+                        lockedHelp={lockedHelp}
+                    />
                 ))}
                 {withStatus && def.statuses && (
                     <Select
