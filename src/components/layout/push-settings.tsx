@@ -3,7 +3,7 @@
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import toast from 'react-hot-toast';
 import Button from '@/components/ui/button';
-import { isPushRegistered, removePushSubscriptionByEndpoint, savePushSubscription, sendTestPush } from '@/server/push-actions';
+import { pushRegistrationStatus, removePushSubscriptionByEndpoint, savePushSubscription, sendTestPush } from '@/server/push-actions';
 
 type Support = 'checking' | 'supported' | 'insecure' | 'ios-not-installed' | 'unsupported';
 
@@ -19,13 +19,25 @@ function describeDevice() {
     return `${browser} on ${device}`;
 }
 
-/** True when the subscription was made with this server's current signing key. */
-function sameKey(subscription: PushSubscription, publicKey: string) {
+/**
+ * Whether the subscription was made with this server's current signing key,
+ * or null when the browser doesn't expose the key it used.
+ */
+function sameKey(subscription: PushSubscription, publicKey: string): boolean | null {
     const key = subscription.options?.applicationServerKey;
-    if (!key) return true; // Not exposed by this browser; assume it matches.
+    if (!key) return null;
     const expected = base64UrlToBytes(publicKey);
     const actual = new Uint8Array(key);
     return actual.length === expected.length && actual.every((b, i) => b === expected[i]);
+}
+
+/**
+ * A browser subscription is usable when the server has it under the current
+ * key and the browser doesn't report a different key.
+ */
+async function isActive(subscription: PushSubscription, publicKey: string) {
+    if (sameKey(subscription, publicKey) === false) return false;
+    return (await pushRegistrationStatus(subscription.endpoint)) === 'current';
 }
 
 function detectSupport(): Support {
@@ -57,7 +69,7 @@ export default function PushSettings({ publicKey }: { publicKey: string | null }
             .then(async (sub) => {
                 // "On" only if the server knows this browser and the keys still match
                 // (e.g. not after removing the device in Settings or losing vapid.json).
-                const active = sub && sameKey(sub, publicKey!) && (await isPushRegistered(sub.endpoint));
+                const active = sub ? await isActive(sub, publicKey!) : false;
                 setSubscription(active ? sub : null);
                 setLookup('done');
             })
@@ -77,9 +89,12 @@ export default function PushSettings({ publicKey }: { publicKey: string | null }
             }
             const reg = await navigator.serviceWorker.register('/sw.js');
             await navigator.serviceWorker.ready;
-            // Reuse a still-valid browser subscription; replace one made with old keys.
+            // Reuse the browser's subscription only when it's certainly made with
+            // the current key (browser says so, or the server has it under that
+            // key). Otherwise replace it, e.g. after the server's keys changed.
             let sub = await reg.pushManager.getSubscription();
-            if (sub && !sameKey(sub, publicKey!)) {
+            const reusable = sub && (sameKey(sub, publicKey!) === true || (await pushRegistrationStatus(sub.endpoint)) === 'current');
+            if (sub && !reusable) {
                 await removePushSubscriptionByEndpoint(sub.endpoint);
                 await sub.unsubscribe();
                 sub = null;

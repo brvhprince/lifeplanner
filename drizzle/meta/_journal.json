@@ -29,6 +29,13 @@
       "when": 1794956344141,
       "tag": "0003_push_and_advance_reminders",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1794958415011,
+      "tag": "0004_push_subscription_key",
+      "breakpoints": true
     }
   ]
 }

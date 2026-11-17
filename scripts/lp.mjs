@@ -77,7 +77,8 @@ const commands = {
         await openDb().backup(target);
         console.log(`Database copied to ${target}.`);
         const secret = process.env.APP_SECRET ? 'your APP_SECRET value' : path.join(dataDir, 'secret.key');
-        const vapid = process.env.VAPID_PRIVATE_KEY ? 'your VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY values' : path.join(dataDir, 'vapid.json');
+        // Same rule as the app (src/server/push.ts): env keys are used only when both are set.
+        const vapid = process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY ? 'your VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY values' : path.join(dataDir, 'vapid.json');
         console.log(`Also keep ${secret}, ${vapid} and ${path.join(dataDir, 'uploads')}.`);
     },
 };

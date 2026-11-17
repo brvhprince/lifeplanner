@@ -676,6 +676,8 @@ export const pushSubscriptions = sqliteTable(
         endpoint: text('endpoint').notNull().unique(),
         p256dh: text('p256dh').notNull(),
         auth: text('auth').notNull(),
+        /** Server public key the device subscribed with; a different current key means it must re-subscribe. */
+        vapidPublicKey: text('vapid_public_key'),
         /** Friendly device description, e.g. "Safari on iPhone". */
         label: text('label'),
         createdAt: timestamps.createdAt,

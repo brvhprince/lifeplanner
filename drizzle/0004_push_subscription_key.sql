@@ -1,0 +1,1 @@
+ALTER TABLE `push_subscriptions` ADD `vapid_public_key` text;
