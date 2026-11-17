@@ -4,7 +4,7 @@ An open source, self-hosted planner for your private life. Your money, goals, pl
 
 **What it covers:**
 
-- **Money:** accounts, income, expenses, transfers (including cross-currency, with fees), categories, bills and subscriptions (one-click "record payment"), goals with contributions and progress, savings plans, debts and loans, investments, and a wishlist
+- **Money:** accounts (with overdraft limits, e.g. MoMo Boost), income, expenses, transfers (including cross-currency, with fees), categories, bills and subscriptions (one-click "record payment"), goals with contributions and progress, savings plans, loans and debts that move real money (upfront fees, finance charges, part-repayments), investments, and a wishlist. The dashboard shows what you owe and your net position.
 - **Growth:** future plans, projects, learning, career and personal brand, each with a progress log
 - **Life:** notes, memories, people (birthdays and moments), responsibilities, and work (employer contacts and linked projects)
 - **Time:** reminders and routines, plus a dashboard "Coming up" panel for anything due in the next 30 days

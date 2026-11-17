@@ -2,15 +2,17 @@
 
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { and, eq, isNull } from 'drizzle-orm';
+import { and, eq, inArray, isNull } from 'drizzle-orm';
 import { z } from 'zod';
 import { db, schema } from '@/server/db';
 import { requireUser } from '@/server/auth/session';
 import { formValues, parseForm, type ActionState } from '@/lib/action-state';
-import { isCurrency, toMinor } from '@/lib/money';
+import { formatMoney, isCurrency, toMinor } from '@/lib/money';
+import { getAccount } from '@/server/finance/queries';
 import { isIsoDate } from '@/lib/dates';
 import { ACCOUNT_TYPES } from '@/server/db/schema';
 import { deleteEntityFiles } from '@/server/files';
+import { loanGroupIds, syncDebtStatus } from '@/server/finance/debts';
 
 const { accounts, categories, transactions, transfers } = schema;
 
@@ -32,6 +34,19 @@ function refresh() {
     revalidatePath('/', 'layout');
 }
 
+/** Tells the user when an entry pushed an account below zero. */
+function overdraftNote(userId: string, accountId: string) {
+    const account = getAccount(userId, accountId);
+    if (!account || account.balanceMinor >= 0) return '';
+    const used = -account.balanceMinor;
+    const limit = account.overdraftLimitMinor;
+    if (limit > 0 && used <= limit) {
+        return `. ${account.name} is using ${formatMoney(used, account.currency)} of its ${formatMoney(limit, account.currency)} overdraft`;
+    }
+    const over = limit > 0 ? used - limit : used;
+    return `. ${account.name} is ${formatMoney(over, account.currency)} over ${limit > 0 ? 'its overdraft limit' : 'its balance'}`;
+}
+
 function ownedAccount(userId: string, accountId: string) {
     return db
         .select()
@@ -49,18 +64,28 @@ const accountSchema = z.object({
     type: z.enum(ACCOUNT_TYPES, 'Choose an account type'),
     currency: z.string().trim().toUpperCase().refine(isCurrency, 'Choose a valid currency'),
     openingBalance: z.string().trim().default('0'),
+    overdraftLimit: z.string().trim().default(''),
     description: optionalText(500),
     isPrimary: z.literal('on').optional(),
 });
+
+/** Parses the optional overdraft limit; returns null when invalid. */
+function parseOverdraft(value: string, currency: string) {
+    if (!value) return 0;
+    const minor = toMinor(value, currency);
+    return minor === null || minor < 0 ? null : minor;
+}
 
 export async function createAccount(_prev: ActionState, formData: FormData): Promise<ActionState> {
     const user = await requireUser();
     const parsed = parseForm(accountSchema, formData);
     if (!parsed.data) return parsed.state;
-    const { openingBalance, isPrimary, ...data } = parsed.data;
+    const { openingBalance, overdraftLimit, isPrimary, ...data } = parsed.data;
 
     const openingBalanceMinor = toMinor(openingBalance || '0', data.currency);
     if (openingBalanceMinor === null) return fieldError(formData, 'openingBalance', 'Enter a valid amount');
+    const overdraftLimitMinor = parseOverdraft(overdraftLimit, data.currency);
+    if (overdraftLimitMinor === null) return fieldError(formData, 'overdraftLimit', 'Enter a valid limit');
 
     db.transaction((tx) => {
         const hasAccounts = tx.select({ id: accounts.id }).from(accounts).where(eq(accounts.userId, user.id)).get();
@@ -69,7 +94,7 @@ export async function createAccount(_prev: ActionState, formData: FormData): Pro
             tx.update(accounts).set({ isPrimary: false }).where(eq(accounts.userId, user.id)).run();
         }
         tx.insert(accounts)
-            .values({ ...data, userId: user.id, openingBalanceMinor, isPrimary: primary })
+            .values({ ...data, userId: user.id, openingBalanceMinor, overdraftLimitMinor, isPrimary: primary })
             .run();
     });
 
@@ -214,7 +239,7 @@ export async function createEntry(_prev: ActionState, formData: FormData): Promi
         .run();
 
     refresh();
-    return { ok: true, message: `${input.kind === 'income' ? 'Income' : 'Expense'} recorded` };
+    return { ok: true, message: `${input.kind === 'income' ? 'Income' : 'Expense'} recorded${overdraftNote(user.id, account.id)}` };
 }
 
 function createTransfer(
@@ -271,7 +296,7 @@ function createTransfer(
     });
 
     refresh();
-    return { ok: true, message: 'Transfer recorded' };
+    return { ok: true, message: `Transfer recorded${overdraftNote(userId, from.id)}` };
 }
 
 /** Marks a ledger entry (and its transfer counterpart) reversed; history is kept. */
@@ -290,7 +315,8 @@ export async function setTransactionReversed(transactionId: string, reversed: bo
             tx.update(transfers).set({ status }).where(eq(transfers.id, row.transferId)).run();
             tx.update(transactions).set({ status }).where(eq(transactions.transferId, row.transferId)).run();
         } else {
-            tx.update(transactions).set({ status }).where(eq(transactions.id, row.id)).run();
+            tx.update(transactions).set({ status }).where(inArray(transactions.id, loanGroupIds(tx, row))).run();
+            if (row.debtId) syncDebtStatus(user.id, row.debtId, tx);
         }
     });
     refresh();
@@ -305,6 +331,7 @@ const accountUpdateSchema = z.object({
     type: z.enum(ACCOUNT_TYPES, 'Choose an account type'),
     currency: z.string().trim().toUpperCase().refine(isCurrency, 'Choose a valid currency'),
     openingBalance: z.string().trim().default('0'),
+    overdraftLimit: z.string().trim().default(''),
     description: optionalText(500),
 });
 
@@ -315,7 +342,7 @@ export async function updateAccount(accountId: string, _prev: ActionState, formD
 
     const parsed = parseForm(accountUpdateSchema, formData);
     if (!parsed.data) return parsed.state;
-    const { openingBalance, ...data } = parsed.data;
+    const { openingBalance, overdraftLimit, ...data } = parsed.data;
 
     if (data.currency !== account.currency) {
         const used = db.select({ id: transactions.id }).from(transactions).where(eq(transactions.accountId, accountId)).get();
@@ -324,7 +351,13 @@ export async function updateAccount(accountId: string, _prev: ActionState, formD
     const openingBalanceMinor = toMinor(openingBalance || '0', data.currency);
     if (openingBalanceMinor === null) return fieldError(formData, 'openingBalance', 'Enter a valid amount');
 
-    db.update(accounts).set({ ...data, description: data.description ?? null, openingBalanceMinor }).where(eq(accounts.id, accountId)).run();
+    const overdraftLimitMinor = parseOverdraft(overdraftLimit, data.currency);
+    if (overdraftLimitMinor === null) return fieldError(formData, 'overdraftLimit', 'Enter a valid limit');
+
+    db.update(accounts)
+        .set({ ...data, description: data.description ?? null, openingBalanceMinor, overdraftLimitMinor })
+        .where(eq(accounts.id, accountId))
+        .run();
     refresh();
     return { ok: true, message: 'Account updated' };
 }
@@ -383,6 +416,20 @@ export async function updateEntry(transactionId: string, _prev: ActionState, for
     if (!parsed.data) return parsed.state;
     const input = parsed.data;
 
+    if (row.debtId) {
+        // Loan entries: amounts and accounts are managed from the loan page.
+        db.transaction((tx) => {
+            tx.update(transactions)
+                .set({ occurredOn: input.occurredOn, note: input.note ?? null })
+                .where(inArray(transactions.id, loanGroupIds(tx, row)))
+                .run();
+            tx.update(transactions).set({ title: input.title }).where(eq(transactions.id, row.id)).run();
+            syncDebtStatus(user.id, row.debtId!, tx);
+        });
+        refresh();
+        return { ok: true, message: 'Entry updated' };
+    }
+
     if (row.transferId) {
         const shared = { occurredOn: input.occurredOn, note: input.note ?? null };
         db.transaction((tx) => {
@@ -429,11 +476,12 @@ export async function deleteEntry(transactionId: string) {
     if (row) {
         const legs = row.transferId
             ? db.select({ id: transactions.id }).from(transactions).where(eq(transactions.transferId, row.transferId)).all().map((l) => l.id)
-            : [row.id];
+            : loanGroupIds(db, row);
         await deleteEntityFiles(user.id, 'transaction', legs);
         db.transaction((tx) => {
             if (row.transferId) tx.delete(transfers).where(eq(transfers.id, row.transferId)).run();
-            else tx.delete(transactions).where(eq(transactions.id, row.id)).run();
+            else tx.delete(transactions).where(inArray(transactions.id, legs)).run();
+            if (row.debtId) syncDebtStatus(user.id, row.debtId, tx);
         });
     }
     refresh();

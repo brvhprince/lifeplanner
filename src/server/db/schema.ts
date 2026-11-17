@@ -181,6 +181,8 @@ export const accounts = sqliteTable(
         type: text('type', { enum: ACCOUNT_TYPES }).notNull(),
         currency: text('currency').notNull(),
         openingBalanceMinor: integer('opening_balance_minor').notNull().default(0),
+        /** How far below zero the balance may go (e.g. MoMo Boost). 0 = no overdraft. */
+        overdraftLimitMinor: integer('overdraft_limit_minor').notNull().default(0),
         isPrimary: integer('is_primary', { mode: 'boolean' }).notNull().default(false),
         imageId: imageId(),
         archivedAt: integer('archived_at', { mode: 'timestamp_ms' }),
@@ -240,13 +242,21 @@ export const transactions = sqliteTable(
         accountId: text('account_id')
             .notNull()
             .references(() => accounts.id, { onDelete: 'restrict' }),
-        kind: text('kind', { enum: ['income', 'expense', 'transfer', 'adjustment'] }).notNull(),
+        /** `debt` = money borrowed/lent or principal repaid; never counted as income or spending. */
+        kind: text('kind', { enum: ['income', 'expense', 'transfer', 'adjustment', 'debt'] }).notNull(),
         amountMinor: integer('amount_minor').notNull(),
         categoryId: text('category_id').references(() => categories.id, { onDelete: 'set null' }),
         transferId: text('transfer_id').references(() => transfers.id, { onDelete: 'cascade' }),
         subscriptionId: text('subscription_id').references((): AnySQLiteColumn => subscriptions.id, {
             onDelete: 'set null',
         }),
+        debtId: text('debt_id').references((): AnySQLiteColumn => debts.id, { onDelete: 'set null' }),
+        /**
+         * Role of a loan-linked entry: `disbursement` (money borrowed/lent),
+         * `fee` (deducted upfront), `repayment` (principal part), `interest`
+         * (finance-charge part of a repayment).
+         */
+        debtRole: text('debt_role', { enum: ['disbursement', 'fee', 'repayment', 'interest'] }),
         title: text('title').notNull(),
         note: text('note'),
         occurredOn: text('occurred_on').notNull(),
@@ -258,6 +268,7 @@ export const transactions = sqliteTable(
         index('transactions_account_idx').on(t.accountId, t.status),
         index('transactions_user_date_idx').on(t.userId, t.occurredOn),
         index('transactions_category_idx').on(t.categoryId),
+        index('transactions_debt_idx').on(t.debtId),
     ]
 );
 
@@ -338,8 +349,14 @@ export const debts = sqliteTable('debts', {
     counterparty: text('counterparty'),
     title: text('title').notNull(),
     description: text('description'),
+    /** Total to repay (principal + finance charges). Outstanding = this − repaid. */
     amountMinor: integer('amount_minor').notNull(),
+    /** Amount borrowed/lent before charges. Null = same as the total (no interest). */
+    principalMinor: integer('principal_minor'),
+    /** Fees deducted from the money received (e.g. a commitment fee). */
+    upfrontFeeMinor: integer('upfront_fee_minor').notNull().default(0),
     currency: text('currency').notNull(),
+    startedOn: text('started_on'),
     dueOn: text('due_on'),
     paidOn: text('paid_on'),
     status: text('status', { enum: ['active', 'cancelled', 'paid'] }).notNull().default('active'),

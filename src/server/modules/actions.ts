@@ -8,11 +8,12 @@ import { requireUser } from '@/server/auth/session';
 import { getModule, statusOf } from '@/lib/modules/definitions';
 import { formValues, type ActionState } from '@/lib/action-state';
 import { addPeriod, isIsoDate, today } from '@/lib/dates';
-import { toMinor } from '@/lib/money';
+import { formatMoney, toMinor } from '@/lib/money';
 import { getRecord, tableFor } from './registry';
 import { parseRecord } from './validate';
 import { deleteEntityFiles } from '@/server/files';
 import { isHttpUrl, isPhone } from '@/lib/validate';
+import { chargeCategory, debtState, getDebt, insertDisbursement, insertRepayment, syncDebtStatus } from '@/server/finance/debts';
 
 function moduleOrThrow(key: string) {
     const def = getModule(key);
@@ -42,17 +43,56 @@ export async function saveRecord(moduleKey: string, id: string | null, _prev: Ac
         values.status = status;
     }
 
+    const recordNow = def.key === 'debts' && !id && formData.get('recordNow') === 'on';
+    if (def.key === 'debts') {
+        const problem = checkDebtValues(values, user.id, recordNow);
+        if (problem) return { ...problem, values: formValues(formData) };
+    }
+
     if (id) {
         if (!getRecord(def, user.id, id)) return { error: `That ${def.singular.toLowerCase()} no longer exists` };
-        db.update(table).set(values as never).where(and(eq(columns.id, id), eq(columns.userId, user.id))).run();
+        db.transaction((tx) => {
+            tx.update(table).set(values as never).where(and(eq(columns.id, id), eq(columns.userId, user.id))).run();
+            if (def.key === 'debts') syncDebtStatus(user.id, id, tx);
+        });
         refresh(def.key, id);
         return { ok: true, message: 'Saved' };
     }
 
     if (def.statuses && !values.status && def.defaultStatus) values.status = def.defaultStatus;
-    db.insert(table).values({ ...values, userId: user.id } as never).run();
+    db.transaction((tx) => {
+        const row = tx
+            .insert(table)
+            .values({ ...values, userId: user.id } as never)
+            .returning()
+            .get() as unknown as typeof schema.debts.$inferSelect;
+        if (recordNow) insertDisbursement(tx, row, row.accountId!, row.startedOn ?? today());
+    });
+    if (recordNow) revalidatePath('/', 'layout');
     refresh(def.key);
-    return { ok: true, message: `${def.singular} added` };
+    return { ok: true, message: recordNow ? `${def.singular} added and recorded in the account` : `${def.singular} added` };
+}
+
+/** Cross-field checks for loans that the generic field validation can't express. */
+function checkDebtValues(values: Record<string, unknown>, userId: string, recordNow: boolean): ActionState | null {
+    const total = values.amountMinor as number;
+    const principal = (values.principalMinor as number | null | undefined) ?? total;
+    const fee = (values.upfrontFeeMinor as number | undefined) ?? 0;
+    const lend = values.direction === 'lent';
+    const fail = (field: string, message: string) => ({ error: message, fieldErrors: { [field]: message } });
+
+    if (principal > total) return fail('principalMinor', 'Can’t be more than the total to repay');
+    if (fee >= principal) return fail('upfrontFeeMinor', 'Fees must be less than the amount borrowed');
+    if (lend && fee > 0) return fail('upfrontFeeMinor', 'Upfront fees only apply to money you borrow');
+
+    if (recordNow) {
+        const accountId = values.accountId as string | null | undefined;
+        if (!accountId) return fail('accountId', 'Choose the account to record the money in');
+        const account = db.select().from(schema.accounts).where(and(eq(schema.accounts.id, accountId), eq(schema.accounts.userId, userId))).get();
+        if (!account || account.archivedAt) return fail('accountId', 'Choose an active account');
+        if (account.currency !== values.currency) return fail('accountId', `This account is in ${account.currency}; the loan is in ${values.currency}`);
+    }
+    return null;
 }
 
 export async function setRecordStatus(moduleKey: string, id: string, status: string) {
@@ -203,6 +243,7 @@ export async function recordSubscriptionPayment(subscriptionId: string, _prev: A
 // Debts
 // ---------------------------------------------------------------------------
 
+/** Marks a debt settled without recording money (e.g. paid outside the app, or forgiven). */
 export async function settleDebt(debtId: string) {
     const user = await requireUser();
     db.update(schema.debts)
@@ -210,6 +251,135 @@ export async function settleDebt(debtId: string) {
         .where(and(eq(schema.debts.id, debtId), eq(schema.debts.userId, user.id)))
         .run();
     refresh('debts', debtId);
+}
+
+function loanAccount(userId: string, accountId: string, currency: string): { account?: typeof schema.accounts.$inferSelect; error?: string } {
+    const account = db
+        .select()
+        .from(schema.accounts)
+        .where(and(eq(schema.accounts.id, accountId), eq(schema.accounts.userId, userId)))
+        .get();
+    if (!account || account.archivedAt) return { error: 'Choose an active account' };
+    if (account.currency !== currency) return { error: `That account is in ${account.currency}; this loan is in ${currency}` };
+    return { account };
+}
+
+function refreshMoney(debtId: string) {
+    revalidatePath('/', 'layout');
+    refresh('debts', debtId);
+}
+
+/** Records the money borrowed into (or lent from) an account. */
+export async function recordDebtDisbursement(debtId: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
+    const user = await requireUser();
+    const debt = getDebt(user.id, debtId);
+    if (!debt) return { error: 'Loan not found' };
+    if (debtState(debt).disbursed) return { error: 'The money for this loan is already recorded' };
+
+    const occurredOn = String(formData.get('occurredOn') ?? '') || today();
+    if (!isIsoDate(occurredOn)) return { error: 'Enter a valid date', fieldErrors: { occurredOn: 'Enter a valid date' } };
+    const { account, error } = loanAccount(user.id, String(formData.get('accountId') ?? ''), debt.currency);
+    if (!account) return { error, fieldErrors: { accountId: error! }, values: formValues(formData) };
+
+    db.transaction((tx) => {
+        insertDisbursement(tx, debt, account.id, occurredOn);
+        tx.update(schema.debts)
+            .set({ accountId: debt.accountId ?? account.id, startedOn: debt.startedOn ?? occurredOn })
+            .where(eq(schema.debts.id, debt.id))
+            .run();
+    });
+    refreshMoney(debt.id);
+    return { ok: true, message: `Recorded in ${account.name}` };
+}
+
+/**
+ * Turns money already entered as income (borrowed) or an expense (lent) into
+ * this loan's disbursement, so it stops counting as income/spending.
+ */
+export async function linkDebtTransaction(debtId: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
+    const user = await requireUser();
+    const debt = getDebt(user.id, debtId);
+    if (!debt) return { error: 'Loan not found' };
+    if (debtState(debt).disbursed) return { error: 'The money for this loan is already recorded' };
+
+    const t = schema.transactions;
+    const row = db.select().from(t).where(and(eq(t.id, String(formData.get('transactionId') ?? '')), eq(t.userId, user.id))).get();
+    const expectedKind = debt.direction === 'owed' ? 'income' : 'expense';
+    if (!row || row.debtId || row.kind !== expectedKind || row.status !== 'active') {
+        return { error: 'Choose a transaction to link', fieldErrors: { transactionId: 'Choose a transaction' } };
+    }
+    const { account, error } = loanAccount(user.id, row.accountId, debt.currency);
+    if (!account) return { error, fieldErrors: { transactionId: error! } };
+
+    const principal = Math.min(debt.principalMinor ?? debt.amountMinor, debt.amountMinor);
+    // If the entry is the net amount after an upfront fee, split it back into
+    // principal + fee so the account balance stays the same.
+    const splitFee = debt.direction === 'owed' && debt.upfrontFeeMinor > 0 && row.amountMinor === principal - debt.upfrontFeeMinor;
+
+    const group = { ...(row.metadata ?? {}), group: crypto.randomUUID() };
+    db.transaction((tx) => {
+        tx.update(t)
+            .set({
+                kind: 'debt',
+                debtRole: 'disbursement',
+                debtId: debt.id,
+                categoryId: null,
+                amountMinor: splitFee ? principal : row.amountMinor,
+                metadata: group,
+            })
+            .where(eq(t.id, row.id))
+            .run();
+        if (splitFee) {
+            tx.insert(t)
+                .values({
+                    userId: user.id,
+                    accountId: row.accountId,
+                    debtId: debt.id,
+                    occurredOn: row.occurredOn,
+                    kind: 'expense',
+                    debtRole: 'fee',
+                    amountMinor: -debt.upfrontFeeMinor,
+                    categoryId: chargeCategory(tx, user.id, 'expense'),
+                    title: `Loan fee: ${debt.title}`,
+                    metadata: { group: group.group },
+                })
+                .run();
+        }
+        tx.update(schema.debts)
+            .set({ accountId: debt.accountId ?? row.accountId, startedOn: debt.startedOn ?? row.occurredOn })
+            .where(eq(schema.debts.id, debt.id))
+            .run();
+    });
+    refreshMoney(debt.id);
+    return { ok: true, message: `Linked “${row.title}” to this loan` };
+}
+
+/** Records a (partial) repayment, split into principal and finance charge. */
+export async function recordDebtRepayment(debtId: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
+    const user = await requireUser();
+    const debt = getDebt(user.id, debtId);
+    if (!debt) return { error: 'Loan not found' };
+    if (debt.status !== 'active') return { error: 'This loan is not outstanding' };
+
+    const state = debtState(debt);
+    const amount = toMinor(String(formData.get('amount') ?? ''), debt.currency);
+    if (amount === null || amount <= 0) return { error: 'Enter an amount', fieldErrors: { amount: 'Enter an amount' }, values: formValues(formData) };
+    if (amount > state.outstanding) {
+        const message = `That’s more than the ${formatMoney(state.outstanding, debt.currency)} outstanding`;
+        return { error: message, fieldErrors: { amount: message }, values: formValues(formData) };
+    }
+    const occurredOn = String(formData.get('occurredOn') ?? '') || today();
+    if (!isIsoDate(occurredOn)) return { error: 'Enter a valid date', fieldErrors: { occurredOn: 'Enter a valid date' }, values: formValues(formData) };
+    const { account, error } = loanAccount(user.id, String(formData.get('accountId') ?? ''), debt.currency);
+    if (!account) return { error, fieldErrors: { accountId: error! }, values: formValues(formData) };
+    const note = String(formData.get('note') ?? '').trim().slice(0, 500) || null;
+
+    const split = db.transaction((tx) => insertRepayment(tx, debt, account.id, amount, occurredOn, note));
+    refreshMoney(debt.id);
+
+    const settled = amount === state.outstanding;
+    const parts = split.interest ? ` (${formatMoney(split.principal, debt.currency)} principal + ${formatMoney(split.interest, debt.currency)} charges)` : '';
+    return { ok: true, message: settled ? `Loan settled${parts} 🎉` : `Repayment recorded${parts}` };
 }
 
 // ---------------------------------------------------------------------------

@@ -5,6 +5,7 @@ import Link from '@/components/ui/link';
 import Pager from '@/components/ui/pager';
 import { Badge, Card, CardTitle, PageHeader } from '@/components/ui/card';
 import Money from '@/components/finance/money';
+import OverdraftLine from '@/components/finance/overdraft-line';
 import EntryForm from '@/components/finance/entry-form';
 import { entryFormProps } from '@/components/finance/entry-form-props';
 import TransactionList from '@/components/finance/transaction-list';
@@ -86,7 +87,15 @@ export default async function AccountPage({
             <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
                 <Card>
                     <CardTitle>
-                        Balance <Money minor={account.balanceMinor} currency={account.currency} className="ml-2 text-heading-4 font-bold" />
+                        <span>
+                            Balance <Money minor={account.balanceMinor} currency={account.currency} className="ml-2 text-heading-4 font-bold" />
+                            <OverdraftLine
+                                balanceMinor={account.balanceMinor}
+                                overdraftLimitMinor={account.overdraftLimitMinor}
+                                currency={account.currency}
+                                className="font-normal"
+                            />
+                        </span>
                     </CardTitle>
                     <TransactionList rows={rows} showAccount={false} emptyText="No entries in this account yet." />
                     <Pager page={page} hasMore={hasMore} base={routes.account(account.id)} />
@@ -116,6 +125,14 @@ export default async function AccountPage({
                                 inputMode="decimal"
                                 defaultValue={fromMinor(account.openingBalanceMinor, account.currency)}
                                 helpText="What the account held before your first entry."
+                            />
+                            <Input
+                                label="Overdraft / credit limit"
+                                name="overdraftLimit"
+                                inputMode="decimal"
+                                defaultValue={account.overdraftLimitMinor ? fromMinor(account.overdraftLimitMinor, account.currency) : ''}
+                                placeholder="0.00"
+                                helpText="How far the balance can go below zero, e.g. MoMo Boost."
                             />
                             <Input label="Description" name="description" defaultValue={account.description ?? ''} maxLength={500} />
                             <SubmitButton className="text-sm">Save</SubmitButton>

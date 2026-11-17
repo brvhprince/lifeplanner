@@ -36,7 +36,7 @@ export default async function RecordPage({ params }: Props) {
         ) : def.extension === 'subscription' ? (
             <SubscriptionPanel sub={record} userId={user.id} />
         ) : def.extension === 'debt' ? (
-            <DebtPanel debt={record} />
+            <DebtPanel debtId={record.id} userId={user.id} />
         ) : def.extension === 'schedule' ? (
             <SchedulePanel schedule={record} userId={user.id} />
         ) : def.extension === 'employer' ? (
@@ -58,7 +58,15 @@ export default async function RecordPage({ params }: Props) {
                 withStatus
             />
             <div className="mt-6 border-t border-light-300 pt-4 dark:border-dark-light/30">
-                <ConfirmButton action={deleteRecord.bind(null, def.key, record.id)} label={`Delete ${def.singular.toLowerCase()}`} />
+                <ConfirmButton
+                    action={deleteRecord.bind(null, def.key, record.id)}
+                    label={`Delete ${def.singular.toLowerCase()}`}
+                    warning={
+                        def.key === 'debts'
+                            ? 'This can’t be undone. Money already recorded in your accounts stays there.'
+                            : undefined
+                    }
+                />
             </div>
         </Card>
     );

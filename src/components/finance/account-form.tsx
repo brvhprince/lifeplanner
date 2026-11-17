@@ -26,6 +26,13 @@ export default function AccountForm({ currency }: { currency: string }) {
                 placeholder="0.00"
                 helpText="What the account holds today. Later balances come from your entries."
             />
+            <Input
+                label="Overdraft / credit limit"
+                name="overdraftLimit"
+                inputMode="decimal"
+                placeholder="0.00"
+                helpText="How far the balance can go below zero, e.g. MoMo Boost. Leave empty if none."
+            />
             <label className="flex items-center gap-2 text-body-2">
                 <input type="checkbox" name="isPrimary" className="rounded border-input-border text-brand focus:ring-brand" />
                 Make this my primary account

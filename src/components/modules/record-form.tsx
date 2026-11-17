@@ -85,7 +85,7 @@ export default function RecordForm({ def, action, record, options, defaultCurren
     return (
         <ActionForm action={action} className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
-                {def.fields.map((field) => (
+                {def.fields.filter((field) => !(record && field.createOnly)).map((field) => (
                     <Field key={field.name} field={field} record={record} options={options} defaultCurrency={defaultCurrency} />
                 ))}
                 {withStatus && def.statuses && (

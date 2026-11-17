@@ -9,6 +9,8 @@ import { requireUser } from '@/server/auth/session';
 import { countByStatus, formOptions, goalProgress, listRecords } from '@/server/modules/registry';
 import { saveRecord } from '@/server/modules/actions';
 import { coverImages } from '@/server/files';
+import { listDebtStates } from '@/server/finance/debts';
+import { formatMoney } from '@/lib/money';
 import { getModule } from '@/lib/modules/definitions';
 
 type Props = { params: Promise<{ module: string }>; searchParams: Promise<{ status?: string }> };
@@ -29,7 +31,27 @@ export default async function ModulePage({ params, searchParams }: Props) {
     const total = Object.values(counts).reduce((a, b) => a + b, 0);
     const options = formOptions(user.id);
     const covers = coverImages(user.id, def.key, records.map((r) => r.id));
-    const progress = def.extension === 'goal' ? goalProgress(user.id, records.map((r) => r.id)) : null;
+    const goalSaved = def.extension === 'goal' ? goalProgress(user.id, records.map((r) => r.id)) : null;
+    const debtStates = def.extension === 'debt' ? new Map(listDebtStates(user.id).map((d) => [d.debt.id, d.state])) : null;
+    const progressFor = (r: (typeof records)[number]) => {
+        const currency = String(r.currency);
+        if (goalSaved) {
+            const saved = goalSaved.get(r.id) ?? 0;
+            const target = Number(r.targetMinor);
+            return { value: saved, max: target, label: `${formatMoney(saved, currency)} of ${formatMoney(target, currency)}` };
+        }
+        const state = debtStates?.get(r.id);
+        if (state && r.status !== 'cancelled') {
+            const total = Number(r.amountMinor);
+            // Settled by hand (e.g. before repayments were tracked): show as complete.
+            if (r.status === 'paid') return { value: total, max: total, label: 'Settled' };
+            const label = state.outstanding
+                ? `${formatMoney(state.outstanding, currency)} ${r.direction === 'lent' ? 'still owed to you' : 'left to repay'}`
+                : 'Fully repaid';
+            return { value: state.repaid, max: total, label };
+        }
+        return undefined;
+    };
 
     return (
         <>
@@ -62,7 +84,7 @@ export default async function ModulePage({ params, searchParams }: Props) {
                         <ul className="grid gap-4 sm:grid-cols-2">
                             {records.map((r) => (
                                 <li key={r.id}>
-                                    <RecordCard def={def} record={r} names={options.names} coverId={covers.get(r.id)} progressMinor={progress ? (progress.get(r.id) ?? 0) : undefined} />
+                                    <RecordCard def={def} record={r} names={options.names} coverId={covers.get(r.id)} progress={progressFor(r)} />
                                 </li>
                             ))}
                         </ul>
