@@ -8,7 +8,7 @@ An open source, self-hosted planner for your private life. Your money, goals, pl
 - **Growth:** future plans, projects, learning, career and personal brand, each with a progress log
 - **Life:** notes, memories, people (birthdays and moments), responsibilities, and work (employer contacts and linked projects)
 - **Time:** reminders and routines, plus a dashboard "Coming up" panel for anything due in the next 30 days
-- **Everywhere:** search across all your data (press `/`), photo and file attachments, in-app notifications (with optional desktop alerts), and CSV/JSON export
+- **Everywhere:** search across all your data (press `/`), photo and file attachments, notifications on your phone and desktop (with a heads-up days ahead), installable as an app, and CSV/JSON export
 
 ## Install with Docker (recommended)
 
@@ -81,6 +81,7 @@ Everything is stored in `./data`:
 | `data/lifeplanner.db` | The database (SQLite, WAL mode) |
 | `data/secret.key` | Key that encrypts sensitive fields such as 2FA secrets. Generated on first start. |
 | `data/uploads/` | Uploaded files |
+| `data/vapid.json` | Keys that sign push notifications. Generated on first use; if lost, devices need notifications turned on again. |
 
 ### Upgrading
 
@@ -122,11 +123,21 @@ DATA_DIR=./data yarn start
 
 For development: `yarn dev`.
 
+## Notifications on your phone
+
+LifePlanner can send push notifications for bills, loans, deadlines, birthdays and reminders: a heads-up a few days ahead (set in **Settings → Notifications**), on the day, and when something is overdue.
+
+1. Serve LifePlanner over **HTTPS** (browsers only allow push on secure sites), for example behind Caddy, Traefik or a Cloudflare Tunnel.
+2. **iPhone/iPad (iOS 16.4+):** open it in Safari, tap Share → **Add to Home Screen**, then open it from the Home Screen. **Android and desktop:** use Chrome, Edge or Firefox (you can also install it from the browser menu).
+3. Go to **Settings → Notifications → Turn on notifications on this device**, allow notifications, and tap **Send a test**.
+
+Push messages travel through your browser's push service (Apple, Google or Mozilla), end-to-end encrypted, and contain only the notification text.
+
 ## Your data and backups
 
 From **Settings → Your data** you can download CSV files for every section, a full JSON export, or a copy of the SQLite database.
 
-For server-side backups, copy the whole `data/` folder (database, `secret.key` and `uploads/`). To get a consistent copy of the database while the app is running:
+For server-side backups, copy the whole `data/` folder (database, `secret.key`, `vapid.json` and `uploads/`). To get a consistent copy of the database while the app is running:
 
 ```bash
 docker exec lifeplanner lp backup /data/backup-$(date +%F).db
@@ -159,6 +170,8 @@ All optional:
 | `COOKIE_SECURE` | auto (from `X-Forwarded-Proto`) | Force `Secure` cookies when served over HTTPS |
 | `PORT` | `3000` | HTTP port |
 | `TZ` | system (`UTC` in Docker) | Time zone for due dates and reminder times, e.g. `Africa/Accra` |
+| `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` | generated into `vapid.json` | Push notification signing keys (generate with `npx web-push generate-vapid-keys`) |
+| `VAPID_SUBJECT` | `mailto:<owner email>` | Contact sent to push services |
 | `PUID` / `PGID` | `1000` / `1000` | Docker only: the user and group that own the files in `data/`. Set them to your host user's `id -u` / `id -g` (or your NAS user) if needed. |
 
 To reach it from outside your home network, put it behind a reverse proxy with HTTPS (Caddy, Traefik, nginx) or a private network such as Tailscale, rather than exposing port 3000 directly.

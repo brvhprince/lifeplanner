@@ -12,6 +12,10 @@ import { getSession, requireUser } from '@/server/auth/session';
 import { totpQr } from '@/server/auth/totp';
 import { PASSWORD_RULES } from '@/server/auth/password';
 import { EXPORTS } from '@/server/export';
+import { vapidKeys } from '@/server/push';
+import { removePushSubscription, updateNotificationSettings } from '@/server/push-actions';
+import PushSettings from '@/components/layout/push-settings';
+import Select from '@/components/ui/forms/select';
 import {
     cancelTotpSetup,
     changePassword,
@@ -44,6 +48,13 @@ export default async function SettingsPage() {
         .all();
 
     const pendingTotp = !user.totpEnabled && user.totpSecret ? await totpQr(user.email, user.totpSecret) : null;
+
+    const devices = db
+        .select()
+        .from(schema.pushSubscriptions)
+        .where(eq(schema.pushSubscriptions.userId, user.id))
+        .orderBy(desc(schema.pushSubscriptions.createdAt))
+        .all();
 
     return (
         <>
@@ -150,6 +161,57 @@ export default async function SettingsPage() {
                             </li>
                         ))}
                     </ul>
+                </Card>
+
+                <Card className="lg:col-span-2">
+                    <CardTitle>Notifications</CardTitle>
+                    <div className="grid gap-8 lg:grid-cols-2">
+                        <ActionForm action={updateNotificationSettings} className="space-y-4">
+                            <Select
+                                label="Heads-up before bills, loans and deadlines"
+                                name="notifyDaysBefore"
+                                defaultValue={String(user.notifyDaysBefore)}
+                                options={[
+                                    { value: '0', label: 'Only on the day' },
+                                    { value: '1', label: '1 day before' },
+                                    { value: '2', label: '2 days before' },
+                                    { value: '3', label: '3 days before' },
+                                    { value: '5', label: '5 days before' },
+                                    { value: '7', label: '1 week before' },
+                                    { value: '14', label: '2 weeks before' },
+                                ]}
+                                helpText="You also get a notification on the day and if something becomes overdue. Reminders arrive at their set time."
+                            />
+                            <SubmitButton className="text-sm">Save</SubmitButton>
+                        </ActionForm>
+                        <div className="space-y-4">
+                            <div>
+                                <div className="mb-2 text-body-2 font-semibold">Phone and desktop notifications</div>
+                                <PushSettings publicKey={vapidKeys().publicKey} />
+                            </div>
+                            {devices.length > 0 && (
+                                <ul className="divide-y divide-light-300 text-body-2 dark:divide-dark-light/20">
+                                    {devices.map((d) => (
+                                        <li key={d.id} className="flex items-center justify-between gap-3 py-2">
+                                            <span className="min-w-0">
+                                                <span className="block truncate font-medium">{d.label ?? 'Device'}</span>
+                                                <span className="block text-caption text-body-muted">
+                                                    Added {d.createdAt.toLocaleDateString(undefined, { dateStyle: 'medium' })}
+                                                    {d.lastSuccessAt &&
+                                                        ` · last delivered ${d.lastSuccessAt.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}`}
+                                                </span>
+                                            </span>
+                                            <form action={removePushSubscription.bind(null, d.id)}>
+                                                <button type="submit" className="text-sm font-semibold text-body-muted hover:text-danger-dark">
+                                                    Remove
+                                                </button>
+                                            </form>
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
+                        </div>
+                    </div>
                 </Card>
 
                 <Card className="lg:col-span-2">

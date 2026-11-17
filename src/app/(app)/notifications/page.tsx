@@ -2,7 +2,9 @@ import type { Metadata } from 'next';
 import cn from 'classnames';
 import { Card, CardTitle, EmptyState, PageHeader } from '@/components/ui/card';
 import Button from '@/components/ui/button';
-import DesktopAlertsToggle from '@/components/layout/desktop-alerts-toggle';
+import PushSettings from '@/components/layout/push-settings';
+import Link from '@/components/ui/link';
+import { vapidKeys } from '@/server/push';
 import { requireUser } from '@/server/auth/session';
 import { listNotifications } from '@/server/notifications';
 import { markAllRead, openNotification } from '@/server/notification-actions';
@@ -61,8 +63,15 @@ export default async function NotificationsPage() {
                     )}
                 </Card>
                 <Card className="self-start">
-                    <CardTitle>Desktop alerts</CardTitle>
-                    <DesktopAlertsToggle />
+                    <CardTitle>On your phone</CardTitle>
+                    <PushSettings publicKey={vapidKeys().publicKey} />
+                    <p className="mt-4 text-caption text-body-muted">
+                        Choose how far ahead you’re reminded in{' '}
+                        <Link href="/settings" className="font-semibold text-brand">
+                            Settings
+                        </Link>
+                        .
+                    </p>
                 </Card>
             </div>
         </>
