@@ -1,6 +1,6 @@
 # LifePlanner
 
-An open source, self-hosted planner for your private life. Your money, goals, plans and memories are kept in a single SQLite file on hardware you control. There are no third-party services and no telemetry.
+An open source, self-hosted planner for your private life. Your money, goals, plans and memories are kept in a single SQLite file on hardware you control. No third-party services are required and there is no telemetry. (Push notifications, if you turn them on, are delivered through your browser’s push service.)
 
 **What it covers:**
 
@@ -81,7 +81,7 @@ Everything is stored in `./data`:
 | `data/lifeplanner.db` | The database (SQLite, WAL mode) |
 | `data/secret.key` | Key that encrypts sensitive fields such as 2FA secrets. Generated on first start. |
 | `data/uploads/` | Uploaded files |
-| `data/vapid.json` | Keys that sign push notifications. Generated on first use; if lost, devices need notifications turned on again. |
+| `data/vapid.json` | Keys that sign push notifications (unless set with `VAPID_*` variables). Generated on first use. If lost, open **Settings → Notifications** on each device and tap **Turn on notifications** again. |
 
 ### Upgrading
 
@@ -125,13 +125,13 @@ For development: `yarn dev`.
 
 ## Notifications on your phone
 
-LifePlanner can send push notifications for bills, loans, deadlines, birthdays and reminders: a heads-up a few days ahead (set in **Settings → Notifications**), on the day, and when something is overdue.
+LifePlanner can send push notifications for bills, loans, savings, deadlines and birthdays: a heads-up a few days ahead (set in **Settings → Notifications**), on the day, and when something is overdue. Reminders arrive at the time you set on them.
 
 1. Serve LifePlanner over **HTTPS** (browsers only allow push on secure sites), for example behind Caddy, Traefik or a Cloudflare Tunnel.
 2. **iPhone/iPad (iOS 16.4+):** open it in Safari, tap Share → **Add to Home Screen**, then open it from the Home Screen. **Android and desktop:** use Chrome, Edge or Firefox (you can also install it from the browser menu).
 3. Go to **Settings → Notifications → Turn on notifications on this device**, allow notifications, and tap **Send a test**.
 
-Push messages travel through your browser's push service (Apple, Google or Mozilla), end-to-end encrypted, and contain only the notification text.
+Push messages travel through your browser's push service (Apple, Google, Mozilla or Microsoft). Each message is end-to-end encrypted and contains the notification title and text, a link to the page in LifePlanner, and a notification id. The push service also receives a contact address for this server: the owner's email by default, or `VAPID_SUBJECT` if set. Only those push services are ever contacted; `PUSH_ALLOWED_HOSTS` can add others for unusual browsers.
 
 ## Your data and backups
 
@@ -171,7 +171,8 @@ All optional:
 | `PORT` | `3000` | HTTP port |
 | `TZ` | system (`UTC` in Docker) | Time zone for due dates and reminder times, e.g. `Africa/Accra` |
 | `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` | generated into `vapid.json` | Push notification signing keys (generate with `npx web-push generate-vapid-keys`) |
-| `VAPID_SUBJECT` | `mailto:<owner email>` | Contact sent to push services |
+| `VAPID_SUBJECT` | `mailto:<owner email>` | Contact sent to push services (e.g. `https://me.example.com`) |
+| `PUSH_ALLOWED_HOSTS` | none | Extra push service hosts to allow, comma-separated |
 | `PUID` / `PGID` | `1000` / `1000` | Docker only: the user and group that own the files in `data/`. Set them to your host user's `id -u` / `id -g` (or your NAS user) if needed. |
 
 To reach it from outside your home network, put it behind a reverse proxy with HTTPS (Caddy, Traefik, nginx) or a private network such as Tailscale, rather than exposing port 3000 directly.

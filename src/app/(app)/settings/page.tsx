@@ -12,7 +12,7 @@ import { getSession, requireUser } from '@/server/auth/session';
 import { totpQr } from '@/server/auth/totp';
 import { PASSWORD_RULES } from '@/server/auth/password';
 import { EXPORTS } from '@/server/export';
-import { vapidKeys } from '@/server/push';
+import { vapidPublicKey } from '@/server/push';
 import { removePushSubscription, updateNotificationSettings } from '@/server/push-actions';
 import PushSettings from '@/components/layout/push-settings';
 import Select from '@/components/ui/forms/select';
@@ -187,7 +187,7 @@ export default async function SettingsPage() {
                         <div className="space-y-4">
                             <div>
                                 <div className="mb-2 text-body-2 font-semibold">Phone and desktop notifications</div>
-                                <PushSettings publicKey={vapidKeys().publicKey} />
+                                <PushSettings publicKey={vapidPublicKey()} />
                             </div>
                             {devices.length > 0 && (
                                 <ul className="divide-y divide-light-300 text-body-2 dark:divide-dark-light/20">

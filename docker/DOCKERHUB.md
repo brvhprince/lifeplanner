@@ -1,6 +1,6 @@
 # LifePlanner
 
-An open source, self-hosted planner for your private life: money, goals, plans, people and memories, kept in a single SQLite file on hardware you control. No third-party services, no telemetry.
+An open source, self-hosted planner for your private life: money, goals, plans, people and memories, kept in a single SQLite file on hardware you control. No third-party services required, no telemetry (push notifications, if you turn them on, go through your browser’s push service).
 
 **Source and docs:** [github.com/brvhprince/lifeplanner](https://github.com/brvhprince/lifeplanner)
 

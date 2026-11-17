@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { and, eq } from 'drizzle-orm';
 import { db, schema } from '@/server/db';
 import { requireUser } from '@/server/auth/session';
-import { sendPush } from '@/server/push';
+import { isAllowedEndpoint, sendPush } from '@/server/push';
 import { logActivity } from '@/server/activity';
 import type { ActionState } from '@/lib/action-state';
 
@@ -18,7 +18,7 @@ export async function savePushSubscription(subscription: BrowserSubscription, la
     const endpoint = String(subscription?.endpoint ?? '');
     const p256dh = String(subscription?.keys?.p256dh ?? '');
     const auth = String(subscription?.keys?.auth ?? '');
-    if (!/^https:\/\/\S+$/.test(endpoint) || endpoint.length > 2000 || !p256dh || !auth || p256dh.length > 200 || auth.length > 100) {
+    if (!isAllowedEndpoint(endpoint) || endpoint.length > 2000 || !p256dh || !auth || p256dh.length > 200 || auth.length > 100) {
         return { ok: false };
     }
     const values = { userId: user.id, endpoint, p256dh, auth, label: label.slice(0, 80) || null };
@@ -26,6 +26,12 @@ export async function savePushSubscription(subscription: BrowserSubscription, la
     logActivity(user.id, 'push.enabled', `Notifications turned on for ${values.label ?? 'a device'}`);
     revalidatePath('/settings');
     return { ok: true };
+}
+
+/** Whether the server will deliver to this browser's subscription. */
+export async function isPushRegistered(endpoint: string) {
+    const user = await requireUser();
+    return Boolean(db.select({ id: p.id }).from(p).where(and(eq(p.userId, user.id), eq(p.endpoint, endpoint))).get());
 }
 
 /** Called when this browser turns notifications off. */

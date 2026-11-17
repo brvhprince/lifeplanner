@@ -3,7 +3,7 @@
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import toast from 'react-hot-toast';
 import Button from '@/components/ui/button';
-import { removePushSubscriptionByEndpoint, savePushSubscription, sendTestPush } from '@/server/push-actions';
+import { isPushRegistered, removePushSubscriptionByEndpoint, savePushSubscription, sendTestPush } from '@/server/push-actions';
 
 type Support = 'checking' | 'supported' | 'insecure' | 'ios-not-installed' | 'unsupported';
 
@@ -19,9 +19,20 @@ function describeDevice() {
     return `${browser} on ${device}`;
 }
 
+/** True when the subscription was made with this server's current signing key. */
+function sameKey(subscription: PushSubscription, publicKey: string) {
+    const key = subscription.options?.applicationServerKey;
+    if (!key) return true; // Not exposed by this browser; assume it matches.
+    const expected = base64UrlToBytes(publicKey);
+    const actual = new Uint8Array(key);
+    return actual.length === expected.length && actual.every((b, i) => b === expected[i]);
+}
+
 function detectSupport(): Support {
     if (!window.isSecureContext) return 'insecure';
-    const ios = /iPhone|iPad|iPod/.test(navigator.userAgent);
+    // iPadOS Safari in desktop mode reports itself as a Mac; touch support gives it away.
+    const ipadDesktop = /Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1;
+    const ios = /iPhone|iPad|iPod/.test(navigator.userAgent) || ipadDesktop;
     const standalone = window.matchMedia('(display-mode: standalone)').matches || (navigator as { standalone?: boolean }).standalone;
     if (ios && !standalone) return 'ios-not-installed';
     if (!('serviceWorker' in navigator) || !('PushManager' in window) || typeof Notification === 'undefined') return 'unsupported';
@@ -31,7 +42,7 @@ function detectSupport(): Support {
 /** Turn push notifications on/off for this browser, and send a test. */
 const noSubscribe = () => () => {};
 
-export default function PushSettings({ publicKey }: { publicKey: string }) {
+export default function PushSettings({ publicKey }: { publicKey: string | null }) {
     // Browser capabilities don't change while the page is open.
     const browserSupport = useSyncExternalStore<Support>(noSubscribe, detectSupport, () => 'checking');
     const [lookup, setLookup] = useState<'loading' | 'done' | 'failed'>('loading');
@@ -39,16 +50,19 @@ export default function PushSettings({ publicKey }: { publicKey: string }) {
     const [busy, setBusy] = useState(false);
 
     useEffect(() => {
-        if (browserSupport !== 'supported') return;
+        if (browserSupport !== 'supported' || !publicKey) return;
         navigator.serviceWorker
             .register('/sw.js')
             .then((reg) => reg.pushManager.getSubscription())
-            .then((sub) => {
-                setSubscription(sub);
+            .then(async (sub) => {
+                // "On" only if the server knows this browser and the keys still match
+                // (e.g. not after removing the device in Settings or losing vapid.json).
+                const active = sub && sameKey(sub, publicKey!) && (await isPushRegistered(sub.endpoint));
+                setSubscription(active ? sub : null);
                 setLookup('done');
             })
             .catch(() => setLookup('failed'));
-    }, [browserSupport]);
+    }, [browserSupport, publicKey]);
 
     const support: Support =
         browserSupport !== 'supported' ? browserSupport : lookup === 'loading' ? 'checking' : lookup === 'failed' ? 'unsupported' : 'supported';
@@ -63,7 +77,14 @@ export default function PushSettings({ publicKey }: { publicKey: string }) {
             }
             const reg = await navigator.serviceWorker.register('/sw.js');
             await navigator.serviceWorker.ready;
-            const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: base64UrlToBytes(publicKey) });
+            // Reuse a still-valid browser subscription; replace one made with old keys.
+            let sub = await reg.pushManager.getSubscription();
+            if (sub && !sameKey(sub, publicKey!)) {
+                await removePushSubscriptionByEndpoint(sub.endpoint);
+                await sub.unsubscribe();
+                sub = null;
+            }
+            sub ??= await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: base64UrlToBytes(publicKey!) });
             const saved = await savePushSubscription(sub.toJSON(), describeDevice());
             if (!saved.ok) throw new Error('save failed');
             setSubscription(sub);
@@ -99,6 +120,14 @@ export default function PushSettings({ publicKey }: { publicKey: string }) {
         }
     }
 
+    if (!publicKey) {
+        return (
+            <p className="text-body-2 text-body-muted">
+                Push notifications are unavailable because the server couldn’t load its push keys. Delete <code>vapid.json</code> in the data
+                folder (or fix the <code>VAPID_*</code> settings) and restart, then turn notifications on again on each device.
+            </p>
+        );
+    }
     if (support === 'checking') return <p className="text-body-2 text-body-muted">Checking this browser…</p>;
     if (support === 'insecure') {
         return <p className="text-body-2 text-body-muted">Push notifications need HTTPS. Open LifePlanner through its https:// address to turn them on.</p>;
