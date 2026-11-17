@@ -94,11 +94,12 @@ Database migrations run automatically on start. Back up `data/` first.
 
 | Tag | Meaning |
 | --- | --- |
-| `latest` | Latest build of `main` |
-| `1.2.3`, `1.2`, `1` | Released versions (from git tags `v1.2.3`); `0.x` releases get `0.2.0` and `0.2` |
-| `sha-abc1234` | A specific commit |
+| `latest` | The newest release |
+| `0.3.0` | Exactly that release |
+| `0.3` | The newest `0.3.x` release (bug fixes only) |
+| `1` | The newest `1.x` release (from 1.0 onwards) |
 
-Pin a version tag once releases exist if you want upgrades only when you choose.
+Images are only published for releases, so `latest` never contains unreleased work. Pin a version (e.g. `:0.3`) if you want to upgrade only when you choose. See [Releases](https://github.com/brvhprince/lifeplanner/releases) for what changed in each version.
 
 ### Build from source
 
@@ -135,6 +136,19 @@ npm run lp backup ./backup.db
 ```
 
 Keep `secret.key` with your backups. Without it, 2FA secrets can't be decrypted (you can turn 2FA off with the CLI below).
+
+## Releasing (maintainers)
+
+Merging to `main` runs the checks but publishes nothing. To release:
+
+```bash
+git checkout main && git pull
+git tag v0.3.0 && git push origin v0.3.0
+```
+
+The Docker workflow then builds the amd64 and arm64 images, publishes `0.3.0`, `0.3` and `latest` to GHCR and Docker Hub, updates the Docker Hub overview, and creates a GitHub Release with notes generated from the merged pull requests. Tags like `v0.4.0-rc.1` publish only that exact tag and are marked as pre-releases.
+
+To rebuild a release (for example after a registry problem), open **Actions → Docker image → Run workflow**, choose the release tag under "Use workflow from", and enter the same version.
 
 ## Admin commands
 
