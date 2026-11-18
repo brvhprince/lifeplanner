@@ -23,6 +23,7 @@ export function formatField(field: FieldDef, record: Record<string, unknown>, na
         case 'account':
         case 'category':
         case 'employer':
+        case 'person':
             return names?.get(String(value)) ?? null;
         default:
             return String(value);

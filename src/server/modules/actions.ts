@@ -53,7 +53,14 @@ export async function saveRecord(moduleKey: string, id: string | null, _prev: Ac
         if (!getRecord(def, user.id, id)) return { error: `That ${def.singular.toLowerCase()} no longer exists` };
         db.transaction((tx) => {
             tx.update(table).set(values as never).where(and(eq(columns.id, id), eq(columns.userId, user.id))).run();
-            if (def.key === 'debts') syncDebtStatus(user.id, id, tx);
+            if (def.key === 'debts') {
+                // Keep the loan's money entries on the same person as the loan.
+                tx.update(schema.transactions)
+                    .set({ personId: (values.personId as string | null | undefined) ?? null })
+                    .where(and(eq(schema.transactions.debtId, id), eq(schema.transactions.userId, user.id)))
+                    .run();
+                syncDebtStatus(user.id, id, tx);
+            }
         });
         refresh(def.key, id);
         return { ok: true, message: 'Saved' };
@@ -361,6 +368,7 @@ export async function linkDebtTransaction(debtId: string, _prev: ActionState, fo
                 categoryId: null,
                 amountMinor: splitFee ? principal : row.amountMinor,
                 metadata: group,
+                personId: row.personId ?? debt.personId,
             })
             .where(eq(t.id, row.id))
             .run();

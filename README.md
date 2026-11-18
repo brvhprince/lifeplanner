@@ -6,7 +6,7 @@ An open source, self-hosted planner for your private life. Your money, goals, pl
 
 - **Money:** accounts (with overdraft limits, e.g. MoMo Boost), income, expenses, transfers (including cross-currency, with fees), categories, bills and subscriptions (one-click "record payment"), goals with contributions and progress, savings plans, loans and debts that move real money (upfront fees, finance charges, part-repayments), investments, and a wishlist. The dashboard shows what you owe and your net position.
 - **Growth:** future plans, projects, learning, career and personal brand, each with a progress log
-- **Life:** notes, memories, people (birthdays and moments), responsibilities, and work (employer contacts and linked projects)
+- **Life:** notes, memories, people (birthdays, moments, and money given and received with each person), responsibilities, and work (employer contacts and linked projects)
 - **Time:** reminders and routines, plus a dashboard "Coming up" panel for anything due in the next 30 days
 - **Everywhere:** search across all your data (press `/`), photo and file attachments, notifications on your phone and desktop (with a heads-up days ahead), installable as an app, and CSV/JSON export
 
@@ -160,6 +160,17 @@ git tag v0.3.0 && git push origin v0.3.0
 The Docker workflow then builds the amd64 and arm64 images, publishes `0.3.0`, `0.3` and `latest` to GHCR and Docker Hub, updates the Docker Hub overview, and creates a GitHub Release with notes generated from the merged pull requests. Tags like `v0.4.0-rc.1` publish only that exact tag and are marked as pre-releases.
 
 To rebuild a release (for example after a registry problem), open **Actions → Docker image → Run workflow**, choose the release tag under "Use workflow from", and enter the same version.
+
+### Restoring a backup
+
+Backups made with `lp backup` or by **Settings → Start over with money** (saved in `data/backups/`) are complete copies of the database. To restore one:
+
+```bash
+docker compose stop
+cp data/backups/before-start-over-<date>.db data/lifeplanner.db
+rm -f data/lifeplanner.db-wal data/lifeplanner.db-shm
+docker compose start
+```
 
 ## Admin commands
 

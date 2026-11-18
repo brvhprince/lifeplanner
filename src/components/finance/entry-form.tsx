@@ -11,6 +11,7 @@ type Kind = 'expense' | 'income' | 'transfer';
 
 export type EntryFormAccount = { id: string; name: string; currency: string; isPrimary: boolean };
 export type EntryFormCategory = { id: string; name: string; kind: 'income' | 'expense' };
+export type EntryFormPerson = { id: string; name: string };
 
 const KINDS: { value: Kind; label: string }[] = [
     { value: 'expense', label: 'Expense' },
@@ -21,13 +22,17 @@ const KINDS: { value: Kind; label: string }[] = [
 export default function EntryForm({
     accounts,
     categories,
+    people = [],
     today,
     defaultAccountId,
+    defaultPersonId,
 }: {
     accounts: EntryFormAccount[];
     categories: EntryFormCategory[];
+    people?: EntryFormPerson[];
     today: string;
     defaultAccountId?: string;
+    defaultPersonId?: string;
 }) {
     const [kind, setKind] = useState<Kind>('expense');
     const primary = defaultAccountId ?? accounts.find((a) => a.isPrimary)?.id ?? accounts[0]?.id;
@@ -122,6 +127,16 @@ export default function EntryForm({
                     name="categoryId"
                     placeholder="Uncategorised"
                     options={categoryOptions}
+                />
+            )}
+
+            {kind !== 'transfer' && people.length > 0 && (
+                <Select
+                    label={kind === 'income' ? 'From (optional)' : 'To (optional)'}
+                    name="personId"
+                    placeholder="No one in particular"
+                    options={people.map((p) => ({ value: p.id, label: p.name }))}
+                    defaultValue={defaultPersonId ?? ''}
                 />
             )}
 

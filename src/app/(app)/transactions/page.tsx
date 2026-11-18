@@ -8,7 +8,7 @@ import TransactionList from '@/components/finance/transaction-list';
 import StatTile from '@/components/finance/stat-tile';
 import { requireUser } from '@/server/auth/session';
 import { financeSummary } from '@/server/finance/summary';
-import { listCategories, listTransactions } from '@/server/finance/queries';
+import { listCategories, listPeople, listTransactions } from '@/server/finance/queries';
 import { currentMonth, formatMonth, shiftMonth, today } from '@/lib/dates';
 import routes from '@/config/routes';
 
@@ -19,7 +19,7 @@ const PAGE_SIZE = 50;
 export default async function TransactionsPage({
     searchParams,
 }: {
-    searchParams: Promise<{ month?: string; page?: string; category?: string }>;
+    searchParams: Promise<{ month?: string; page?: string; category?: string; person?: string }>;
 }) {
     const user = await requireUser();
     const params = await searchParams;
@@ -29,11 +29,16 @@ export default async function TransactionsPage({
     const categories = listCategories(user.id, { includeArchived: true });
     // A category filter shows that category's entries across all time.
     const category = categories.find((c) => c.id === params.category);
+    // A person filter likewise shows everything with that person.
+    const people = listPeople(user.id);
+    const person = category ? undefined : people.find((p) => p.id === params.person);
+    const filtered = Boolean(category || person);
 
     const summary = financeSummary(user.id, user.currency, month);
     const { rows, hasMore } = listTransactions(user.id, {
-        month: category ? undefined : month,
+        month: filtered ? undefined : month,
         categoryId: category?.id,
+        personId: person?.id,
         limit: PAGE_SIZE,
         offset: (page - 1) * PAGE_SIZE,
     });
@@ -45,9 +50,9 @@ export default async function TransactionsPage({
             <PageHeader
                 title="Transactions"
                 subtitle={
-                    category ? (
+                    filtered ? (
                         <span>
-                            All entries in <strong>{category.name}</strong> ·{' '}
+                            All entries {category ? 'in' : 'with'} <strong>{category?.name ?? person?.name}</strong> ·{' '}
                             <Link href={routes.transactions} className="font-semibold text-brand">
                                 Clear filter
                             </Link>
@@ -57,7 +62,7 @@ export default async function TransactionsPage({
                     )
                 }
                 actions={
-                    !category && (
+                    !filtered && (
                     <div className="flex items-center gap-1 text-sm font-semibold">
                         <Link href={monthHref(shiftMonth(month, -1))} className="rounded-md px-3 py-2 hover:bg-grey-200 dark:hover:bg-dark-light/30">
                             ← Previous
@@ -77,7 +82,7 @@ export default async function TransactionsPage({
                 }
             />
 
-            {!category && (
+            {!filtered && (
                 <div className="mb-6 grid gap-4 sm:grid-cols-2">
                     <StatTile label="Income" amounts={summary.income} fallbackCurrency={user.currency} />
                     <StatTile label="Spent" amounts={summary.expense} fallbackCurrency={user.currency} />
@@ -86,13 +91,13 @@ export default async function TransactionsPage({
 
             <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
                 <Card>
-                    <TransactionList rows={rows} emptyText={category ? 'Nothing recorded in this category yet.' : `Nothing recorded in ${formatMonth(month)}.`} />
-                    <Pager page={page} hasMore={hasMore} base={routes.transactions} query={category ? { category: category.id } : { month }} />
+                    <TransactionList rows={rows} emptyText={category ? 'Nothing recorded in this category yet.' : person ? `Nothing recorded with ${person.name} yet.` : `Nothing recorded in ${formatMonth(month)}.`} />
+                    <Pager page={page} hasMore={hasMore} base={routes.transactions} query={category ? { category: category.id } : person ? { person: person.id } : { month }} />
                 </Card>
                 {summary.accounts.length > 0 && (
                     <Card>
                         <CardTitle>Add entry</CardTitle>
-                        <EntryForm {...entryFormProps(summary.accounts, categories.filter((c) => !c.archivedAt))} today={today()} />
+                        <EntryForm {...entryFormProps(summary.accounts, categories.filter((c) => !c.archivedAt), people)} defaultPersonId={person?.id} today={today()} />
                     </Card>
                 )}
             </div>

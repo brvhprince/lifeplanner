@@ -71,6 +71,11 @@ export default function TransactionList({
                                             ) : (
                                                 <span>{t.categoryName ?? 'Uncategorised'}</span>
                                             )}
+                                            {t.personId && t.personName && (
+                                                <Link href={`/people/${t.personId}`} className="hover:text-brand">
+                                                    · {t.amountMinor < 0 ? 'to' : 'from'} {t.personName}
+                                                </Link>
+                                            )}
                                             {showAccount && (
                                                 <Link href={routes.account(t.accountId)} className="hover:text-brand">
                                                     · {t.accountName}

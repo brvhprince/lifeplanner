@@ -13,7 +13,7 @@ import Money from '@/components/finance/money';
 import AttachmentsPanel from '@/components/files/attachments-panel';
 import { db, schema } from '@/server/db';
 import { requireUser } from '@/server/auth/session';
-import { getTransfer, listAccounts, listCategories } from '@/server/finance/queries';
+import { getTransfer, listAccounts, listCategories, listPeople } from '@/server/finance/queries';
 import { deleteEntry, setTransactionReversed, updateEntry } from '@/server/finance/actions';
 import { fromMinor } from '@/lib/money';
 import { formatDate } from '@/lib/dates';
@@ -108,6 +108,13 @@ export default async function TransactionPage({
                                         .filter((c) => c.kind === row.kind && (!c.archivedAt || c.id === row.categoryId))
                                         .map((c) => ({ value: c.id, label: c.name }))}
                                     defaultValue={row.categoryId ?? ''}
+                                />
+                                <Select
+                                    label={row.kind === 'income' ? 'From' : 'To'}
+                                    name="personId"
+                                    placeholder="No one in particular"
+                                    options={listPeople(user.id).map((p) => ({ value: p.id, label: p.name }))}
+                                    defaultValue={row.personId ?? ''}
                                 />
                             </div>
                         )}

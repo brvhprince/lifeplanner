@@ -10,7 +10,7 @@ import { isHttpUrl } from '@/lib/validate';
 
 const DEFAULT_MAX = { text: 200, textarea: 5000, url: 2000, email: 254 } as const;
 
-function owns(table: typeof schema.accounts | typeof schema.categories | typeof schema.employers, userId: string, id: string) {
+function owns(table: typeof schema.accounts | typeof schema.categories | typeof schema.employers | typeof schema.relationships, userId: string, id: string) {
     return Boolean(db.select({ id: table.id }).from(table).where(and(eq(table.id, id), eq(table.userId, userId))).get());
 }
 
@@ -99,6 +99,10 @@ export function parseRecord(
             case 'employer':
                 if (owns(schema.employers, ctx.userId, value)) values[field.name] = value;
                 else errors[field.name] = 'Choose an employer';
+                break;
+            case 'person':
+                if (owns(schema.relationships, ctx.userId, value)) values[field.name] = value;
+                else errors[field.name] = 'Choose someone from your People';
                 break;
         }
     }

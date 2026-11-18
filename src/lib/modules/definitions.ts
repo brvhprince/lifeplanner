@@ -124,6 +124,12 @@ export const MODULES: ModuleDef[] = [
             { name: 'direction', label: 'Direction', type: 'select', required: true, options: opts(['owed', 'I borrowed (I owe)'], ['lent', 'I lent (owed to me)']), summary: true },
             { name: 'counterparty', label: 'Who', type: 'text', max: 120, placeholder: 'Lender or borrower', summary: true },
             {
+                name: 'personId',
+                label: 'Person (from People)',
+                type: 'person',
+                help: 'Optional. Shows the loan on their page.',
+            },
+            {
                 ...f.money('principalMinor', 'Amount borrowed / lent'),
                 summary: false,
                 help: 'Before interest. Leave empty if there’s no interest.',
@@ -335,6 +341,7 @@ export const MODULES: ModuleDef[] = [
         group: 'life',
         icon: 'users',
         titleField: 'name',
+        extension: 'person',
         fields: [
             { name: 'name', label: 'Name', type: 'text', required: true, max: 120, full: true },
             {

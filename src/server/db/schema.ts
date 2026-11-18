@@ -259,6 +259,8 @@ export const transactions = sqliteTable(
          * (finance-charge part of a repayment).
          */
         debtRole: text('debt_role', { enum: ['disbursement', 'fee', 'repayment', 'interest'] }),
+        /** Optional person (from People) the money went to or came from. */
+        personId: text('person_id').references((): AnySQLiteColumn => relationships.id, { onDelete: 'set null' }),
         title: text('title').notNull(),
         note: text('note'),
         occurredOn: text('occurred_on').notNull(),
@@ -271,6 +273,7 @@ export const transactions = sqliteTable(
         index('transactions_user_date_idx').on(t.userId, t.occurredOn),
         index('transactions_category_idx').on(t.categoryId),
         index('transactions_debt_idx').on(t.debtId),
+        index('transactions_person_idx').on(t.personId),
     ]
 );
 
@@ -349,6 +352,8 @@ export const debts = sqliteTable('debts', {
     /** `owed` = I owe someone; `lent` = someone owes me. */
     direction: text('direction', { enum: ['owed', 'lent'] }).notNull().default('owed'),
     counterparty: text('counterparty'),
+    /** Optional person (from People) on the other side of the loan. */
+    personId: text('person_id').references((): AnySQLiteColumn => relationships.id, { onDelete: 'set null' }),
     title: text('title').notNull(),
     description: text('description'),
     /** Total to repay (principal + finance charges). Outstanding = this − repaid. */
