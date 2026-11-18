@@ -56,15 +56,17 @@ export function listTransactions(
     {
         accountId,
         categoryId,
+        personId,
         month,
         limit = 50,
         offset = 0,
-    }: { accountId?: string; categoryId?: string; month?: string; limit?: number; offset?: number } = {}
+    }: { accountId?: string; categoryId?: string; personId?: string; month?: string; limit?: number; offset?: number } = {}
 ) {
     const where = and(
         eq(transactions.userId, userId),
         accountId ? eq(transactions.accountId, accountId) : undefined,
         categoryId ? eq(transactions.categoryId, categoryId) : undefined,
+        personId ? eq(transactions.personId, personId) : undefined,
         month ? like(transactions.occurredOn, `${month}-%`) : undefined
     );
 
@@ -86,6 +88,8 @@ export function listTransactions(
             debtRole: transactions.debtRole,
             debtTitle: schema.debts.title,
             debtDirection: schema.debts.direction,
+            personId: transactions.personId,
+            personName: schema.relationships.name,
             categoryColor: categories.color,
             counterAccountName: counterAccount.name,
         })
@@ -93,6 +97,7 @@ export function listTransactions(
         .innerJoin(accounts, eq(accounts.id, transactions.accountId))
         .leftJoin(categories, eq(categories.id, transactions.categoryId))
         .leftJoin(schema.debts, eq(schema.debts.id, transactions.debtId))
+        .leftJoin(schema.relationships, eq(schema.relationships.id, transactions.personId))
         .leftJoin(
             counterLeg,
             and(
@@ -164,4 +169,10 @@ export function getTransfer(userId: string, transferId: string) {
         .from(transfers)
         .where(and(eq(transfers.userId, userId), eq(transfers.id, transferId)))
         .get();
+}
+
+/** People for the "Person" pickers, alphabetical. */
+export function listPeople(userId: string) {
+    const r = schema.relationships;
+    return db.select({ id: r.id, name: r.name }).from(r).where(eq(r.userId, userId)).orderBy(asc(r.name)).all();
 }

@@ -10,7 +10,7 @@ import TransactionList from '@/components/finance/transaction-list';
 import { entryFormProps } from '@/components/finance/entry-form-props';
 import { requireUser } from '@/server/auth/session';
 import { financeSummary } from '@/server/finance/summary';
-import { listCategories, listTransactions, spendingByCategory } from '@/server/finance/queries';
+import { listCategories, listPeople, listTransactions, spendingByCategory } from '@/server/finance/queries';
 import { currentMonth, formatMonth, today } from '@/lib/dates';
 import routes from '@/config/routes';
 import UpcomingCard from '@/components/dashboard/upcoming-card';
@@ -182,7 +182,7 @@ export default async function DashboardPage() {
                     <UpcomingCard items={coming} />
                     <Card>
                         <CardTitle>Quick entry</CardTitle>
-                        <EntryForm {...entryFormProps(summary.accounts, categories)} today={today()} />
+                        <EntryForm {...entryFormProps(summary.accounts, categories, listPeople(user.id))} today={today()} />
                     </Card>
 
                     <Card>

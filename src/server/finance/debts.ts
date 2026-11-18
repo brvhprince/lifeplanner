@@ -122,7 +122,7 @@ export function chargeCategory(client: Tx, userId: string, kind: 'income' | 'exp
 export function insertDisbursement(client: Tx, debt: Debt, accountId: string, occurredOn: string) {
     const principal = Math.min(debt.principalMinor ?? debt.amountMinor, debt.amountMinor);
     const borrowing = debt.direction === 'owed';
-    const base = { userId: debt.userId, accountId, debtId: debt.id, occurredOn, metadata: { group: crypto.randomUUID() } };
+    const base = { userId: debt.userId, accountId, debtId: debt.id, personId: debt.personId, occurredOn, metadata: { group: crypto.randomUUID() } };
 
     client.insert(transactions)
         .values({
@@ -153,7 +153,7 @@ export function insertRepayment(client: Tx, debt: Debt, accountId: string, amoun
     const { principal, interest } = splitRepayment(amount, state);
     const borrowing = debt.direction === 'owed';
     const sign = borrowing ? -1 : 1;
-    const base = { userId: debt.userId, accountId, debtId: debt.id, occurredOn, note, metadata: { group: crypto.randomUUID() } };
+    const base = { userId: debt.userId, accountId, debtId: debt.id, personId: debt.personId, occurredOn, note, metadata: { group: crypto.randomUUID() } };
 
     if (principal > 0) {
         client.insert(transactions)

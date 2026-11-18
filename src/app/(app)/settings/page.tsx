@@ -12,6 +12,7 @@ import { getSession, requireUser } from '@/server/auth/session';
 import { totpQr } from '@/server/auth/totp';
 import { PASSWORD_RULES } from '@/server/auth/password';
 import { EXPORTS } from '@/server/export';
+import { startOverWithMoney } from '@/server/start-over';
 import { vapidPublicKey } from '@/server/push';
 import { removePushSubscription, updateNotificationSettings } from '@/server/push-actions';
 import PushSettings from '@/components/layout/push-settings';
@@ -244,6 +245,28 @@ export default async function SettingsPage() {
                         The SQLite backup contains your password hash and encrypted 2FA secret, so store it somewhere safe. Uploaded files are
                         not included; back up the <code>uploads</code> folder for those.
                     </p>
+                </Card>
+
+                <Card className="border-danger/40 lg:col-span-2">
+                    <CardTitle>Start over with money</CardTitle>
+                    <div className="grid gap-6 lg:grid-cols-2">
+                        <div className="space-y-2 text-body-2">
+                            <p>
+                                Clears all <strong>accounts, transactions, transfers and loans</strong> (with their attached files), so you can
+                                enter them again from scratch.
+                            </p>
+                            <p className="text-body-muted">
+                                Kept: categories, bills, goals, savings plans, investments, people, notes, memories, plans, reminders and
+                                everything else. A full backup is saved to the <code>backups</code> folder first, so this can be undone.
+                            </p>
+                        </div>
+                        <ActionForm action={startOverWithMoney} className="space-y-3">
+                            <Input label="Type START OVER to confirm" name="confirm" autoComplete="off" />
+                            <SubmitButton variant="solidDanger" className="text-sm">
+                                Clear money records
+                            </SubmitButton>
+                        </ActionForm>
+                    </div>
                 </Card>
 
                 <Card className="lg:col-span-2">

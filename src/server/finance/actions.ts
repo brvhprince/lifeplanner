@@ -191,7 +191,15 @@ const entrySchema = z.object({
     toAccountId: z.string().optional(),
     toAmount: z.string().trim().optional(),
     fee: z.string().trim().optional(),
+    personId: z.string().optional(),
 });
+
+/** The person id if it belongs to the user, null when empty, undefined when invalid. */
+function ownedPerson(userId: string, personId: string | undefined) {
+    if (!personId) return null;
+    const r = schema.relationships;
+    return db.select({ id: r.id }).from(r).where(and(eq(r.id, personId), eq(r.userId, userId))).get()?.id;
+}
 
 export async function createEntry(_prev: ActionState, formData: FormData): Promise<ActionState> {
     const user = await requireUser();
@@ -224,6 +232,9 @@ export async function createEntry(_prev: ActionState, formData: FormData): Promi
         categoryId = category.id;
     }
 
+    const personId = ownedPerson(user.id, input.personId);
+    if (personId === undefined) return fieldError(formData, 'personId', 'Choose someone from your People');
+
     const title = input.title || (input.kind === 'income' ? 'Income' : 'Expense');
     db.insert(transactions)
         .values({
@@ -232,6 +243,7 @@ export async function createEntry(_prev: ActionState, formData: FormData): Promi
             kind: input.kind,
             amountMinor: input.kind === 'expense' ? -amountMinor : amountMinor,
             categoryId,
+            personId,
             title,
             note: input.note ?? null,
             occurredOn: input.occurredOn,
@@ -427,6 +439,7 @@ const entryUpdateSchema = z.object({
     amount: z.string().trim().optional(),
     accountId: z.string().optional(),
     categoryId: z.string().optional(),
+    personId: z.string().optional(),
 });
 
 /** Edits a ledger entry. Transfers only allow title, date and note (both legs). */
@@ -478,6 +491,9 @@ export async function updateEntry(transactionId: string, _prev: ActionState, for
         categoryId = category.id;
     }
 
+    const personId = ownedPerson(user.id, input.personId);
+    if (personId === undefined) return fieldError(formData, 'personId', 'Choose someone from your People');
+
     db.update(transactions)
         .set({
             title: input.title,
@@ -485,6 +501,7 @@ export async function updateEntry(transactionId: string, _prev: ActionState, for
             note: input.note ?? null,
             accountId: account.id,
             categoryId,
+            personId,
             amountMinor: row.kind === 'expense' ? -amountMinor : amountMinor,
         })
         .where(eq(transactions.id, row.id))

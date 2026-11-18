@@ -10,7 +10,7 @@ import EntryForm from '@/components/finance/entry-form';
 import { entryFormProps } from '@/components/finance/entry-form-props';
 import TransactionList from '@/components/finance/transaction-list';
 import { requireUser } from '@/server/auth/session';
-import { getAccount, listAccounts, listCategories, listTransactions } from '@/server/finance/queries';
+import { getAccount, listAccounts, listCategories, listPeople, listTransactions } from '@/server/finance/queries';
 import { deleteAccount, makePrimaryAccount, setAccountArchived, updateAccount } from '@/server/finance/actions';
 import ConfirmButton from '@/components/ui/confirm-button';
 import { ActionForm, SubmitButton } from '@/components/ui/forms/action-form';
@@ -105,7 +105,7 @@ export default async function AccountPage({
                         <Card>
                             <CardTitle>Add entry</CardTitle>
                             <EntryForm
-                                {...entryFormProps(listAccounts(user.id), listCategories(user.id))}
+                                {...entryFormProps(listAccounts(user.id), listCategories(user.id), listPeople(user.id))}
                                 defaultAccountId={account.id}
                                 today={today()}
                             />

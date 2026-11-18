@@ -116,8 +116,15 @@ export function formOptions(userId: string) {
         .where(eq(schema.employers.userId, userId))
         .orderBy(asc(schema.employers.name))
         .all();
+    const people = db
+        .select({ id: schema.relationships.id, name: schema.relationships.name })
+        .from(schema.relationships)
+        .where(eq(schema.relationships.userId, userId))
+        .orderBy(asc(schema.relationships.name))
+        .all();
     return {
         employers: employers.map((e) => ({ value: e.id, label: e.name })),
+        people: people.map((p) => ({ value: p.id, label: p.name })),
         accounts: accounts.filter((a) => !a.archivedAt).map((a) => ({ value: a.id, label: `${a.name} (${a.currency})` })),
         categories: categories
             .filter((c) => !c.archivedAt)
@@ -126,6 +133,7 @@ export function formOptions(userId: string) {
             ...accounts.map((a) => [a.id, a.name] as const),
             ...categories.map((c) => [c.id, c.name] as const),
             ...employers.map((e) => [e.id, e.name] as const),
+            ...people.map((p) => [p.id, p.name] as const),
         ]),
     };
 }

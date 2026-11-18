@@ -36,6 +36,13 @@
       "when": 1794958415011,
       "tag": "0004_push_subscription_key",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1794960889095,
+      "tag": "0005_people_on_money",
+      "breakpoints": true
     }
   ]
 }
