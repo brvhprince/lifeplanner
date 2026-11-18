@@ -163,7 +163,9 @@ To rebuild a release (for example after a registry problem), open **Actions → 
 
 ### Restoring a backup
 
-Backups made with `lp backup` or by **Settings → Start over with money** (saved in `data/backups/`) are complete copies of the database. To restore one:
+**From the app:** **Settings → Backups** lists every backup in `data/backups/` (made with **Back up now**, automatically before **Start over** and before each restore, or put there with `lp backup /data/backups/<name>.db`). Choose **Restore…**, enter your password, and the backup replaces your data. Your current data is backed up first, and you're signed out; sign in with the password from the time of the backup. You can also upload a backup file (up to 25 MB) there.
+
+**From the command line** (e.g. if you can't sign in):
 
 ```bash
 docker compose stop

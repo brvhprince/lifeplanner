@@ -1,12 +1,10 @@
 'use server';
 
-import fs from 'node:fs/promises';
-import path from 'node:path';
 import { revalidatePath } from 'next/cache';
 import { and, eq, inArray, like, or } from 'drizzle-orm';
 import { db, schema } from '@/server/db';
 import { requireUser } from '@/server/auth/session';
-import { DATA_DIR } from '@/server/env';
+import { createBackup } from '@/server/backups';
 import { deleteEntityFiles } from '@/server/files';
 import { logActivity } from '@/server/activity';
 import type { ActionState } from '@/lib/action-state';
@@ -27,11 +25,7 @@ export async function startOverWithMoney(_prev: ActionState, formData: FormData)
     }
 
     // 1. A consistent copy of the whole database, so this can be undone.
-    const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-    const backupDir = path.join(/*turbopackIgnore: true*/ DATA_DIR, 'backups');
-    await fs.mkdir(backupDir, { recursive: true });
-    const backupFile = path.join(backupDir, `before-start-over-${stamp}.db`);
-    await db.$client.backup(backupFile);
+    const backupName = await createBackup('before-start-over');
 
     const { transactions: t, transfers, debts, accounts, timelineEntries: tl, notifications: n } = schema;
     const txIds = db.select({ id: t.id }).from(t).where(eq(t.userId, user.id)).all().map((r) => r.id);
@@ -58,10 +52,10 @@ export async function startOverWithMoney(_prev: ActionState, formData: FormData)
         return removed;
     });
 
-    logActivity(user.id, 'data.start_over', 'Cleared money records to start over', { backup: path.basename(backupFile), ...counts });
+    logActivity(user.id, 'data.start_over', 'Cleared money records to start over', { backup: backupName, ...counts });
     revalidatePath('/', 'layout');
     return {
         ok: true,
-        message: `Cleared ${plural(counts.accounts, 'account')}, ${plural(counts.transactions, 'transaction')} and ${plural(counts.loans, 'loan')}. Backup saved as backups/${path.basename(backupFile)}`,
+        message: `Cleared ${plural(counts.accounts, 'account')}, ${plural(counts.transactions, 'transaction')} and ${plural(counts.loans, 'loan')}. Backup saved as ${backupName} (see Backups below)`,
     };
 }

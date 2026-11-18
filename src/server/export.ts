@@ -8,6 +8,7 @@ import { db, schema } from '@/server/db';
 import { MODULES, getModule, statusOf } from '@/lib/modules/definitions';
 import { listRecords, tableFor } from '@/server/modules/registry';
 import { toCsv } from '@/lib/csv';
+import { makeStandalone } from '@/server/backups';
 import { fromMinor } from '@/lib/money';
 import type { FieldDef } from '@/lib/modules/types';
 
@@ -165,6 +166,7 @@ export async function buildExport(name: string, userId: string): Promise<ExportF
         // A consistent snapshot via SQLite's online backup, then streamed and removed.
         const tmp = path.join(os.tmpdir(), `lifeplanner-${crypto.randomUUID()}.db`);
         await db.$client.backup(tmp);
+        makeStandalone(tmp);
         const { Readable } = await import('node:stream');
         const stream = fs.createReadStream(tmp);
         stream.on('close', () => fs.rm(tmp, { force: true }, () => {}));

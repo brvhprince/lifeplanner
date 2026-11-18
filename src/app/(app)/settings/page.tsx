@@ -13,6 +13,7 @@ import { totpQr } from '@/server/auth/totp';
 import { PASSWORD_RULES } from '@/server/auth/password';
 import { EXPORTS } from '@/server/export';
 import { startOverWithMoney } from '@/server/start-over';
+import BackupsCard from '@/components/settings/backups-card';
 import { vapidPublicKey } from '@/server/push';
 import { removePushSubscription, updateNotificationSettings } from '@/server/push-actions';
 import PushSettings from '@/components/layout/push-settings';
@@ -247,6 +248,8 @@ export default async function SettingsPage() {
                     </p>
                 </Card>
 
+                <BackupsCard />
+
                 <Card className="border-danger/40 lg:col-span-2">
                     <CardTitle>Start over with money</CardTitle>
                     <div className="grid gap-6 lg:grid-cols-2">
@@ -257,7 +260,7 @@ export default async function SettingsPage() {
                             </p>
                             <p className="text-body-muted">
                                 Kept: categories, bills, goals, savings plans, investments, people, notes, memories, plans, reminders and
-                                everything else. A full backup is saved to the <code>backups</code> folder first, so this can be undone.
+                                everything else. A full backup is saved first (see Backups above), so this can be undone.
                             </p>
                         </div>
                         <ActionForm action={startOverWithMoney} className="space-y-3">
