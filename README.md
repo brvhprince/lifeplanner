@@ -96,11 +96,11 @@ Database migrations run automatically on start. Back up `data/` first.
 | Tag | Meaning |
 | --- | --- |
 | `latest` | The newest release |
-| `0.3.0` | Exactly that release |
-| `0.3` | The newest `0.3.x` release (bug fixes only) |
+| `0.4.0` | Exactly that release |
+| `0.4` | The newest `0.4.x` release (bug fixes only) |
 | `1` | The newest `1.x` release (from 1.0 onwards) |
 
-Images are only published for releases, so `latest` never contains unreleased work. Pin a version (e.g. `:0.3`) if you want to upgrade only when you choose. See [Releases](https://github.com/brvhprince/lifeplanner/releases) for what changed in each version.
+Images are only published for releases, so `latest` never contains unreleased work. Pin a version (e.g. `:0.4`) if you want to upgrade only when you choose. See [Releases](https://github.com/brvhprince/lifeplanner/releases) for what changed in each version.
 
 ### Build from source
 
@@ -154,16 +154,16 @@ Merging to `main` runs the checks but publishes nothing. To release:
 
 ```bash
 git checkout main && git pull
-git tag v0.3.0 && git push origin v0.3.0
+git tag v0.4.0 && git push origin v0.4.0
 ```
 
-The Docker workflow then builds the amd64 and arm64 images, publishes `0.3.0`, `0.3` and `latest` to GHCR and Docker Hub, updates the Docker Hub overview, and creates a GitHub Release with notes generated from the merged pull requests. Tags like `v0.4.0-rc.1` publish only that exact tag and are marked as pre-releases.
+The Docker workflow then builds the amd64 and arm64 images, publishes `0.4.0`, `0.4` and `latest` to GHCR and Docker Hub, updates the Docker Hub overview, and creates a GitHub Release with notes generated from the merged pull requests. Tags like `v0.5.0-rc.1` publish only that exact tag and are marked as pre-releases.
 
 To rebuild a release (for example after a registry problem), open **Actions → Docker image → Run workflow**, choose the release tag under "Use workflow from", and enter the same version.
 
 ### Restoring a backup
 
-**From the app:** **Settings → Backups** lists every backup in `data/backups/` (made with **Back up now**, automatically before **Start over** and before each restore, or put there with `lp backup /data/backups/<name>.db`). Choose **Restore…**, enter your password, and the backup replaces your data. Your current data is backed up first, and you're signed out; sign in with the password from the time of the backup. You can also upload a backup file (up to 25 MB) there.
+**From the app:** **Settings → Backups** lists every backup in `data/backups/` (made with **Back up now**, automatically before **Start over** and before each restore, or put there with `docker exec lifeplanner lp backup /data/backups/<name>.db`). Choose **Restore…**, enter your password, and the backup replaces your data. Your current data is backed up first, and every device is signed out; sign in with the password from the time of the backup. You can also upload a backup file (up to 25 MB) there.
 
 **From the command line** (e.g. if you can't sign in):
 

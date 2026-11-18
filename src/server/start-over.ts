@@ -1,11 +1,12 @@
 'use server';
 
+import fs from 'node:fs/promises';
 import { revalidatePath } from 'next/cache';
 import { and, eq, inArray, like, or } from 'drizzle-orm';
 import { db, schema } from '@/server/db';
 import { requireUser } from '@/server/auth/session';
 import { createBackup } from '@/server/backups';
-import { deleteEntityFiles } from '@/server/files';
+import { absolutePath } from '@/server/files';
 import { logActivity } from '@/server/activity';
 import type { ActionState } from '@/lib/action-state';
 
@@ -24,19 +25,32 @@ export async function startOverWithMoney(_prev: ActionState, formData: FormData)
         return { error: `Type ${CONFIRMATION} to confirm`, fieldErrors: { confirm: `Type ${CONFIRMATION} to confirm` } };
     }
 
-    // 1. A consistent copy of the whole database, so this can be undone.
-    const backupName = await createBackup('before-start-over');
+    const { transactions: t, transfers, debts, accounts, timelineEntries: tl, notifications: n, files, attachments } = schema;
 
-    const { transactions: t, transfers, debts, accounts, timelineEntries: tl, notifications: n } = schema;
+    // Snapshot and deletion run synchronously, back to back, so no change made
+    // by another request can land between the backup and the clean-up.
+    const backupName = createBackup('before-start-over');
+
     const txIds = db.select({ id: t.id }).from(t).where(eq(t.userId, user.id)).all().map((r) => r.id);
     const debtIds = db.select({ id: debts.id }).from(debts).where(eq(debts.userId, user.id)).all().map((r) => r.id);
+    // Files attached to transactions and loans (receipts, agreements).
+    const attached = db
+        .select({ id: files.id, path: files.path })
+        .from(attachments)
+        .innerJoin(files, eq(files.id, attachments.fileId))
+        .where(
+            and(
+                eq(files.userId, user.id),
+                or(
+                    and(eq(attachments.entityType, 'transaction'), inArray(attachments.entityId, txIds.length ? txIds : [''])),
+                    and(eq(attachments.entityType, 'debts'), inArray(attachments.entityId, debtIds.length ? debtIds : ['']))
+                )
+            )
+        )
+        .all();
 
-    // 2. Files attached to transactions and loans (receipts, agreements).
-    await deleteEntityFiles(user.id, 'transaction', txIds);
-    await deleteEntityFiles(user.id, 'debts', debtIds);
-
-    // 3. The records themselves; children first because of foreign keys.
     const counts = db.transaction((tx) => {
+        if (attached.length) tx.delete(files).where(inArray(files.id, attached.map((f) => f.id))).run();
         const removed = {
             transactions: tx.delete(t).where(eq(t.userId, user.id)).run().changes,
             transfers: tx.delete(transfers).where(eq(transfers.userId, user.id)).run().changes,
@@ -51,6 +65,9 @@ export async function startOverWithMoney(_prev: ActionState, formData: FormData)
             .run();
         return removed;
     });
+
+    // The rows are gone; now remove the files from disk.
+    await Promise.all(attached.map((f) => fs.rm(absolutePath(f.path), { force: true })));
 
     logActivity(user.id, 'data.start_over', 'Cleared money records to start over', { backup: backupName, ...counts });
     revalidatePath('/', 'layout');

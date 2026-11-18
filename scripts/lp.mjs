@@ -74,11 +74,10 @@ const commands = {
     async backup(file) {
         if (!file) fail('Usage: lp backup <file>');
         const target = path.resolve(file);
-        await openDb().backup(target);
-        // A single self-contained file (copies inherit the live database's WAL mode).
-        const copy = new Database(target);
-        copy.pragma('journal_mode = DELETE');
-        copy.close();
+        if (fs.existsSync(target)) fail(`${target} already exists; choose a new file name.`);
+        fs.mkdirSync(path.dirname(target), { recursive: true });
+        // A consistent, self-contained copy (works while the app is running).
+        openDb().prepare('VACUUM INTO ?').run(target);
         console.log(`Database copied to ${target}.`);
         const secret = process.env.APP_SECRET ? 'your APP_SECRET value' : path.join(dataDir, 'secret.key');
         // Same rule as the app (src/server/push.ts): env keys are used only when both are set.
