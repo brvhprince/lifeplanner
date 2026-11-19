@@ -36,7 +36,10 @@ function transactionsCsv(userId: string) {
         .innerJoin(accounts, eq(accounts.id, transactions.accountId))
         .leftJoin(categories, eq(categories.id, transactions.categoryId))
         // The other leg of a transfer, to name the account money moved to/from.
-        .leftJoin(counter, and(eq(counter.transferId, transactions.transferId), ne(counter.id, transactions.id)))
+        .leftJoin(
+            counter,
+            and(eq(transactions.kind, 'transfer'), eq(counter.kind, 'transfer'), eq(counter.transferId, transactions.transferId), ne(counter.id, transactions.id))
+        )
         .leftJoin(counterAccount, eq(counterAccount.id, counter.accountId))
         .leftJoin(schema.relationships, eq(schema.relationships.id, transactions.personId))
         .where(eq(transactions.userId, userId))

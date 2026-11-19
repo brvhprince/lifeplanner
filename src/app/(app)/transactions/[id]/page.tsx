@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, ne, sql } from 'drizzle-orm';
 import Link from '@/components/ui/link';
 import { Badge, Card, CardTitle, PageHeader } from '@/components/ui/card';
 import ConfirmButton from '@/components/ui/confirm-button';
@@ -46,6 +46,22 @@ export default async function TransactionPage({
     const account = accounts.find((a) => a.id === row.accountId)!;
     const transfer = row.transferId ? getTransfer(user.id, row.transferId) : null;
     const reversed = row.status === 'reversed';
+    // Charges recorded with an expense, or the expense a charges entry belongs to.
+    const isCharge = row.metadata?.charge === true;
+    const group = typeof row.metadata?.group === 'string' && !row.debtId ? row.metadata.group : null;
+    const related = group
+        ? db
+              .select()
+              .from(t)
+              .where(and(eq(t.userId, user.id), sql`json_extract(${t.metadata}, '$.group') = ${group}`, ne(t.id, row.id)))
+              .all()
+        : [];
+    const charge = isCharge
+        ? undefined
+        : transfer
+          ? db.select().from(t).where(and(eq(t.transferId, transfer.id), eq(t.kind, 'expense'))).get()
+          : related.find((r) => r.metadata?.charge === true);
+    const chargedOn = isCharge ? related[0] : undefined;
 
     return (
         <>
@@ -86,6 +102,18 @@ export default async function TransactionPage({
                                 </Link>
                                 . Reversing or deleting this entry also updates what’s outstanding.
                             </p>
+                        ) : isCharge && !transfer ? (
+                            <p className="rounded-md bg-grey-100 p-3 text-body-2 dark:bg-dark-dark">
+                                Charges on{' '}
+                                {chargedOn ? (
+                                    <Link href={`/transactions/${chargedOn.id}`} className="font-semibold text-brand">
+                                        {chargedOn.title}
+                                    </Link>
+                                ) : (
+                                    'another entry'
+                                )}
+                                . The amount and account are set on that entry; reversing or deleting one does the same to the other.
+                            </p>
                         ) : transfer ? (
                             <p className="rounded-md bg-grey-100 p-3 text-body-2 dark:bg-dark-dark">
                                 Transfer from {accounts.find((a) => a.id === transfer.fromAccountId)?.name} to{' '}
@@ -116,6 +144,16 @@ export default async function TransactionPage({
                                     options={listPeople(user.id).map((p) => ({ value: p.id, label: p.name }))}
                                     defaultValue={row.personId ?? ''}
                                 />
+                                {row.kind === 'expense' && (
+                                    <Input
+                                        label="Charges"
+                                        name="fee"
+                                        inputMode="decimal"
+                                        placeholder="0.00"
+                                        defaultValue={charge ? fromMinor(Math.abs(charge.amountMinor), account.currency) : ''}
+                                        helpText="e.g. a MoMo or card fee; empty for none"
+                                    />
+                                )}
                             </div>
                         )}
                         <Input label="Date" name="occurredOn" type="date" defaultValue={row.occurredOn} required />
@@ -131,6 +169,11 @@ export default async function TransactionPage({
                     <div className="mt-1 text-body-2 text-body-muted">
                         {account.name} · {formatDate(row.occurredOn)}
                     </div>
+                    {charge && (
+                        <Link href={`/transactions/${charge.id}`} className="mt-1 block text-body-2 text-body-muted hover:text-brand">
+                            + <Money minor={Math.abs(charge.amountMinor)} currency={accounts.find((a) => a.id === charge.accountId)!.currency} /> charges
+                        </Link>
+                    )}
                     <div className="mt-6 space-y-3 border-t border-light-300 pt-4 dark:border-dark-light/30">
                         <form action={setTransactionReversed.bind(null, row.id, !reversed)}>
                             <Button variant="outline" className="w-full text-sm">
@@ -142,8 +185,12 @@ export default async function TransactionPage({
                             label={transfer ? 'Delete transfer' : 'Delete entry'}
                             warning={
                                 transfer
-                                    ? 'Both sides of the transfer will be removed.'
-                                    : row.debtId
+                                    ? 'Both sides of the transfer (and any charges) will be removed.'
+                                    : charge
+                                      ? 'Its charges are removed too.'
+                                      : chargedOn
+                                        ? `The entry these charges belong to (${chargedOn.title}) is removed too.`
+                                        : row.debtId
                                       ? 'Entries recorded with it (e.g. the finance charge) are removed too.'
                                       : 'This can’t be undone.'
                             }

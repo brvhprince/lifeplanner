@@ -1,4 +1,4 @@
-import { and, desc, eq, isNull } from 'drizzle-orm';
+import { and, desc, eq, isNull, sql } from 'drizzle-orm';
 import { debtLedger, debtState, getDebt } from '@/server/finance/debts';
 import { HiOutlineTrash } from 'react-icons/hi2';
 import { Card, CardTitle, EmptyState } from '@/components/ui/card';
@@ -174,6 +174,8 @@ export function DebtPanel({ debtId, userId }: { debtId: string; userId: string }
                       and(
                           eq(t.userId, userId),
                           isNull(t.debtId),
+                          isNull(t.transferId),
+                          sql`coalesce(json_extract(${t.metadata}, '$.charge'), 0) = 0`,
                           eq(t.kind, borrowing ? 'income' : 'expense'),
                           eq(t.status, 'active'),
                           eq(a.currency, currency)
