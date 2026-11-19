@@ -15,7 +15,7 @@ import routes from '@/config/routes';
 
 export const metadata: Metadata = { title: 'Sign In' };
 
-export default async function SignIn() {
+export default async function SignIn({ searchParams }: { searchParams: Promise<{ restored?: string }> }) {
     await connection();
     if (!hasOwner()) redirect(routes.setup);
     const current = await getSession();
@@ -24,6 +24,11 @@ export default async function SignIn() {
     return (
         <AuthShell>
             <AuthHeading emoji="👋" title="Welcome Back!" subtitle="Let's plan your life" />
+            {(await searchParams).restored && (
+                <p role="status" className="mb-2 rounded-md border border-success bg-success-soft px-4 py-3 text-sm font-semibold text-success-dark">
+                    Backup restored. Sign in with the password you had when the backup was made.
+                </p>
+            )}
             <LoginUserForm />
             <p className="mt-6 text-center text-xs text-body-muted">
                 Forgot your password? Run <code className="font-semibold">npm run lp reset-password</code> on the

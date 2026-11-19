@@ -60,8 +60,8 @@ docker exec lifeplanner lp backup /data/backup.db
 | Tag | Meaning |
 | --- | --- |
 | `latest` | The newest release |
-| `0.3.0` | Exactly that release |
-| `0.3` | The newest `0.3.x` release |
+| `0.4.0` | Exactly that release |
+| `0.4` | The newest `0.4.x` release |
 
 Release notes: [github.com/brvhprince/lifeplanner/releases](https://github.com/brvhprince/lifeplanner/releases)
 
