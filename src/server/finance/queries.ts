@@ -17,6 +17,8 @@ export function listAccounts(userId: string, { includeArchived = false } = {}) {
             name: accounts.name,
             description: accounts.description,
             type: accounts.type,
+            institution: accounts.institution,
+            accountNumber: accounts.accountNumber,
             currency: accounts.currency,
             isPrimary: accounts.isPrimary,
             archivedAt: accounts.archivedAt,

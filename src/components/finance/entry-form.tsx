@@ -6,10 +6,11 @@ import { ActionForm, SubmitButton } from '@/components/ui/forms/action-form';
 import Input from '@/components/ui/forms/input';
 import Select from '@/components/ui/forms/select';
 import { createEntry } from '@/server/finance/actions';
+import { accountLabel } from '@/lib/accounts';
 
 type Kind = 'expense' | 'income' | 'transfer';
 
-export type EntryFormAccount = { id: string; name: string; currency: string; isPrimary: boolean };
+export type EntryFormAccount = { id: string; name: string; currency: string; isPrimary: boolean; accountNumber: string | null };
 export type EntryFormCategory = { id: string; name: string; kind: 'income' | 'expense' };
 export type EntryFormPerson = { id: string; name: string };
 
@@ -43,7 +44,7 @@ export default function EntryForm({
     const to = accounts.find((a) => a.id === toAccountId);
     const crossCurrency = kind === 'transfer' && from && to && from.currency !== to.currency;
 
-    const accountOptions = accounts.map((a) => ({ value: a.id, label: `${a.name} (${a.currency})` }));
+    const accountOptions = accounts.map((a) => ({ value: a.id, label: accountLabel(a) }));
     const categoryOptions = categories.filter((c) => c.kind === kind).map((c) => ({ value: c.id, label: c.name }));
 
     return (

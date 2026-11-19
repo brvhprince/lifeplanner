@@ -8,6 +8,7 @@ import { formatMoney } from '@/lib/money';
 import { formatDate } from '@/lib/dates';
 import { normalizeQuery } from '@/lib/validate';
 import { findMatches, fold } from '@/lib/fold';
+import { maskAccountNumber } from '@/lib/accounts';
 
 export type SearchHit = { href: string; title: string; detail?: string; snippet?: string };
 export type SearchGroup = { label: string; hits: SearchHit[] };
@@ -66,10 +67,15 @@ export function search(userId: string, rawQuery: string): SearchGroup[] {
         db
             .select()
             .from(a)
-            .where(and(eq(a.userId, userId), matches(q, a.name, a.description)))
+            .where(and(eq(a.userId, userId), matches(q, a.name, a.description, a.institution, a.accountNumber)))
             .limit(PER_GROUP)
             .all()
-            .map((r) => ({ href: `/accounts/${r.id}`, title: r.name, detail: `${r.type} · ${r.currency}`, snippet: snippet(r.description, q) }))
+            .map((r) => ({
+                href: `/accounts/${r.id}`,
+                title: r.name,
+                detail: [r.institution, maskAccountNumber(r.accountNumber), r.type, r.currency].filter(Boolean).join(' · '),
+                snippet: snippet(r.description, q),
+            }))
     );
 
     const c = schema.categories;

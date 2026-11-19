@@ -17,6 +17,7 @@ import { getTransfer, listAccounts, listCategories, listPeople } from '@/server/
 import { deleteEntry, setTransactionReversed, updateEntry } from '@/server/finance/actions';
 import { fromMinor } from '@/lib/money';
 import { formatDate } from '@/lib/dates';
+import { accountLabel } from '@/lib/accounts';
 import routes from '@/config/routes';
 
 export const metadata: Metadata = { title: 'Edit entry' };
@@ -125,7 +126,7 @@ export default async function TransactionPage({
                                 <Select
                                     label="Account"
                                     name="accountId"
-                                    options={accounts.filter((a) => !a.archivedAt || a.id === row.accountId).map((a) => ({ value: a.id, label: `${a.name} (${a.currency})` }))}
+                                    options={accounts.filter((a) => !a.archivedAt || a.id === row.accountId).map((a) => ({ value: a.id, label: accountLabel(a) }))}
                                     defaultValue={row.accountId}
                                 />
                                 <Select

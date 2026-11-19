@@ -43,6 +43,13 @@
       "when": 1794960889095,
       "tag": "0005_people_on_money",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1795104827859,
+      "tag": "0006_account_numbers",
+      "breakpoints": true
     }
   ]
 }

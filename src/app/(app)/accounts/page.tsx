@@ -7,6 +7,8 @@ import AccountForm from '@/components/finance/account-form';
 import { requireUser } from '@/server/auth/session';
 import { listAccounts } from '@/server/finance/queries';
 import routes from '@/config/routes';
+import AccountMeta from '@/components/finance/account-meta';
+import { maskAccountNumber } from '@/lib/accounts';
 
 export const metadata: Metadata = { title: 'Accounts' };
 
@@ -36,6 +38,7 @@ export default async function AccountsPage() {
                                         <div className="mt-1 truncate text-heading-5 font-semibold text-heading-dark dark:text-heading-light">
                                             {a.name}
                                         </div>
+                                        <AccountMeta institution={a.institution} accountNumber={a.accountNumber} />
                                         <Money minor={a.balanceMinor} currency={a.currency} className="mt-2 block text-heading-3 font-bold" />
                                         <OverdraftLine balanceMinor={a.balanceMinor} overdraftLimitMinor={a.overdraftLimitMinor} currency={a.currency} />
                                         <div className="mt-1 text-caption text-body-muted">
@@ -57,6 +60,7 @@ export default async function AccountsPage() {
                                     <li key={a.id} className="flex items-center justify-between py-2 text-body-2">
                                         <Link href={routes.account(a.id)} className="font-medium hover:text-brand">
                                             {a.name}
+                                            {a.accountNumber && <span className="ml-2 text-body-muted">{maskAccountNumber(a.accountNumber)}</span>}
                                         </Link>
                                         <Money minor={a.balanceMinor} currency={a.currency} />
                                     </li>

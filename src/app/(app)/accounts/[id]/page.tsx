@@ -13,6 +13,8 @@ import { requireUser } from '@/server/auth/session';
 import { getAccount, listAccounts, listCategories, listPeople, listTransactions } from '@/server/finance/queries';
 import { deleteAccount, makePrimaryAccount, setAccountArchived, updateAccount } from '@/server/finance/actions';
 import ConfirmButton from '@/components/ui/confirm-button';
+import CopyButton from '@/components/ui/copy-button';
+import { groupAccountNumber } from '@/lib/accounts';
 import { ActionForm, SubmitButton } from '@/components/ui/forms/action-form';
 import Input from '@/components/ui/forms/input';
 import Select from '@/components/ui/forms/select';
@@ -63,7 +65,14 @@ export default async function AccountPage({
                         <Link href={routes.accounts} className="hover:text-brand">
                             Accounts
                         </Link>{' '}
-                        · {account.type} · {account.currency} · opened with {fromMinor(account.openingBalanceMinor, account.currency)}
+                        · {account.institution ? `${account.institution} · ` : ''}
+                        {account.type} · {account.currency} · opened with {fromMinor(account.openingBalanceMinor, account.currency)}
+                        {account.accountNumber && (
+                            <span className="mt-1 flex flex-wrap items-center gap-2">
+                                <span className="font-mono tabular-nums text-heading-dark dark:text-heading-light">{groupAccountNumber(account.accountNumber)}</span>
+                                <CopyButton text={account.accountNumber} label="Copy number" />
+                            </span>
+                        )}
                     </>
                 }
                 actions={
@@ -119,6 +128,20 @@ export default async function AccountPage({
                                 <Select label="Type" name="type" options={TYPE_OPTIONS} defaultValue={account.type} />
                                 <CurrencySelect label="Currency" name="currency" defaultValue={account.currency} />
                             </div>
+                            <div className="grid gap-4 sm:grid-cols-2">
+                                <Input label="Bank or provider" name="institution" placeholder="e.g. GCB, MTN MoMo" maxLength={100} defaultValue={account.institution ?? ''} />
+                                <Input
+                                    label="Account number"
+                                    name="accountNumber"
+                                    inputMode="numeric"
+                                    placeholder="Optional"
+                                    maxLength={40}
+                                    autoComplete="off"
+                                    defaultValue={account.accountNumber ?? ''}
+                                    helpText="Lists show only the last 4 digits."
+                                />
+                            </div>
+
                             <Input
                                 label="Opening balance"
                                 name="openingBalance"

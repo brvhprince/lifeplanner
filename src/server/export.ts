@@ -68,8 +68,19 @@ function transactionsCsv(userId: string) {
 function accountsCsv(userId: string) {
     const rows = db.select().from(accounts).where(eq(accounts.userId, userId)).orderBy(asc(accounts.name)).all();
     return toCsv(
-        ['name', 'type', 'currency', 'opening_balance', 'primary', 'archived', 'description', 'id'],
-        rows.map((a) => [a.name, a.type, a.currency, fromMinor(a.openingBalanceMinor, a.currency), a.isPrimary, Boolean(a.archivedAt), a.description, a.id])
+        ['name', 'type', 'institution', 'account_number', 'currency', 'opening_balance', 'primary', 'archived', 'description', 'id'],
+        rows.map((a) => [
+            a.name,
+            a.type,
+            a.institution,
+            a.accountNumber,
+            a.currency,
+            fromMinor(a.openingBalanceMinor, a.currency),
+            a.isPrimary,
+            Boolean(a.archivedAt),
+            a.description,
+            a.id,
+        ])
     );
 }
 

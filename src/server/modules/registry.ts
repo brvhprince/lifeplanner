@@ -4,6 +4,7 @@ import type { SQLiteColumn, SQLiteTable } from 'drizzle-orm/sqlite-core';
 import { db, schema } from '@/server/db';
 import type { ModuleDef, ModuleKey } from '@/lib/modules/types';
 import { listPeople } from '@/server/finance/queries';
+import { accountLabel } from '@/lib/accounts';
 
 const TABLES = {
     subscriptions: schema.subscriptions,
@@ -100,7 +101,13 @@ export function listTimeline(userId: string, entityType: string, entityId: strin
 /** Names for the account/category pickers and for displaying stored ids. */
 export function formOptions(userId: string) {
     const accounts = db
-        .select({ id: schema.accounts.id, name: schema.accounts.name, currency: schema.accounts.currency, archivedAt: schema.accounts.archivedAt })
+        .select({
+            id: schema.accounts.id,
+            name: schema.accounts.name,
+            currency: schema.accounts.currency,
+            accountNumber: schema.accounts.accountNumber,
+            archivedAt: schema.accounts.archivedAt,
+        })
         .from(schema.accounts)
         .where(eq(schema.accounts.userId, userId))
         .orderBy(asc(schema.accounts.name))
@@ -121,7 +128,7 @@ export function formOptions(userId: string) {
     return {
         employers: employers.map((e) => ({ value: e.id, label: e.name })),
         people: people.map((p) => ({ value: p.id, label: p.name })),
-        accounts: accounts.filter((a) => !a.archivedAt).map((a) => ({ value: a.id, label: `${a.name} (${a.currency})` })),
+        accounts: accounts.filter((a) => !a.archivedAt).map((a) => ({ value: a.id, label: accountLabel(a) })),
         categories: categories
             .filter((c) => !c.archivedAt)
             .map((c) => ({ value: c.id, label: `${c.name} · ${c.kind === 'income' ? 'in' : 'out'}` })),
