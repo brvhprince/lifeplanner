@@ -255,16 +255,17 @@ export default async function SettingsPage() {
                     <div className="grid gap-6 lg:grid-cols-2">
                         <div className="space-y-2 text-body-2">
                             <p>
-                                Clears all <strong>accounts, transactions, transfers and loans</strong> (with their attached files), so you can
+                                Clears all <strong>accounts, transactions, transfers and loans</strong>, so you can
                                 enter them again from scratch.
                             </p>
                             <p className="text-body-muted">
                                 Kept: categories, bills, goals, savings plans, investments, people, notes, memories, plans, reminders and
-                                everything else. A full backup is saved first (see Backups above), so this can be undone.
+                                everything else, including attached files on disk. A full backup is saved first (see Backups above), so this can be undone.
                             </p>
                         </div>
                         <ActionForm action={startOverWithMoney} className="space-y-3">
                             <Input label="Type START OVER to confirm" name="confirm" autoComplete="off" />
+                            <Password label="Your current password" name="password" autoComplete="current-password" />
                             <SubmitButton variant="solidDanger" className="text-sm">
                                 Clear money records
                             </SubmitButton>

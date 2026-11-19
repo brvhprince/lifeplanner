@@ -33,11 +33,11 @@ export function debtState(debt: Debt, client: Tx | typeof db = db) {
 }
 
 /** All of a user's debts with their ledger-derived state. */
-export function listDebtStates(userId: string, { activeOnly = false } = {}) {
+export function listDebtStates(userId: string, { activeOnly = false, personId }: { activeOnly?: boolean; personId?: string } = {}) {
     const rows = db
         .select()
         .from(debts)
-        .where(and(eq(debts.userId, userId), activeOnly ? eq(debts.status, 'active') : undefined))
+        .where(and(eq(debts.userId, userId), activeOnly ? eq(debts.status, 'active') : undefined, personId ? eq(debts.personId, personId) : undefined))
         .all();
     const totals = legTotals(rows.map((d) => d.id));
     return rows.map((d) => ({ debt: d, state: computeDebtState(d, totals.get(d.id)) }));

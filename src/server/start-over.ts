@@ -1,14 +1,13 @@
 'use server';
 
-import fs from 'node:fs/promises';
 import { revalidatePath } from 'next/cache';
 import { and, eq, inArray, like, or } from 'drizzle-orm';
 import { db, schema } from '@/server/db';
 import { requireUser } from '@/server/auth/session';
 import { createBackup } from '@/server/backups';
-import { absolutePath } from '@/server/files';
+import { verifyPassword } from '@/server/auth/password';
 import { logActivity } from '@/server/activity';
-import type { ActionState } from '@/lib/action-state';
+import { formValues, type ActionState } from '@/lib/action-state';
 
 const CONFIRMATION = 'START OVER';
 
@@ -23,6 +22,10 @@ export async function startOverWithMoney(_prev: ActionState, formData: FormData)
     const user = await requireUser();
     if (String(formData.get('confirm') ?? '').trim().toUpperCase() !== CONFIRMATION) {
         return { error: `Type ${CONFIRMATION} to confirm`, fieldErrors: { confirm: `Type ${CONFIRMATION} to confirm` } };
+    }
+    // As destructive as it gets, so it needs the password like 2FA changes do.
+    if (!(await verifyPassword(user.passwordHash, String(formData.get('password') ?? '')))) {
+        return { error: 'Password is incorrect', fieldErrors: { password: 'Password is incorrect' }, values: formValues(formData) };
     }
 
     const { transactions: t, transfers, debts, accounts, timelineEntries: tl, notifications: n, files, attachments } = schema;
@@ -66,8 +69,8 @@ export async function startOverWithMoney(_prev: ActionState, formData: FormData)
         return removed;
     });
 
-    // The rows are gone; now remove the files from disk.
-    await Promise.all(attached.map((f) => fs.rm(absolutePath(f.path), { force: true })));
+    // Attached files stay on disk: the backup only holds the database, and
+    // restoring it brings their records back, so the files must still exist.
 
     logActivity(user.id, 'data.start_over', 'Cleared money records to start over', { backup: backupName, ...counts });
     revalidatePath('/', 'layout');

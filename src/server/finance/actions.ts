@@ -9,6 +9,7 @@ import { requireUser } from '@/server/auth/session';
 import { formValues, parseForm, type ActionState } from '@/lib/action-state';
 import { formatMoney, isCurrency, toMinor } from '@/lib/money';
 import { getAccount } from '@/server/finance/queries';
+import { ownsRecord } from '@/server/ownership';
 import { isIsoDate } from '@/lib/dates';
 import { ACCOUNT_TYPES } from '@/server/db/schema';
 import { deleteEntityFiles } from '@/server/files';
@@ -197,8 +198,7 @@ const entrySchema = z.object({
 /** The person id if it belongs to the user, null when empty, undefined when invalid. */
 function ownedPerson(userId: string, personId: string | undefined) {
     if (!personId) return null;
-    const r = schema.relationships;
-    return db.select({ id: r.id }).from(r).where(and(eq(r.id, personId), eq(r.userId, userId))).get()?.id;
+    return ownsRecord(schema.relationships, userId, personId) ? personId : undefined;
 }
 
 export async function createEntry(_prev: ActionState, formData: FormData): Promise<ActionState> {
