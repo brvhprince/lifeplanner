@@ -96,11 +96,11 @@ Database migrations run automatically on start. Back up `data/` first.
 | Tag | Meaning |
 | --- | --- |
 | `latest` | The newest release |
-| `0.5.0` | Exactly that release |
-| `0.5` | The newest `0.5.x` release (bug fixes only) |
+| `0.6.0` | Exactly that release |
+| `0.6` | The newest `0.6.x` release (bug fixes only) |
 | `1` | The newest `1.x` release (from 1.0 onwards) |
 
-Images are only published for releases, so `latest` never contains unreleased work. Pin a version (e.g. `:0.5`) if you want to upgrade only when you choose. See [Releases](https://github.com/brvhprince/lifeplanner/releases) for what changed in each version.
+Images are only published for releases, so `latest` never contains unreleased work. Pin a version (e.g. `:0.6`) if you want to upgrade only when you choose. See [Releases](https://github.com/brvhprince/lifeplanner/releases) for what changed in each version.
 
 ### Build from source
 
@@ -154,10 +154,10 @@ Merging to `main` runs the checks but publishes nothing. To release:
 
 ```bash
 git checkout main && git pull
-git tag v0.5.0 && git push origin v0.5.0
+git tag v0.6.0 && git push origin v0.6.0
 ```
 
-The Docker workflow then builds the amd64 and arm64 images, publishes `0.5.0`, `0.5` and `latest` to GHCR and Docker Hub, updates the Docker Hub overview, and creates a GitHub Release with notes generated from the merged pull requests. Tags like `v0.6.0-rc.1` publish only that exact tag and are marked as pre-releases.
+The Docker workflow then builds the amd64 and arm64 images, publishes `0.6.0`, `0.6` and `latest` to GHCR and Docker Hub, updates the Docker Hub overview, and creates a GitHub Release with notes generated from the merged pull requests. Tags like `v0.7.0-rc.1` publish only that exact tag and are marked as pre-releases.
 
 To rebuild a release (for example after a registry problem), open **Actions → Docker image → Run workflow**, choose the release tag under "Use workflow from", and enter the same version.
 
