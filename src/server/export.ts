@@ -29,6 +29,7 @@ function transactionsCsv(userId: string) {
             status: transactions.status,
             note: transactions.note,
             otherAccount: counterAccount.name,
+            person: schema.relationships.name,
             id: transactions.id,
         })
         .from(transactions)
@@ -37,12 +38,13 @@ function transactionsCsv(userId: string) {
         // The other leg of a transfer, to name the account money moved to/from.
         .leftJoin(counter, and(eq(counter.transferId, transactions.transferId), ne(counter.id, transactions.id)))
         .leftJoin(counterAccount, eq(counterAccount.id, counter.accountId))
+        .leftJoin(schema.relationships, eq(schema.relationships.id, transactions.personId))
         .where(eq(transactions.userId, userId))
         .orderBy(asc(transactions.occurredOn), asc(transactions.createdAt))
         .all();
 
     return toCsv(
-        ['date', 'account', 'currency', 'type', 'category', 'description', 'amount', 'status', 'note', 'transfer_with', 'id'],
+        ['date', 'account', 'currency', 'type', 'category', 'description', 'amount', 'status', 'note', 'transfer_with', 'person', 'id'],
         rows.map((r) => [
             r.date,
             r.account,
@@ -54,6 +56,7 @@ function transactionsCsv(userId: string) {
             r.status,
             r.note,
             r.otherAccount,
+            r.person,
             r.id,
         ])
     );

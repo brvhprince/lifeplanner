@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { and, eq, sql } from 'drizzle-orm';
+import { and, eq, isNull, sql } from 'drizzle-orm';
 import { db, schema } from '@/server/db';
 import { requireUser } from '@/server/auth/session';
 import { getModule, statusOf } from '@/lib/modules/definitions';
@@ -51,14 +51,26 @@ export async function saveRecord(moduleKey: string, id: string | null, _prev: Ac
 
     if (id) {
         if (!getRecord(def, user.id, id)) return { error: `That ${def.singular.toLowerCase()} no longer exists` };
+        const previousPerson = def.key === 'debts' ? (getDebt(user.id, id)?.personId ?? null) : null;
         db.transaction((tx) => {
             tx.update(table).set(values as never).where(and(eq(columns.id, id), eq(columns.userId, user.id))).run();
             if (def.key === 'debts') {
-                // Keep the loan's money entries on the same person as the loan.
-                tx.update(schema.transactions)
-                    .set({ personId: (values.personId as string | null | undefined) ?? null })
-                    .where(and(eq(schema.transactions.debtId, id), eq(schema.transactions.userId, user.id)))
-                    .run();
+                // When the loan's person changes, move its entries that followed the
+                // old person; entries tagged with someone else on purpose stay.
+                const person = (values.personId as string | null | undefined) ?? null;
+                if (person !== previousPerson) {
+                    const t = schema.transactions;
+                    tx.update(t)
+                        .set({ personId: person })
+                        .where(
+                            and(
+                                eq(t.debtId, id),
+                                eq(t.userId, user.id),
+                                previousPerson ? eq(t.personId, previousPerson) : isNull(t.personId)
+                            )
+                        )
+                        .run();
+                }
                 syncDebtStatus(user.id, id, tx);
             }
         });
@@ -384,6 +396,7 @@ export async function linkDebtTransaction(debtId: string, _prev: ActionState, fo
                     amountMinor: -debt.upfrontFeeMinor,
                     categoryId: chargeCategory(tx, user.id, 'expense'),
                     title: `Loan fee: ${debt.title}`,
+                    personId: row.personId ?? debt.personId,
                     metadata: { group: group.group },
                 })
                 .run();

@@ -1,7 +1,7 @@
 import 'server-only';
-import { and, eq } from 'drizzle-orm';
 import type { SQLiteColumn } from 'drizzle-orm/sqlite-core';
-import { db, schema } from '@/server/db';
+import { schema } from '@/server/db';
+import { ownsRecord } from '@/server/ownership';
 import { formValues, type ActionState } from '@/lib/action-state';
 import { isCurrency, toMinor } from '@/lib/money';
 import { isIsoDate } from '@/lib/dates';
@@ -10,9 +10,6 @@ import { isHttpUrl } from '@/lib/validate';
 
 const DEFAULT_MAX = { text: 200, textarea: 5000, url: 2000, email: 254 } as const;
 
-function owns(table: typeof schema.accounts | typeof schema.categories | typeof schema.employers | typeof schema.relationships, userId: string, id: string) {
-    return Boolean(db.select({ id: table.id }).from(table).where(and(eq(table.id, id), eq(table.userId, userId))).get());
-}
 
 /**
  * Turns submitted form data into column values for a module table, using the
@@ -89,19 +86,19 @@ export function parseRecord(
                 break;
             }
             case 'account':
-                if (owns(schema.accounts, ctx.userId, value)) values[field.name] = value;
+                if (ownsRecord(schema.accounts, ctx.userId, value)) values[field.name] = value;
                 else errors[field.name] = 'Choose an account';
                 break;
             case 'category':
-                if (owns(schema.categories, ctx.userId, value)) values[field.name] = value;
+                if (ownsRecord(schema.categories, ctx.userId, value)) values[field.name] = value;
                 else errors[field.name] = 'Choose a category';
                 break;
             case 'employer':
-                if (owns(schema.employers, ctx.userId, value)) values[field.name] = value;
+                if (ownsRecord(schema.employers, ctx.userId, value)) values[field.name] = value;
                 else errors[field.name] = 'Choose an employer';
                 break;
             case 'person':
-                if (owns(schema.relationships, ctx.userId, value)) values[field.name] = value;
+                if (ownsRecord(schema.relationships, ctx.userId, value)) values[field.name] = value;
                 else errors[field.name] = 'Choose someone from your People';
                 break;
         }

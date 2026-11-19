@@ -3,6 +3,7 @@ import { and, asc, desc, eq, getTableColumns, inArray, sql, type SQL } from 'dri
 import type { SQLiteColumn, SQLiteTable } from 'drizzle-orm/sqlite-core';
 import { db, schema } from '@/server/db';
 import type { ModuleDef, ModuleKey } from '@/lib/modules/types';
+import { listPeople } from '@/server/finance/queries';
 
 const TABLES = {
     subscriptions: schema.subscriptions,
@@ -116,12 +117,7 @@ export function formOptions(userId: string) {
         .where(eq(schema.employers.userId, userId))
         .orderBy(asc(schema.employers.name))
         .all();
-    const people = db
-        .select({ id: schema.relationships.id, name: schema.relationships.name })
-        .from(schema.relationships)
-        .where(eq(schema.relationships.userId, userId))
-        .orderBy(asc(schema.relationships.name))
-        .all();
+    const people = listPeople(userId);
     return {
         employers: employers.map((e) => ({ value: e.id, label: e.name })),
         people: people.map((p) => ({ value: p.id, label: p.name })),

@@ -3,7 +3,7 @@ import { Badge, Card, CardTitle, EmptyState } from '@/components/ui/card';
 import Money from '@/components/finance/money';
 import ProgressBar from '@/components/ui/progress-bar';
 import FlowChart from '@/components/people/flow-chart';
-import { personMoney } from '@/server/finance/people';
+import { chartData, personMoney } from '@/server/finance/people';
 import { formatMoney } from '@/lib/money';
 import { formatDate } from '@/lib/dates';
 
@@ -13,6 +13,8 @@ export default function PersonMoney({ userId, personId, name, mainCurrency }: { 
     const first = name.split(' ')[0];
     const hasFlows = data.totals.length > 0;
     const hasChart = data.months.some((m) => m.given || m.received);
+    const entryCount = data.totals.reduce((sum, t) => sum + t.count, 0);
+    const since = data.totals.reduce<string | null>((min, t) => (!min || t.first < min ? t.first : min), null);
 
     if (!hasFlows && !data.loans.length) {
         return (
@@ -54,10 +56,10 @@ export default function PersonMoney({ userId, personId, name, mainCurrency }: { 
                     ))}
                     <div>
                         <dt className="text-caption font-semibold uppercase tracking-wide text-body-muted">Balance</dt>
-                        {data.totals.map((t, i) => {
+                        {data.totals.map((t) => {
                             const net = t.received - t.given;
                             return (
-                                <dd key={t.currency} className={i ? 'text-body-2' : 'text-body-2'}>
+                                <dd key={t.currency} className="text-body-2">
                                     {net === 0
                                         ? 'Even'
                                         : net < 0
@@ -67,13 +69,13 @@ export default function PersonMoney({ userId, personId, name, mainCurrency }: { 
                             );
                         })}
                         <dd className="mt-1 text-caption text-body-muted">
-                            {data.totals[0]?.count} entries · since {data.totals[0] ? formatDate(data.totals[0].first) : '—'}
+                            {entryCount} {entryCount === 1 ? 'entry' : 'entries'} · since {since ? formatDate(since) : '—'}
                         </dd>
                     </div>
                 </dl>
             )}
 
-            {hasChart && <FlowChart months={data.months} currency={data.chartCurrency} />}
+            {hasChart && <FlowChart currency={data.chartCurrency} {...chartData(data.months, data.chartCurrency)} />}
 
             <div className="mt-6 grid gap-6 lg:grid-cols-2">
                 {data.byCategory.length > 0 && (

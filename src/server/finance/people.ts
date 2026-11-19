@@ -3,10 +3,37 @@ import { and, desc, eq, gte, sql } from 'drizzle-orm';
 import { db, schema } from '@/server/db';
 import { listDebtStates } from '@/server/finance/debts';
 import { currentMonth, shiftMonth } from '@/lib/dates';
+import { formatMoney } from '@/lib/money';
 
 const { transactions: t, accounts: a, categories: c } = schema;
 
 export type MonthFlow = { month: string; given: number; received: number };
+
+/** Chart-ready month with its labels formatted on the server (avoids hydration mismatches). */
+export type ChartMonth = MonthFlow & { short: string; long: string; givenText: string; receivedText: string };
+
+/** Rounds up to a clean axis maximum (1, 2, 2.5 or 5 × 10^n). */
+export function niceMax(value: number) {
+    if (value <= 0) return 1;
+    const exp = 10 ** Math.floor(Math.log10(value));
+    return ([1, 2, 2.5, 5, 10].find((m) => m * exp >= value) ?? 10) * exp;
+}
+
+export function chartData(months: MonthFlow[], currency: string) {
+    const max = niceMax(Math.max(...months.map((m) => Math.max(m.given, m.received))));
+    const label = (month: string, options: Intl.DateTimeFormatOptions) => new Date(`${month}-01T00:00:00`).toLocaleDateString(undefined, options);
+    return {
+        max,
+        ticks: [max, max / 2, 0].map((value) => ({ value, label: formatMoney(value, currency).replace(/\.00$/, '') })),
+        months: months.map((m) => ({
+            ...m,
+            short: label(m.month, { month: 'short' }),
+            long: label(m.month, { month: 'long', year: 'numeric' }),
+            givenText: formatMoney(m.given, currency),
+            receivedText: formatMoney(m.received, currency),
+        })) as ChartMonth[],
+    };
+}
 
 /**
  * Money between the user and one person: what was given (expenses) and
@@ -74,7 +101,7 @@ export function personMoney(userId: string, personId: string, mainCurrency: stri
         .limit(8)
         .all();
 
-    const loans = listDebtStates(userId).filter(({ debt }) => debt.personId === personId);
+    const loans = listDebtStates(userId, { personId });
 
     const recent = db
         .select({
