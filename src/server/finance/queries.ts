@@ -101,6 +101,8 @@ export function listTransactions(
         .leftJoin(
             counterLeg,
             and(
+                eq(transactions.kind, 'transfer'),
+                eq(counterLeg.kind, 'transfer'),
                 eq(counterLeg.transferId, transactions.transferId),
                 sql`${counterLeg.id} <> ${transactions.id}`
             )

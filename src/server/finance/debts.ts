@@ -6,7 +6,7 @@ export type { DebtState } from '../../lib/loans';
 
 const { debts, transactions, categories, accounts } = schema;
 
-type Tx = Parameters<Parameters<Db['transaction']>[0]>[0];
+export type Tx = Parameters<Parameters<Db['transaction']>[0]>[0];
 export type Debt = typeof debts.$inferSelect;
 
 /** Ledger totals per debt, from active loan-linked transactions. */
@@ -96,7 +96,17 @@ export function hasLoanEntries(debtId: string, client: Tx | typeof db = db) {
 
 /** Finds or creates the category used for loan charges / interest received. */
 export function chargeCategory(client: Tx, userId: string, kind: 'income' | 'expense') {
-    const name = kind === 'expense' ? 'Loan charges' : 'Interest received';
+    return kind === 'expense'
+        ? ensureCategory(client, userId, 'expense', 'Loan charges', '#CF4655')
+        : ensureCategory(client, userId, 'income', 'Interest received', '#4AAE8C');
+}
+
+/** Finds or creates the category for bank, card and mobile money charges. */
+export function feesCategory(client: Tx, userId: string) {
+    return ensureCategory(client, userId, 'expense', 'Charges & fees', '#D9822B');
+}
+
+function ensureCategory(client: Tx, userId: string, kind: 'income' | 'expense', name: string, color: string) {
     const c = categories;
     const existing = client
         .select({ id: c.id, archivedAt: c.archivedAt })
@@ -109,7 +119,7 @@ export function chargeCategory(client: Tx, userId: string, kind: 'income' | 'exp
     }
     return client
         .insert(c)
-        .values({ userId, kind, name, color: kind === 'expense' ? '#CF4655' : '#4AAE8C' })
+        .values({ userId, kind, name, color })
         .returning({ id: c.id })
         .get().id;
 }
@@ -183,18 +193,18 @@ export function insertRepayment(client: Tx, debt: Debt, accountId: string, amoun
 }
 
 /**
- * Ids of the entries recorded together with this one by a single loan action
- * (disbursement + fee, or principal + finance charge), so they are reversed,
- * deleted and re-dated together.
+ * Ids of the entries recorded together with this one (a loan's disbursement +
+ * fee, principal + finance charge, or an expense + its charges), so they are
+ * reversed, deleted and re-dated together.
  */
-export function loanGroupIds(client: Tx | typeof db, row: { id: string; debtId: string | null; metadata: Record<string, unknown> | null }) {
+export function entryGroupIds(client: Tx | typeof db, row: { id: string; userId: string; metadata: Record<string, unknown> | null }) {
     const group = row.metadata?.group;
-    if (!row.debtId || typeof group !== 'string') return [row.id];
+    if (typeof group !== 'string') return [row.id];
     const t = transactions;
     return client
         .select({ id: t.id })
         .from(t)
-        .where(and(eq(t.debtId, row.debtId), sql`json_extract(${t.metadata}, '$.group') = ${group}`))
+        .where(and(eq(t.userId, row.userId), sql`json_extract(${t.metadata}, '$.group') = ${group}`))
         .all()
         .map((r) => r.id);
 }

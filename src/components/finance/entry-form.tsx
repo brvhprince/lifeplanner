@@ -116,8 +116,15 @@ export default function EntryForm({
                     required
                 />
             )}
-            {kind === 'transfer' && (
-                <Input label={`Fee${from ? ` (${from.currency})` : ''}`} name="fee" inputMode="decimal" placeholder="0.00" />
+            {kind !== 'income' && (
+                <Input
+                    label={`Charges${from ? ` (${from.currency})` : ''}`}
+                    name="fee"
+                    inputMode="decimal"
+                    placeholder="0.00"
+                    autoComplete="off"
+                    helpText="Optional: e.g. a MoMo or card fee. Taken from the same account and counted under Charges & fees."
+                />
             )}
 
             {kind !== 'transfer' && (

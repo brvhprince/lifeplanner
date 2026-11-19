@@ -13,7 +13,7 @@ import { ownsRecord } from '@/server/ownership';
 import { isIsoDate } from '@/lib/dates';
 import { ACCOUNT_TYPES } from '@/server/db/schema';
 import { deleteEntityFiles } from '@/server/files';
-import { debtState, getDebt, loanGroupIds, syncDebtStatus } from '@/server/finance/debts';
+import { debtState, entryGroupIds, feesCategory, getDebt, syncDebtStatus, type Tx } from '@/server/finance/debts';
 
 const { accounts, categories, transactions, transfers } = schema;
 
@@ -195,6 +195,41 @@ const entrySchema = z.object({
     personId: z.string().optional(),
 });
 
+/** Charges in minor units: 0 when empty, null when invalid. */
+function parseCharges(value: string | undefined, currency: string) {
+    if (!value) return 0;
+    const minor = toMinor(value, currency);
+    return minor === null || minor < 0 ? null : minor;
+}
+
+/** An expense entry for bank, card or mobile money charges on another entry. */
+function chargeEntry(tx: Tx, userId: string, accountId: string, amountMinor: number, title: string, occurredOn: string, group: string | null) {
+    return {
+        userId,
+        accountId,
+        kind: 'expense' as const,
+        amountMinor: -amountMinor,
+        categoryId: feesCategory(tx, userId),
+        title: `Charges: ${title}`,
+        occurredOn,
+        metadata: { ...(group ? { group } : {}), charge: true },
+    };
+}
+
+const isCharge = (row: { metadata: Record<string, unknown> | null }) => row.metadata?.charge === true;
+
+/** The charges entry recorded with an expense, if any. */
+function chargeOf(client: Tx | typeof db, row: typeof transactions.$inferSelect) {
+    const ids = entryGroupIds(client, row).filter((id) => id !== row.id);
+    if (!ids.length) return undefined;
+    return client
+        .select()
+        .from(transactions)
+        .where(inArray(transactions.id, ids))
+        .all()
+        .find(isCharge);
+}
+
 /** The person id if it belongs to the user, null when empty, undefined when invalid. */
 function ownedPerson(userId: string, personId: string | undefined) {
     if (!personId) return null;
@@ -235,20 +270,28 @@ export async function createEntry(_prev: ActionState, formData: FormData): Promi
     const personId = ownedPerson(user.id, input.personId);
     if (personId === undefined) return fieldError(formData, 'personId', 'Choose someone from your People');
 
+    const chargesMinor = input.kind === 'expense' ? parseCharges(input.fee, account.currency) : 0;
+    if (chargesMinor === null) return fieldError(formData, 'fee', 'Enter a valid amount for the charges');
+
     const title = input.title || (input.kind === 'income' ? 'Income' : 'Expense');
-    db.insert(transactions)
-        .values({
-            userId: user.id,
-            accountId: account.id,
-            kind: input.kind,
-            amountMinor: input.kind === 'expense' ? -amountMinor : amountMinor,
-            categoryId,
-            personId,
-            title,
-            note: input.note ?? null,
-            occurredOn: input.occurredOn,
-        })
-        .run();
+    db.transaction((tx) => {
+        const group = chargesMinor ? { group: crypto.randomUUID() } : null;
+        tx.insert(transactions)
+            .values({
+                userId: user.id,
+                accountId: account.id,
+                kind: input.kind,
+                amountMinor: input.kind === 'expense' ? -amountMinor : amountMinor,
+                categoryId,
+                personId,
+                title,
+                note: input.note ?? null,
+                occurredOn: input.occurredOn,
+                metadata: group,
+            })
+            .run();
+        if (group) tx.insert(transactions).values(chargeEntry(tx, user.id, account.id, chargesMinor, title, input.occurredOn, group.group)).run();
+    });
 
     refresh();
     return { ok: true, message: `${input.kind === 'income' ? 'Income' : 'Expense'} recorded${overdraftNote(user.id, account.id)}` };
@@ -276,8 +319,8 @@ function createTransfer(
         toAmountMinor = parsed;
     }
 
-    const feeMinor = input.fee ? toMinor(input.fee, from.currency) : 0;
-    if (feeMinor === null || feeMinor < 0) return fieldError(formData, 'fee', 'Enter a valid fee');
+    const feeMinor = parseCharges(input.fee, from.currency);
+    if (feeMinor === null) return fieldError(formData, 'fee', 'Enter a valid amount for the charges');
 
     const title = input.title || `Transfer to ${to.name}`;
 
@@ -301,10 +344,17 @@ function createTransfer(
         const leg = { userId, kind: 'transfer' as const, transferId: transfer.id, note: input.note ?? null, occurredOn: input.occurredOn };
         tx.insert(transactions)
             .values([
-                { ...leg, accountId: from.id, amountMinor: -(fromAmountMinor + feeMinor), title },
+                { ...leg, accountId: from.id, amountMinor: -fromAmountMinor, title },
                 { ...leg, accountId: to.id, amountMinor: toAmountMinor, title: input.title || `Transfer from ${from.name}` },
             ])
             .run();
+        // The charges count as spending, so they're an expense entry of their own
+        // (part of the transfer: reversed and deleted with it).
+        if (feeMinor) {
+            tx.insert(transactions)
+                .values({ ...chargeEntry(tx, userId, from.id, feeMinor, title, input.occurredOn, null), transferId: transfer.id, note: input.note ?? null })
+                .run();
+        }
     });
 
     refresh();
@@ -321,7 +371,7 @@ function loanRestoreProblem(userId: string, row: typeof transactions.$inferSelec
     const legs = db
         .select({ role: transactions.debtRole, amountMinor: transactions.amountMinor })
         .from(transactions)
-        .where(inArray(transactions.id, loanGroupIds(db, row)))
+        .where(inArray(transactions.id, entryGroupIds(db, row)))
         .all();
     const state = debtState(debt);
     if (legs.some((l) => l.role === 'disbursement') && state.disbursed) return 'restore-disbursement';
@@ -350,7 +400,7 @@ export async function setTransactionReversed(transactionId: string, reversed: bo
             tx.update(transfers).set({ status }).where(eq(transfers.id, row.transferId)).run();
             tx.update(transactions).set({ status }).where(eq(transactions.transferId, row.transferId)).run();
         } else {
-            tx.update(transactions).set({ status }).where(inArray(transactions.id, loanGroupIds(tx, row))).run();
+            tx.update(transactions).set({ status }).where(inArray(transactions.id, entryGroupIds(tx, row))).run();
             if (row.debtId) syncDebtStatus(user.id, row.debtId, tx);
         }
     });
@@ -433,6 +483,7 @@ export async function restoreCategory(categoryId: string) {
 }
 
 const entryUpdateSchema = z.object({
+    fee: z.string().trim().optional(),
     title: z.string().trim().min(1, 'Description is required').max(120),
     occurredOn: isoDate,
     note: optionalText(1000),
@@ -458,13 +509,23 @@ export async function updateEntry(transactionId: string, _prev: ActionState, for
         db.transaction((tx) => {
             tx.update(transactions)
                 .set({ occurredOn: input.occurredOn, note: input.note ?? null })
-                .where(inArray(transactions.id, loanGroupIds(tx, row)))
+                .where(inArray(transactions.id, entryGroupIds(tx, row)))
                 .run();
             tx.update(transactions).set({ title: input.title }).where(eq(transactions.id, row.id)).run();
             if (row.debtId) syncDebtStatus(user.id, row.debtId, tx);
         });
         refresh();
         return { ok: true, message: 'Entry updated' };
+    }
+
+    if (isCharge(row) && !row.transferId) {
+        // Charges follow their expense: amount and account are set there.
+        db.transaction((tx) => {
+            tx.update(transactions).set({ occurredOn: input.occurredOn }).where(inArray(transactions.id, entryGroupIds(tx, row))).run();
+            tx.update(transactions).set({ title: input.title, note: input.note ?? null }).where(eq(transactions.id, row.id)).run();
+        });
+        refresh();
+        return { ok: true, message: 'Charges updated' };
     }
 
     if (row.transferId) {
@@ -494,18 +555,39 @@ export async function updateEntry(transactionId: string, _prev: ActionState, for
     const personId = ownedPerson(user.id, input.personId);
     if (personId === undefined) return fieldError(formData, 'personId', 'Choose someone from your People');
 
-    db.update(transactions)
-        .set({
-            title: input.title,
-            occurredOn: input.occurredOn,
-            note: input.note ?? null,
-            accountId: account.id,
-            categoryId,
-            personId,
-            amountMinor: row.kind === 'expense' ? -amountMinor : amountMinor,
-        })
-        .where(eq(transactions.id, row.id))
-        .run();
+    const chargesMinor = row.kind === 'expense' ? parseCharges(input.fee, account.currency) : 0;
+    if (chargesMinor === null) return fieldError(formData, 'fee', 'Enter a valid amount for the charges');
+    const charge = chargeOf(db, row);
+    if (charge && !chargesMinor) await deleteEntityFiles(user.id, 'transaction', [charge.id]);
+
+    db.transaction((tx) => {
+        const group = typeof row.metadata?.group === 'string' ? row.metadata.group : chargesMinor ? crypto.randomUUID() : null;
+        tx.update(transactions)
+            .set({
+                title: input.title,
+                occurredOn: input.occurredOn,
+                note: input.note ?? null,
+                accountId: account.id,
+                categoryId,
+                personId,
+                amountMinor: row.kind === 'expense' ? -amountMinor : amountMinor,
+                metadata: group ? { ...row.metadata, group } : row.metadata,
+            })
+            .where(eq(transactions.id, row.id))
+            .run();
+        if (charge && chargesMinor) {
+            tx.update(transactions)
+                .set({ amountMinor: -chargesMinor, accountId: account.id, occurredOn: input.occurredOn })
+                .where(eq(transactions.id, charge.id))
+                .run();
+        } else if (charge) {
+            tx.delete(transactions).where(eq(transactions.id, charge.id)).run();
+        } else if (chargesMinor && group) {
+            tx.insert(transactions)
+                .values({ ...chargeEntry(tx, user.id, account.id, chargesMinor, input.title, input.occurredOn, group), status: row.status })
+                .run();
+        }
+    });
     refresh();
     return { ok: true, message: 'Entry updated' };
 }
@@ -517,7 +599,7 @@ export async function deleteEntry(transactionId: string) {
     if (row) {
         const legs = row.transferId
             ? db.select({ id: transactions.id }).from(transactions).where(eq(transactions.transferId, row.transferId)).all().map((l) => l.id)
-            : loanGroupIds(db, row);
+            : entryGroupIds(db, row);
         await deleteEntityFiles(user.id, 'transaction', legs);
         db.transaction((tx) => {
             if (row.transferId) tx.delete(transfers).where(eq(transfers.id, row.transferId)).run();
