@@ -60,8 +60,10 @@ function ownedAccount(userId: string, accountId: string) {
 // Accounts
 // ---------------------------------------------------------------------------
 
-/** Letters, digits, spaces and dashes, e.g. 1441 0012 3456 or 024-555-0198. */
-const accountNumber = optionalText(40).refine((v) => !v || /^[0-9A-Za-z][0-9A-Za-z -]*$/.test(v), 'Use letters, digits, spaces or dashes');
+/** Digits only; spaces and dashes typed for readability are dropped. */
+const accountNumber = optionalText(40)
+    .transform((v) => v?.replace(/[\s-]/g, '') || undefined)
+    .refine((v) => !v || /^\d+$/.test(v), 'Use digits only');
 
 const accountSchema = z.object({
     name: z.string().trim().min(1, 'Name is required').max(100),

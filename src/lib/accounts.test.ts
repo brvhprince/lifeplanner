@@ -4,7 +4,7 @@ import { accountLabel, maskAccountNumber } from './accounts.ts';
 
 test('maskAccountNumber keeps the last four letters or digits', () => {
     assert.equal(maskAccountNumber('1441 0012 3456 4821'), '•••• 4821');
-    assert.equal(maskAccountNumber('GH12-ABCD-99xy'), '•••• 99xy');
+    assert.equal(maskAccountNumber('0012345678901'), '•••• 8901');
     assert.equal(maskAccountNumber('024-555-0198'), '•••• 0198');
     assert.equal(maskAccountNumber('4821'), '4821');
     assert.equal(maskAccountNumber('  '), '');

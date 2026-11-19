@@ -24,6 +24,7 @@ export default function AccountForm({ currency }: { currency: string }) {
                 <Input
                     label="Account number"
                     name="accountNumber"
+                    inputMode="numeric"
                     placeholder="Optional"
                     maxLength={40}
                     autoComplete="off"

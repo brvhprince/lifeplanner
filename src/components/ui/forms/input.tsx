@@ -12,6 +12,16 @@ import useMaxlength from '@/utils/hooks/use-maxlength';
 import { BsDashCircleFill } from 'react-icons/bs';
 import { useFormField } from '@/components/ui/forms/action-form';
 import { fieldClass, FieldMessages } from '@/components/ui/forms/field-styles';
+import { sanitizeNumeric } from '@/lib/numeric-input';
+
+/** Removes characters a number-only field can't take, keeping the caret in place. */
+function keepNumeric(input: HTMLInputElement, mode: 'numeric' | 'decimal') {
+    const clean = sanitizeNumeric(input.value, mode);
+    if (clean === input.value) return;
+    const caret = sanitizeNumeric(input.value.slice(0, input.selectionStart ?? input.value.length), mode).length;
+    input.value = clean;
+    input.setSelectionRange(caret, caret);
+}
 
 type InputProps = React.DetailedHTMLProps<React.InputHTMLAttributes<HTMLInputElement>, HTMLInputElement> & {
     label: string;
@@ -27,6 +37,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
         const field = useFormField(props.name);
         const fieldError = error ?? field.error;
         const defaultValue = props.defaultValue ?? (type === 'password' ? undefined : field.value);
+        const numericMode = props.inputMode === 'decimal' || props.inputMode === 'numeric' ? props.inputMode : null;
 
         const { isLimitExceeded, isLimitReached, counter, isShowCounter, isWarning } = useMaxlength({
             maxLength: props.maxLength,
@@ -55,6 +66,10 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
                             required={required}
                             aria-invalid={fieldError ? true : undefined}
                             {...props}
+                            onInput={(e) => {
+                                if (numericMode) keepNumeric(e.currentTarget, numericMode);
+                                props.onInput?.(e);
+                            }}
                             defaultValue={defaultValue}
                             className={fieldClass(
                                 { error: fieldError, muted: props.disabled || props.readOnly },

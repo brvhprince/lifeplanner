@@ -14,6 +14,7 @@ import { getAccount, listAccounts, listCategories, listPeople, listTransactions 
 import { deleteAccount, makePrimaryAccount, setAccountArchived, updateAccount } from '@/server/finance/actions';
 import ConfirmButton from '@/components/ui/confirm-button';
 import CopyButton from '@/components/ui/copy-button';
+import { groupAccountNumber } from '@/lib/accounts';
 import { ActionForm, SubmitButton } from '@/components/ui/forms/action-form';
 import Input from '@/components/ui/forms/input';
 import Select from '@/components/ui/forms/select';
@@ -68,7 +69,7 @@ export default async function AccountPage({
                         {account.type} · {account.currency} · opened with {fromMinor(account.openingBalanceMinor, account.currency)}
                         {account.accountNumber && (
                             <span className="mt-1 flex flex-wrap items-center gap-2">
-                                <span className="font-mono tabular-nums text-heading-dark dark:text-heading-light">{account.accountNumber}</span>
+                                <span className="font-mono tabular-nums text-heading-dark dark:text-heading-light">{groupAccountNumber(account.accountNumber)}</span>
                                 <CopyButton text={account.accountNumber} label="Copy number" />
                             </span>
                         )}
@@ -132,6 +133,7 @@ export default async function AccountPage({
                                 <Input
                                     label="Account number"
                                     name="accountNumber"
+                                    inputMode="numeric"
                                     placeholder="Optional"
                                     maxLength={40}
                                     autoComplete="off"
