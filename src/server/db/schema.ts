@@ -181,6 +181,10 @@ export const accounts = sqliteTable(
         name: text('name').notNull(),
         description: text('description'),
         type: text('type', { enum: ACCOUNT_TYPES }).notNull(),
+        /** Bank or provider, e.g. GCB or MTN MoMo. */
+        institution: text('institution'),
+        /** Account, wallet or card number, to tell similar accounts apart. */
+        accountNumber: text('account_number'),
         currency: text('currency').notNull(),
         openingBalanceMinor: integer('opening_balance_minor').notNull().default(0),
         /** How far below zero the balance may go (e.g. MoMo Boost). 0 = no overdraft. */

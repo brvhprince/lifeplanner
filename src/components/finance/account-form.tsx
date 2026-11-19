@@ -19,6 +19,17 @@ export default function AccountForm({ currency }: { currency: string }) {
                 <Select label="Type" name="type" options={TYPE_OPTIONS} defaultValue="bank" />
                 <CurrencySelect label="Currency" name="currency" defaultValue={currency} />
             </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+                <Input label="Bank or provider" name="institution" placeholder="e.g. GCB, MTN MoMo" maxLength={100} />
+                <Input
+                    label="Account number"
+                    name="accountNumber"
+                    placeholder="Optional"
+                    maxLength={40}
+                    autoComplete="off"
+                    helpText="Lists show only the last 4 digits."
+                />
+            </div>
             <Input
                 label="Current balance"
                 name="openingBalance"

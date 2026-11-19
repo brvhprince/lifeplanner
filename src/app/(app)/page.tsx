@@ -3,6 +3,7 @@ import Link from '@/components/ui/link';
 import { Card, CardTitle, EmptyState, PageHeader } from '@/components/ui/card';
 import StatTile from '@/components/finance/stat-tile';
 import Money from '@/components/finance/money';
+import AccountMeta from '@/components/finance/account-meta';
 import OverdraftLine from '@/components/finance/overdraft-line';
 import EntryForm from '@/components/finance/entry-form';
 import AccountForm from '@/components/finance/account-form';
@@ -118,6 +119,7 @@ export default async function DashboardPage() {
                                             {a.isPrimary && ' · primary'}
                                         </div>
                                         <div className="truncate font-semibold text-heading-dark dark:text-heading-light">{a.name}</div>
+                                        <AccountMeta institution={a.institution} accountNumber={a.accountNumber} />
                                         <Money minor={a.balanceMinor} currency={a.currency} className="text-heading-4 font-bold" />
                                         <OverdraftLine balanceMinor={a.balanceMinor} overdraftLimitMinor={a.overdraftLimitMinor} currency={a.currency} />
                                     </Link>

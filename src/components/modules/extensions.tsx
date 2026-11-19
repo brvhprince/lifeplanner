@@ -1,4 +1,5 @@
 import { and, desc, eq, isNull, sql } from 'drizzle-orm';
+import { maskAccountNumber } from '@/lib/accounts';
 import { debtLedger, debtState, getDebt } from '@/server/finance/debts';
 import { HiOutlineTrash } from 'react-icons/hi2';
 import { Card, CardTitle, EmptyState } from '@/components/ui/card';
@@ -156,12 +157,15 @@ export function DebtPanel({ debtId, userId }: { debtId: string; userId: string }
 
     const a = schema.accounts;
     const accountOptions = db
-        .select({ id: a.id, name: a.name })
+        .select({ id: a.id, name: a.name, accountNumber: a.accountNumber })
         .from(a)
         .where(and(eq(a.userId, userId), eq(a.currency, currency), isNull(a.archivedAt)))
         .orderBy(desc(a.isPrimary), a.name)
         .all()
-        .map((x) => ({ value: x.id, label: x.name }));
+        .map((x) => {
+            const masked = maskAccountNumber(x.accountNumber);
+            return { value: x.id, label: masked ? `${x.name} · ${masked}` : x.name };
+        });
 
     const t = schema.transactions;
     const linkable =

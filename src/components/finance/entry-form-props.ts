@@ -7,7 +7,7 @@ export function entryFormProps(
     people: EntryFormPerson[] = []
 ): { accounts: EntryFormAccount[]; categories: EntryFormCategory[]; people: EntryFormPerson[] } {
     return {
-        accounts: accounts.map(({ id, name, currency, isPrimary }) => ({ id, name, currency, isPrimary })),
+        accounts: accounts.map(({ id, name, currency, isPrimary, accountNumber }) => ({ id, name, currency, isPrimary, accountNumber })),
         categories: categories.map(({ id, name, kind }) => ({ id, name, kind })),
         people: people.map(({ id, name }) => ({ id, name })),
     };

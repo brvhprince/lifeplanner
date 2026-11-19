@@ -60,6 +60,9 @@ function ownedAccount(userId: string, accountId: string) {
 // Accounts
 // ---------------------------------------------------------------------------
 
+/** Letters, digits, spaces and dashes, e.g. 1441 0012 3456 or 024-555-0198. */
+const accountNumber = optionalText(40).refine((v) => !v || /^[0-9A-Za-z][0-9A-Za-z -]*$/.test(v), 'Use letters, digits, spaces or dashes');
+
 const accountSchema = z.object({
     name: z.string().trim().min(1, 'Name is required').max(100),
     type: z.enum(ACCOUNT_TYPES, 'Choose an account type'),
@@ -67,6 +70,8 @@ const accountSchema = z.object({
     openingBalance: z.string().trim().default('0'),
     overdraftLimit: z.string().trim().default(''),
     description: optionalText(500),
+    institution: optionalText(100),
+    accountNumber: accountNumber,
     isPrimary: z.literal('on').optional(),
 });
 
@@ -418,6 +423,8 @@ const accountUpdateSchema = z.object({
     openingBalance: z.string().trim().default('0'),
     overdraftLimit: z.string().trim().default(''),
     description: optionalText(500),
+    institution: optionalText(100),
+    accountNumber: accountNumber,
 });
 
 export async function updateAccount(accountId: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
@@ -440,7 +447,14 @@ export async function updateAccount(accountId: string, _prev: ActionState, formD
     if (overdraftLimitMinor === null) return fieldError(formData, 'overdraftLimit', 'Enter a valid limit');
 
     db.update(accounts)
-        .set({ ...data, description: data.description ?? null, openingBalanceMinor, overdraftLimitMinor })
+        .set({
+            ...data,
+            description: data.description ?? null,
+            institution: data.institution ?? null,
+            accountNumber: data.accountNumber ?? null,
+            openingBalanceMinor,
+            overdraftLimitMinor,
+        })
         .where(eq(accounts.id, accountId))
         .run();
     refresh();
