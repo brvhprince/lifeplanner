@@ -531,7 +531,11 @@ export async function updateEntry(transactionId: string, _prev: ActionState, for
     if (row.transferId) {
         const shared = { occurredOn: input.occurredOn, note: input.note ?? null };
         db.transaction((tx) => {
-            tx.update(transfers).set({ ...shared, title: input.title }).where(eq(transfers.id, row.transferId!)).run();
+            // The charges entry has its own description; it doesn't rename the transfer.
+            tx.update(transfers)
+                .set(isCharge(row) ? shared : { ...shared, title: input.title })
+                .where(eq(transfers.id, row.transferId!))
+                .run();
             tx.update(transactions).set(shared).where(eq(transactions.transferId, row.transferId!)).run();
             tx.update(transactions).set({ title: input.title }).where(eq(transactions.id, row.id)).run();
         });
@@ -557,10 +561,8 @@ export async function updateEntry(transactionId: string, _prev: ActionState, for
 
     const chargesMinor = row.kind === 'expense' ? parseCharges(input.fee, account.currency) : 0;
     if (chargesMinor === null) return fieldError(formData, 'fee', 'Enter a valid amount for the charges');
-    const charge = chargeOf(db, row);
-    if (charge && !chargesMinor) await deleteEntityFiles(user.id, 'transaction', [charge.id]);
-
-    db.transaction((tx) => {
+    const removedCharge = db.transaction((tx) => {
+        const charge = chargeOf(tx, row);
         const group = typeof row.metadata?.group === 'string' ? row.metadata.group : chargesMinor ? crypto.randomUUID() : null;
         tx.update(transactions)
             .set({
@@ -582,12 +584,16 @@ export async function updateEntry(transactionId: string, _prev: ActionState, for
                 .run();
         } else if (charge) {
             tx.delete(transactions).where(eq(transactions.id, charge.id)).run();
+            return charge.id;
         } else if (chargesMinor && group) {
             tx.insert(transactions)
                 .values({ ...chargeEntry(tx, user.id, account.id, chargesMinor, input.title, input.occurredOn, group), status: row.status })
                 .run();
         }
+        return null;
     });
+    // Receipts of removed charges, once their entry is gone.
+    if (removedCharge) await deleteEntityFiles(user.id, 'transaction', [removedCharge]);
     refresh();
     return { ok: true, message: 'Entry updated' };
 }
@@ -597,15 +603,18 @@ export async function deleteEntry(transactionId: string) {
     const user = await requireUser();
     const row = db.select().from(transactions).where(and(eq(transactions.id, transactionId), eq(transactions.userId, user.id))).get();
     if (row) {
-        const legs = row.transferId
-            ? db.select({ id: transactions.id }).from(transactions).where(eq(transactions.transferId, row.transferId)).all().map((l) => l.id)
-            : entryGroupIds(db, row);
-        await deleteEntityFiles(user.id, 'transaction', legs);
-        db.transaction((tx) => {
+        // Everything recorded with the entry is found and deleted in one
+        // transaction; their receipts are removed afterwards.
+        const legs = db.transaction((tx) => {
+            const ids = row.transferId
+                ? tx.select({ id: transactions.id }).from(transactions).where(eq(transactions.transferId, row.transferId)).all().map((l) => l.id)
+                : entryGroupIds(tx, row);
             if (row.transferId) tx.delete(transfers).where(eq(transfers.id, row.transferId)).run();
-            else tx.delete(transactions).where(inArray(transactions.id, legs)).run();
+            else tx.delete(transactions).where(inArray(transactions.id, ids)).run();
             if (row.debtId) syncDebtStatus(user.id, row.debtId, tx);
+            return ids;
         });
+        await deleteEntityFiles(user.id, 'transaction', legs);
     }
     refresh();
     redirect('/transactions');

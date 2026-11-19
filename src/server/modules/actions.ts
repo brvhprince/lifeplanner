@@ -359,7 +359,7 @@ export async function linkDebtTransaction(debtId: string, _prev: ActionState, fo
     const t = schema.transactions;
     const row = db.select().from(t).where(and(eq(t.id, String(formData.get('transactionId') ?? '')), eq(t.userId, user.id))).get();
     const expectedKind = debt.direction === 'owed' ? 'income' : 'expense';
-    if (!row || row.debtId || row.kind !== expectedKind || row.status !== 'active') {
+    if (!row || row.debtId || row.transferId || row.metadata?.charge === true || row.kind !== expectedKind || row.status !== 'active') {
         return { error: 'Choose a transaction to link', fieldErrors: { transactionId: 'Choose a transaction' } };
     }
     const { account, error } = loanAccount(user.id, row.accountId, debt.currency);
@@ -370,7 +370,8 @@ export async function linkDebtTransaction(debtId: string, _prev: ActionState, fo
     // principal + fee so the account balance stays the same.
     const splitFee = debt.direction === 'owed' && debt.upfrontFeeMinor > 0 && row.amountMinor === principal - debt.upfrontFeeMinor;
 
-    const group = { ...(row.metadata ?? {}), group: crypto.randomUUID() };
+    // Reuse the entry's group so its charges stay with it (reversed and deleted together).
+    const group = { ...(row.metadata ?? {}), group: typeof row.metadata?.group === 'string' ? row.metadata.group : crypto.randomUUID() };
     db.transaction((tx) => {
         tx.update(t)
             .set({
